@@ -44,6 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Are you sure you want to quit?", QtWidgets.QMessageBox.Close | QtWidgets.QMessageBox.Cancel)
 
         if reply == QtWidgets.QMessageBox.Close:
+            self.Setup.shutdown()
             event.accept()
         else:
             event.ignore()
