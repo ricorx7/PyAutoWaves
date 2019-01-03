@@ -2,3 +2,4 @@ pyqt5
 pyinstaller
 pytest
 pyserial
+humanize

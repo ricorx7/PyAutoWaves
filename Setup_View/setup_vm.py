@@ -4,6 +4,9 @@ import rti_python.Comm.adcp_serial_port as adcp_serial
 import threading
 import time
 import serial
+import logging
+import rti_python.Utilities.logger as RtiLogging
+import rti_python.Writer.rti_binary as RtiBinaryWriter
 
 
 class SetupVM(setup_view.Ui_Setup, QWidget):
@@ -17,9 +20,14 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.setupUi(self)
         self.parent = parent
 
+        # Setup the logging
+        RtiLogging.RtiLogger()
+
         self.adcp = None
         self.adcp_thread = None
         self.adcp_thread_alive = False
+
+        self.serial_recorder = None
 
         self.MAX_SERIAL_CONSOLE_LEN = 5000
 
@@ -30,7 +38,6 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         Initialize the display.
         :return:
         """
-
         # Set the serial port list and baud list
         self.update_serial_list()
         self.serialPortComboBox.setToolTip("If no serial ports are list, make sure it is available and click the scan button to update the serial port list.")
@@ -49,6 +56,7 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.sendCmdPushButton.clicked.connect(self.send_cmd)
         self.startPingPushButton.clicked.connect(self.start_pinging)
         self.stopPingPushButton.clicked.connect(self.stop_pinging)
+        self.recordPushButton.clicked.connect(self.turn_on_off_record)
 
     def update_serial_list(self):
         """
@@ -72,22 +80,25 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         """
         port = self.serialPortComboBox.currentText()
         baud = int(self.baudComboBox.currentText())
-        print("Serial Connect: " + port + " : " + self.baudComboBox.currentText())
+        logging.debug("Serial Connect: " + port + " : " + self.baudComboBox.currentText())
         self.serialTextBrowser.append("Serial Connect: " + port + " : " + self.baudComboBox.currentText())
 
         try:
             self.adcp = adcp_serial.AdcpSerialPort(port, baud)
-            self.adcp.connect()
         except ValueError as ve:
             self.serialTextBrowser.append("Error opening serial port. " + str(ve))
+            logging.error("Error opening serial port. " + str(ve))
             return
         except serial.SerialException as se:
             self.serialTextBrowser.append("Error opening serial port. " + str(se))
+            logging.error("Error opening serial port. " + str(se))
             return
         except Exception as e:
             self.serialTextBrowser.append("Error opening serial port. " + str(e))
+            logging.error("Error opening serial port. " + str(e))
             return
 
+        # Start the read thread
         self.adcp_thread_alive = True
         self.adcp_thread = threading.Thread(target=thread_worker, args=(self,))
         self.adcp_thread.start()
@@ -115,35 +126,69 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.serialPortComboBox.setDisabled(False)
         self.scanSerialPushButton.setDisabled(False)
         self.serialTextBrowser.append("Serial Disconnect.")
+        logging.debug("Serial Disconnect")
 
     def serial_break(self):
+        """
+        Send a BREAK to the serial port.
+        :return:
+        """
         # Clear the display
         self.serialTextBrowser.setPlainText("")
 
+        # Send a BREAK
         if self.adcp:
             self.adcp.send_break(1.5)
+            logging.debug("BREAK SENT")
 
     def send_cmd(self):
+        """
+        Send a command to the ADCP.
+        :return:
+        """
         if self.adcp:
             if len(self.cmdLineEdit.text()) > 0:
                 self.adcp.send_cmd(self.cmdLineEdit.text())
-                print("Write to serial port: " + self.cmdLineEdit.text())
+                logging.debug("Write to serial port: " + self.cmdLineEdit.text())
 
                 # Clear the text
                 self.cmdLineEdit.setText("")
 
     def start_pinging(self):
+        """
+        Send the command to start pinging.
+        :return:
+        """
         if self.adcp:
             self.adcp.start_pinging()
+            logging.debug("Start Pinging")
 
     def stop_pinging(self):
+        """
+        Send the command to stop pinging.
+        :return:
+        """
         if self.adcp:
+            self.serialTextBrowser.setHtml("")
             self.adcp.stop_pinging()
+            logging.debug("Stop Pinging")
 
     def shutdown(self):
+        """
+        Shutdown the VM.
+        :return:
+        """
+        logging.debug("Shutdown VM")
         self.disconnect_serial()
 
+        if self.serial_recorder:
+            self.serial_recorder.close()
+
     def serial_text_changed(self):
+        """
+        Eventhandler when the serial console is updated.
+        :return:
+        """
         serial_text = self.serialTextBrowser.toHtml()
 
         # Remove the excess characters
@@ -157,25 +202,58 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
 
         # Change the ACK to colored ACK
         if str(chr(6)) in serial_text:
-            serial_text = serial_text.replace(str(chr(6)), '<span style="background-color: #339cff"> ACK</span>')
+            serial_text = serial_text.replace(str(chr(6)), '<span style="background-color: #339cff">ACK</span>')
             self.set_serial_text(serial_text)
 
         # Change the NCK to colored NCK
         if str(chr(21)) in serial_text:
-            serial_text = serial_text.replace(str(chr(21)), '<span style="background-color: red"> NCK</span>')
+            serial_text = serial_text.replace(str(chr(21)), '<span style="background-color: red">NCK</span>')
+            serial_text = serial_text + '<span style="background-color: red">Bad Command</span>'
             self.set_serial_text(serial_text)
 
-
     def set_serial_text(self, txt):
+        """
+        Set the text to the serial console display.  This will block the signal
+        from calling the event handler of the update.  That way the display will
+        not recursively call itself and also not process the text.
+        :param txt: Text to display
+        :return:
+        """
         self.serialTextBrowser.blockSignals(True)  # Prevent this from being called again
         self.serialTextBrowser.setHtml(txt)
         self.serialTextBrowser.blockSignals(False)
 
+    def turn_on_off_record(self):
+        if self.recordPushButton.isChecked():
+            self.serial_recorder = RtiBinaryWriter.RtiBinaryWriter()
+            logging.debug("Start Recording")
+        else:
+            if self.serial_recorder:
+                self.serial_recorder.close()
+                logging.debug("Stop Recording")
+            self.serial_recorder = None
+
+    def record_data(self, data):
+        if self.serial_recorder:
+            self.serial_recorder.write(data)
+            self.bytesWrittenLabel.setText(self.serial_recorder.get_bytes_written())
 
 
 def thread_worker(vm):
+    """
+    Thread worker to handle reading the serial port.
+    :param vm: This VM to get access to the variables.
+    :return:
+    """
     while vm.adcp_thread_alive:
         if vm.adcp.raw_serial.in_waiting:
+            # Read the data from the serial port
             data = vm.adcp.read(vm.adcp.raw_serial.in_waiting).decode('ascii')
+
+            # Display the serial data
             vm.serialTextBrowser.append(data)
+
+            # Record data if turned on
+            vm.record_data(data)
+
         time.sleep(0.01)
