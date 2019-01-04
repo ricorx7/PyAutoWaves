@@ -1,9 +1,9 @@
 import sys
 
-from PyQt5 import QtGui, QtWidgets
-
-#from PredictR_view.predictor_vm import PredictorVM
+from PyQt5 import QtGui, QtWidgets, QtCore
 from Setup_View.setup_vm import SetupVM
+from Terminal_View.terminal_vm import TerminalVM
+from Monitor_View.monitor_vm import MonitorVM
 # import qdarkstyle
 # import images_qr
 
@@ -16,8 +16,29 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, config=None):
         QtWidgets.QMainWindow.__init__(self)
 
-        # Initialize the pages
+        # Initialize Monitor
+        self.Monitor = MonitorVM(self)
+        docked_monitor = QtWidgets.QDockWidget("Monitor", self)
+        docked_monitor.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        docked_monitor.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
+        docked_monitor.setWidget(self.Monitor)
+        self.addDockWidget(QtCore.Qt.TopDockWidgetArea, docked_monitor)
+
+        # Initialize the Setup
         self.Setup = SetupVM(self)
+        docked_setup = QtWidgets.QDockWidget("Setup", self)
+        docked_setup.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        docked_setup.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
+        docked_setup.setWidget(self.Setup)
+        self.addDockWidget(QtCore.Qt.TopDockWidgetArea, docked_setup)
+
+        # Initialize Terminal
+        self.Terminal = TerminalVM(self)
+        docked_terminal = QtWidgets.QDockWidget("Terminal", self)
+        docked_terminal.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        docked_terminal.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
+        docked_terminal.setWidget(self.Terminal)
+        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, docked_terminal)
 
         # Initialize the window
         self.main_window_init()
@@ -28,7 +49,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowIcon(QtGui.QIcon(":rti.ico"))
 
-        self.resize(650,480)
+        self.resize(820, 400)
 
         # Show the main window
         self.show()
@@ -45,6 +66,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if reply == QtWidgets.QMessageBox.Close:
             self.Setup.shutdown()
+            self.Terminal.shutdown()
             event.accept()
         else:
             event.ignore()

@@ -1,16 +1,16 @@
 from PyQt5.QtWidgets import QWidget
-from . import setup_view
+from . import monitor_view
 import logging
 import rti_python.Utilities.logger as RtiLogging
 
 
-class SetupVM(setup_view.Ui_Setup, QWidget):
+class MonitorVM(monitor_view.Ui_Monitor, QWidget):
     """
     Setup a view to monitor for waves data and covert it to MATLAB format for WaveForce AutoWaves.
     """
 
     def __init__(self, parent):
-        setup_view.Ui_Setup.__init__(self)
+        monitor_view.Ui_Monitor.__init__(self)
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.parent = parent
@@ -31,5 +31,9 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         Shutdown the VM.
         :return:
         """
-        logging.debug("Setup Shutdown VM")
+        logging.debug("Shutdown VM")
+        self.disconnect_serial()
+
+        if self.serial_recorder:
+            self.serial_recorder.close()
 

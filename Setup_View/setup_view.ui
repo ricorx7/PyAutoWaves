@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>650</width>
-    <height>437</height>
+    <width>214</width>
+    <height>70</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,223 +19,35 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QWidget" name="gridLayoutWidget">
+  <widget class="QWidget" name="formLayoutWidget">
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>10</y>
-     <width>631</width>
-     <height>411</height>
+     <y>0</y>
+     <width>211</width>
+     <height>61</height>
     </rect>
    </property>
-   <layout class="QHBoxLayout" name="horizontalLayout_3">
-    <item>
-     <widget class="QTabWidget" name="tabWidget">
-      <property name="currentIndex">
-       <number>1</number>
+   <layout class="QFormLayout" name="formLayout">
+    <item row="0" column="0">
+     <widget class="QLabel" name="numBurstEnsLabel">
+      <property name="text">
+       <string>Number of Ensembles in Burst</string>
       </property>
-      <widget class="QWidget" name="monitorTab">
-       <attribute name="title">
-        <string>Monitor</string>
-       </attribute>
-       <widget class="QWidget" name="verticalLayoutWidget">
-        <property name="geometry">
-         <rect>
-          <x>0</x>
-          <y>10</y>
-          <width>621</width>
-          <height>71</height>
-         </rect>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout">
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_2">
-           <item>
-            <widget class="QLabel" name="numEnsLabel">
-             <property name="text">
-              <string>Ensemble Count: </string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label">
-             <property name="text">
-              <string>23</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QProgressBar" name="progressBar">
-             <property name="value">
-              <number>24</number>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </widget>
-      </widget>
-      <widget class="QWidget" name="terminalTab">
-       <attribute name="title">
-        <string>Terminal</string>
-       </attribute>
-       <widget class="QWidget" name="horizontalLayoutWidget">
-        <property name="geometry">
-         <rect>
-          <x>0</x>
-          <y>0</y>
-          <width>503</width>
-          <height>227</height>
-         </rect>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <layout class="QFormLayout" name="formLayout_3">
-           <item row="0" column="0">
-            <widget class="QComboBox" name="serialPortComboBox"/>
-           </item>
-           <item row="0" column="1">
-            <widget class="QPushButton" name="scanSerialPushButton">
-             <property name="text">
-              <string>SCAN</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0" colspan="2">
-            <widget class="QComboBox" name="baudComboBox"/>
-           </item>
-           <item row="2" column="0" colspan="2">
-            <widget class="QPushButton" name="serialConnectPushButton">
-             <property name="text">
-              <string>CONNECT</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0" colspan="2">
-            <widget class="QPushButton" name="serialDisconnectPushButton">
-             <property name="text">
-              <string>DISCONNECT</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout_8">
-           <item>
-            <widget class="QTextBrowser" name="serialTextBrowser"/>
-           </item>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_4">
-             <item>
-              <widget class="QLineEdit" name="cmdLineEdit"/>
-             </item>
-             <item>
-              <widget class="QPushButton" name="sendCmdPushButton">
-               <property name="text">
-                <string>SEND</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QVBoxLayout" name="verticalLayout_3">
-           <item>
-            <layout class="QFormLayout" name="formLayout_2">
-             <item row="0" column="0" colspan="2">
-              <widget class="QPushButton" name="startPingPushButton">
-               <property name="text">
-                <string>START PING</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0" colspan="2">
-              <widget class="QPushButton" name="stopPingPushButton">
-               <property name="text">
-                <string>STOP PING</string>
-               </property>
-              </widget>
-             </item>
-             <item row="2" column="0" colspan="2">
-              <widget class="QPushButton" name="breakPushButton">
-               <property name="text">
-                <string>BREAK</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <layout class="QGridLayout" name="gridLayout">
-             <item row="0" column="0">
-              <widget class="QPushButton" name="recordPushButton">
-               <property name="text">
-                <string>RECORD</string>
-               </property>
-               <property name="checkable">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="bytesWrittenLabel">
-               <property name="text">
-                <string/>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignCenter</set>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </widget>
-      </widget>
-      <widget class="QWidget" name="setupTab">
-       <attribute name="title">
-        <string>Setup</string>
-       </attribute>
-       <widget class="QWidget" name="formLayoutWidget">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>10</y>
-          <width>561</width>
-          <height>161</height>
-         </rect>
-        </property>
-        <layout class="QFormLayout" name="formLayout">
-         <item row="0" column="0">
-          <widget class="QLabel" name="numBurstEnsLabel">
-           <property name="text">
-            <string>Number of Ensembles in Burst</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QSpinBox" name="numBurstEnsSpinBox"/>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="storagePathLabel">
-           <property name="text">
-            <string>Storage Path</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="storagePathLineEdit"/>
-         </item>
-        </layout>
-       </widget>
-      </widget>
      </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QSpinBox" name="numBurstEnsSpinBox"/>
+    </item>
+    <item row="1" column="0">
+     <widget class="QLabel" name="storagePathLabel">
+      <property name="text">
+       <string>Storage Path</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="1">
+     <widget class="QLineEdit" name="storagePathLineEdit"/>
     </item>
    </layout>
   </widget>
