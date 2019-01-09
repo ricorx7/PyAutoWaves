@@ -4,6 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 from Setup_View.setup_vm import SetupVM
 from Terminal_View.terminal_vm import TerminalVM
 from Monitor_View.monitor_vm import MonitorVM
+import autowaves_manger
 # import qdarkstyle
 # import images_qr
 
@@ -40,6 +41,9 @@ class MainWindow(QtWidgets.QMainWindow):
         docked_terminal.setWidget(self.Terminal)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, docked_terminal)
 
+        # Add the displays to the manager to monitor all the data
+        self.AutoWavesManager = autowaves_manger.AutoWavesManager(self.Terminal, self.Setup, self.Monitor)
+
         # Initialize the window
         self.main_window_init()
 
@@ -49,7 +53,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowIcon(QtGui.QIcon(":rti.ico"))
 
-        self.resize(820, 400)
+        self.resize(820, 420)
 
         # Show the main window
         self.show()

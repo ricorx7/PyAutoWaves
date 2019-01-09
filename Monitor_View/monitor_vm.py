@@ -25,6 +25,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         Initialize the display.
         :return:
         """
+        self.progressBar.setValue(0)
 
     def shutdown(self):
         """

@@ -11,10 +11,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Terminal(object):
     def setupUi(self, Terminal):
         Terminal.setObjectName("Terminal")
-        Terminal.resize(816, 283)
-        Terminal.setMinimumSize(QtCore.QSize(0, 283))
+        Terminal.resize(840, 300)
+        Terminal.setMinimumSize(QtCore.QSize(0, 300))
         self.horizontalLayoutWidget = QtWidgets.QWidget(Terminal)
-        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(0, 0, 811, 281))
+        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 811, 281))
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
@@ -49,6 +49,9 @@ class Ui_Terminal(object):
         self.cmdLineEdit.setObjectName("cmdLineEdit")
         self.horizontalLayout_4.addWidget(self.cmdLineEdit)
         self.sendCmdPushButton = QtWidgets.QPushButton(self.horizontalLayoutWidget)
+        self.sendCmdPushButton.setAutoDefault(True)
+        self.sendCmdPushButton.setDefault(True)
+        self.sendCmdPushButton.setFlat(False)
         self.sendCmdPushButton.setObjectName("sendCmdPushButton")
         self.horizontalLayout_4.addWidget(self.sendCmdPushButton)
         self.verticalLayout_8.addLayout(self.horizontalLayout_4)

@@ -3,3 +3,6 @@ pyinstaller
 pytest
 pyserial
 humanize
+obsub
+pandas
+pynmea2

@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QFileDialog
 from . import setup_view
 import logging
 import rti_python.Utilities.logger as RtiLogging
@@ -25,6 +25,22 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         Initialize the display.
         :return:
         """
+        self.storagePathLineEdit.setText("C:\RTI_Capture")
+        self.numBurstEnsSpinBox.setValue(2048)
+        self.selectFolderPushButton.clicked.connect(self.select_folder)
+        self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
+
+    def get_storage_path(self):
+        """
+        :return: The storage path to record the data.
+        """
+        return self.storagePathLineEdit.text()
+
+    def get_num_ens_per_burst(self):
+        """
+        :return: Number of ensembles per burst.
+        """
+        return self.numBurstEnsSpinBox.value()
 
     def shutdown(self):
         """
@@ -32,4 +48,16 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         :return:
         """
         logging.debug("Setup Shutdown VM")
+
+    def select_folder(self):
+        """
+        Open a dialog to select a folder.
+        :return:
+        """
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        folderPath = QFileDialog.getExistingDirectory(self, "Select an Output Directory")
+
+        self.storagePathLineEdit.setText(folderPath)
+        self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
 

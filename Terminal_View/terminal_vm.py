@@ -7,6 +7,7 @@ import threading
 import time
 import serial
 import logging
+from obsub import event
 
 
 class TerminalVM(terminal_view.Ui_Terminal, QWidget):
@@ -29,7 +30,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
 
         self.serial_recorder = None
 
-        self.MAX_SERIAL_CONSOLE_LEN = 5000
+        self.MAX_SERIAL_CONSOLE_LEN = 9000
 
         self.init_display()
 
@@ -141,7 +142,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
 
         # Send a BREAK
         if self.adcp:
-            self.adcp.send_break(1.5)
+            self.adcp.send_break(1.25)
             logging.debug("BREAK SENT")
 
     def send_cmd(self):
@@ -254,6 +255,15 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
             logging.debug("Write to serial port: " + cmd)
             time.sleep(0.25)
 
+    @event
+    def on_serial_data(self, data):
+        """
+        Subscribe to receive serial data.
+        :param data: Data from the serial port.
+        :return:
+        """
+        logging.debug("Data Received")
+
 
 def thread_worker(vm):
     """
@@ -271,5 +281,8 @@ def thread_worker(vm):
 
             # Record data if turned on
             vm.record_data(data)
+
+            # Publish the data
+            vm.on_serial_data(data)
 
         time.sleep(0.01)
