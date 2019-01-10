@@ -21,5 +21,6 @@ class AutoWavesManager():
         # Pass the data to codec to decode
         self.adcp_codec.add(data)
 
-    def ensemble_rcv(self, ens):
-        self.monitor_vm.progressBar.setValue(self.monitor_vm.progressBar.value() + 1)
+    def ensemble_rcv(self, sender, ens):
+        #self.monitor_vm.progressBar.setValue(self.monitor_vm.progressBar.value() + 1)
+        logging.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))

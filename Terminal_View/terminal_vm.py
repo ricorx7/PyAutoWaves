@@ -67,6 +67,10 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         Ste the serial ports to the list.
         :return:
         """
+        # Clear the current list
+        self.serialPortComboBox.clear()
+
+        # Add all the found serial ports
         for port in adcp_serial.get_serial_ports():
             self.serialPortComboBox.addItem(port)
 
@@ -274,10 +278,17 @@ def thread_worker(vm):
     while vm.adcp_thread_alive:
         if vm.adcp.raw_serial.in_waiting:
             # Read the data from the serial port
-            data = vm.adcp.read(vm.adcp.raw_serial.in_waiting).decode('ascii')
+            data = vm.adcp.read(vm.adcp.raw_serial.in_waiting)
+
+            ascii_data = str(data)
+            try:
+                ascii_data = data.decode()
+            except Exception:
+                # Do nothing
+                pass
 
             # Display the serial data
-            vm.serialTextBrowser.append(data)
+            vm.serialTextBrowser.append(ascii_data)
 
             # Record data if turned on
             vm.record_data(data)
