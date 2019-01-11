@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import QThread, pyqtSlot, QObject, pyqtSignal
 from . import terminal_view
 import rti_python.Comm.adcp_serial_port as adcp_serial
 import rti_python.Utilities.logger as RtiLogging
@@ -10,10 +11,29 @@ import logging
 from obsub import event
 
 
+class adcpThread(QObject):
+
+    console_data = pyqtSignal(bytes)
+
+    def __init__(self, parent=None, **kwargs):
+        super().__init__(parent, **kwargs)
+
+    @pyqtSlot()
+    def start(self):
+        print("Thread started")
+
+    @pyqtSlot(str)
+    def read_adcp(self, data):
+        print(data)
+        self.console_data.emit(data)
+
+
 class TerminalVM(terminal_view.Ui_Terminal, QWidget):
     """
     Setup a view to monitor for waves data and covert it to MATLAB format for WaveForce AutoWaves.
     """
+
+    display_console_data_changed = pyqtSignal(str)
 
     def __init__(self, parent):
         terminal_view.Ui_Terminal.__init__(self)
@@ -27,6 +47,15 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         self.adcp = None
         self.adcp_thread = None
         self.adcp_thread_alive = False
+
+        #self.console_thread = QThread()
+        #self.console_thread = adcpThread()
+        #self.console_thread.started.connect(self.console_thread.start)
+        #self.console_thread.result.connect(self.display_console)
+        #self.display_console_data.connect(self.console_thread.read_adcp)
+        #qApp.aboutToQuit.Connect(self.console_thread.quit)
+        #self.console_thread.start()
+        self.display_console_data_changed.connect(self.display_console)
 
         self.serial_recorder = None
 
@@ -46,7 +75,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         self.update_baud_rate_list()
         self.baudComboBox.setCurrentText("115200")
         self.baudComboBox.setToolTip("The default baud rate is 115200.")
-        self.serialTextBrowser.ensureCursorVisible()
+        #self.serialTextBrowser.ensureCursorVisible()
         self.serialTextBrowser.textChanged.connect(self.serial_text_changed)
 
         # Setup buttons
@@ -268,6 +297,10 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         """
         logging.debug("Data Received")
 
+    @pyqtSlot(str)
+    def display_console(self, data):
+        self.set_serial_text(data)
+
 
 def thread_worker(vm):
     """
@@ -283,12 +316,14 @@ def thread_worker(vm):
             ascii_data = str(data)
             try:
                 ascii_data = data.decode()
+                vm.display_console_data_changed.emit(ascii_data)
             except Exception:
                 # Do nothing
-                pass
+                vm.display_console_data_changed.emit(str(data))
 
             # Display the serial data
-            vm.serialTextBrowser.append(ascii_data)
+            #vm.serialTextBrowser.append(ascii_data)
+            logging.debug(ascii_data)
 
             # Record data if turned on
             vm.record_data(data)
