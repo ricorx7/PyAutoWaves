@@ -11,7 +11,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
     """
 
     # Create signal for value changed
-    increment_value = pyqtSignal()
+    increment_value = pyqtSignal(int)
 
     def __init__(self, parent):
         monitor_view.Ui_Monitor.__init__(self)
@@ -23,6 +23,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         RtiLogging.RtiLogger()
 
         self.ens_count = 0
+        self.increment_value.connect(self.increment_progress)       # Connect signal and slot
 
         self.init_display()
 
@@ -48,6 +49,11 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
 
     @pyqtSlot(int)
     def increment_progress(self, max_count):
+        """
+        Update the GUI on another thread.
+        :param max_count:
+        :return:
+        """
         self.ens_count += 1
         percentage = (self.ens_count / max_count) * 100
         self.numEnsLabel.setText(str(self.ens_count))

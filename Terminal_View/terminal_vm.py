@@ -11,28 +11,12 @@ import logging
 from obsub import event
 
 
-class adcpThread(QObject):
-
-    console_data = pyqtSignal(bytes)
-
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent, **kwargs)
-
-    @pyqtSlot()
-    def start(self):
-        print("Thread started")
-
-    @pyqtSlot(str)
-    def read_adcp(self, data):
-        print(data)
-        self.console_data.emit(data)
-
-
 class TerminalVM(terminal_view.Ui_Terminal, QWidget):
     """
     Setup a view to monitor for waves data and covert it to MATLAB format for WaveForce AutoWaves.
     """
 
+    # Create a signal to update the GUI on another thread
     display_console_data_changed = pyqtSignal(str)
 
     def __init__(self, parent):
@@ -48,13 +32,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         self.adcp_thread = None
         self.adcp_thread_alive = False
 
-        #self.console_thread = QThread()
-        #self.console_thread = adcpThread()
-        #self.console_thread.started.connect(self.console_thread.start)
-        #self.console_thread.result.connect(self.display_console)
-        #self.display_console_data.connect(self.console_thread.read_adcp)
-        #qApp.aboutToQuit.Connect(self.console_thread.quit)
-        #self.console_thread.start()
+        # Connect signal and slot for multithread updating GUI
         self.display_console_data_changed.connect(self.display_console)
 
         self.serial_recorder = None
@@ -299,6 +277,11 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
 
     @pyqtSlot(str)
     def display_console(self, data):
+        """
+        Create a slot to update the GUI on another thread.
+        :param data:
+        :return:
+        """
         self.set_serial_text(data)
 
 
@@ -316,10 +299,10 @@ def thread_worker(vm):
             ascii_data = str(data)
             try:
                 ascii_data = data.decode()
-                vm.display_console_data_changed.emit(ascii_data)
+                vm.display_console_data_changed.emit(ascii_data)        # Emit signal
             except Exception:
                 # Do nothing
-                vm.display_console_data_changed.emit(str(data))
+                vm.display_console_data_changed.emit(str(data))         # Emit signal
 
             # Display the serial data
             #vm.serialTextBrowser.append(ascii_data)

@@ -22,5 +22,6 @@ class AutoWavesManager():
         self.adcp_codec.add(data)
 
     def ensemble_rcv(self, sender, ens):
-        self.monitor_vm.increment_progress(self.setup_vm.numBurstEnsSpinBox.value())
+        #self.monitor_vm.increment_progress(self.setup_vm.numBurstEnsSpinBox.value())
+        self.monitor_vm.increment_value.emit(self.setup_vm.numBurstEnsSpinBox.value())      # Emit signal
         logging.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
