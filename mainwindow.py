@@ -4,6 +4,7 @@ from Setup_View.setup_vm import SetupVM
 from Terminal_View.terminal_vm import TerminalVM
 from Monitor_View.monitor_vm import MonitorVM
 import rti_python.Utilities.logger as RtiLogging
+import logging
 import autowaves_manger
 # import qdarkstyle
 # import images_qr
@@ -18,7 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
 
         # Setup the logging
-        RtiLogging.RtiLogger()
+        RtiLogging.RtiLogger(log_level=logging.DEBUG)
 
         # Initialize Monitor
         self.Monitor = MonitorVM(self)
@@ -82,7 +83,6 @@ class MainWindow(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Mac")
-
     #app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     MainWindow()
     sys.exit(app.exec_())
