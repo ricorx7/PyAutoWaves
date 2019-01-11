@@ -24,25 +24,25 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout"/>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>10</y>
-     <width>211</width>
+     <width>218</width>
      <height>69</height>
     </rect>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_2">
     <item>
-     <widget class="QLabel" name="numEnsLabel">
+     <widget class="QLabel" name="label_2">
       <property name="text">
        <string>Ensemble Count: </string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="numEnsLabel">
       <property name="text">
        <string>23</string>
       </property>

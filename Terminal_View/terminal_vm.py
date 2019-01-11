@@ -2,7 +2,6 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import QThread, pyqtSlot, QObject, pyqtSignal
 from . import terminal_view
 import rti_python.Comm.adcp_serial_port as adcp_serial
-import rti_python.Utilities.logger as RtiLogging
 import rti_python.Writer.rti_binary as RtiBinaryWriter
 import threading
 import time
@@ -24,9 +23,6 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.parent = parent
-
-        # Setup the logging
-        RtiLogging.RtiLogger()
 
         self.adcp = None
         self.adcp_thread = None
@@ -282,7 +278,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         :param data:
         :return:
         """
-        self.set_serial_text(data)
+        self.serialTextBrowser.setText(self.serialTextBrowser.toPlainText() + data)
 
 
 def thread_worker(vm):
@@ -296,17 +292,14 @@ def thread_worker(vm):
             # Read the data from the serial port
             data = vm.adcp.read(vm.adcp.raw_serial.in_waiting)
 
-            ascii_data = str(data)
             try:
-                ascii_data = data.decode()
+                ascii_data = data.decode('ascii')
                 vm.display_console_data_changed.emit(ascii_data)        # Emit signal
+                logging.debug(ascii_data)
             except Exception:
                 # Do nothing
                 vm.display_console_data_changed.emit(str(data))         # Emit signal
 
-            # Display the serial data
-            #vm.serialTextBrowser.append(ascii_data)
-            logging.debug(ascii_data)
 
             # Record data if turned on
             vm.record_data(data)

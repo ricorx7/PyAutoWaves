@@ -1,9 +1,9 @@
 import sys
-
 from PyQt5 import QtGui, QtWidgets, QtCore
 from Setup_View.setup_vm import SetupVM
 from Terminal_View.terminal_vm import TerminalVM
 from Monitor_View.monitor_vm import MonitorVM
+import rti_python.Utilities.logger as RtiLogging
 import autowaves_manger
 # import qdarkstyle
 # import images_qr
@@ -16,6 +16,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, config=None):
         QtWidgets.QMainWindow.__init__(self)
+
+        # Setup the logging
+        RtiLogging.RtiLogger()
 
         # Initialize Monitor
         self.Monitor = MonitorVM(self)

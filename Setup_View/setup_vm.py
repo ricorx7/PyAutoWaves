@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QFileDialog
 from . import setup_view
 import logging
-import rti_python.Utilities.logger as RtiLogging
 
 
 class SetupVM(setup_view.Ui_Setup, QWidget):
@@ -14,9 +13,6 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.parent = parent
-
-        # Setup the logging
-        RtiLogging.RtiLogger()
 
         self.init_display()
 

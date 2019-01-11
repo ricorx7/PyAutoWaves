@@ -2,7 +2,6 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from . import monitor_view
 import logging
-import rti_python.Utilities.logger as RtiLogging
 
 
 class MonitorVM(monitor_view.Ui_Monitor, QWidget):
@@ -18,9 +17,6 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.parent = parent
-
-        # Setup the logging
-        RtiLogging.RtiLogger()
 
         self.ens_count = 0
         self.increment_value.connect(self.increment_progress)       # Connect signal and slot
