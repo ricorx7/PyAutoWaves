@@ -19,7 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
 
         # Setup the logging
-        RtiLogging.RtiLogger(log_level=logging.DEBUG)
+        RtiLogging.RtiLogger(log_level=logging.WARNING)
 
         # Initialize Monitor
         self.Monitor = MonitorVM(self)

@@ -300,7 +300,6 @@ def thread_worker(vm):
                 # Do nothing
                 vm.display_console_data_changed.emit(str(data))         # Emit signal
 
-
             # Record data if turned on
             vm.record_data(data)
 

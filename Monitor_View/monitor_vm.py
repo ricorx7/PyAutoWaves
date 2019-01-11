@@ -11,6 +11,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
 
     # Create signal for value changed
     increment_value = pyqtSignal(int)
+    reset_progress_sig = pyqtSignal()
 
     def __init__(self, parent):
         monitor_view.Ui_Monitor.__init__(self)
@@ -20,6 +21,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
 
         self.ens_count = 0
         self.increment_value.connect(self.increment_progress)       # Connect signal and slot
+        self.reset_progress_sig.connect(self.reset_progress)  # Connect signal and slot
 
         self.init_display()
 
@@ -55,3 +57,8 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         self.numEnsLabel.setText(str(self.ens_count))
         self.progressBar.setValue(percentage)
 
+    @pyqtSlot()
+    def reset_progress(self):
+        self.ens_count = 0
+        self.numEnsLabel.setText("0")
+        self.progressBar.setValue(0)
