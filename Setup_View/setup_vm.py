@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QFileDialog
 from . import setup_view
 import logging
-
+from obsub import event
 
 class SetupVM(setup_view.Ui_Setup, QWidget):
     """
@@ -25,6 +25,8 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.numBurstEnsSpinBox.setValue(2048)
         self.selectFolderPushButton.clicked.connect(self.select_folder)
         self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
+        self.storagePathLineEdit.textChanged.connect(self.update_settings)
+        self.numBurstEnsSpinBox.valueChanged.connect(self.update_settings)
 
     def get_storage_path(self):
         """
@@ -57,3 +59,14 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.storagePathLineEdit.setText(folderPath)
         self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
 
+    def update_settings(self):
+        """
+        Publish the settings changed.
+        :return:
+        """
+        self.on_waves_setting_change(self.numBurstEnsSpinBox.value(),
+                                     self.storagePathLineEdit.text())
+
+    @event
+    def on_waves_setting_change(self, num_ens, file_path):
+        logging.debug("Waves Settings update: " + str(num_ens) + " " + file_path)

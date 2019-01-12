@@ -57,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowIcon(QtGui.QIcon(":rti.ico"))
 
-        self.resize(820, 420)
+        self.resize(830, 420)
 
         # Show the main window
         self.show()

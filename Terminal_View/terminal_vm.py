@@ -125,7 +125,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         Disconnect the serial port and stop the read thread.
         :return:
         """
-        print("Serial Disconnect")
+        logging.debug("Serial Disconnect")
         self.adcp_thread_alive = False
 
         if self.adcp:
