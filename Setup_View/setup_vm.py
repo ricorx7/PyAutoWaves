@@ -1,7 +1,8 @@
-from PyQt5.QtWidgets import QWidget, QFileDialog
+from PyQt5.QtWidgets import QWidget, QFileDialog, QMessageBox
 from . import setup_view
 import logging
 from obsub import event
+import os
 
 class SetupVM(setup_view.Ui_Setup, QWidget):
     """
@@ -21,11 +22,12 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         Initialize the display.
         :return:
         """
-        self.storagePathLineEdit.setText("C:\RTI_Capture")
+        self.storagePathLineEdit.setText(os.path.expanduser('~'))
         self.numBurstEnsSpinBox.setValue(2048)
         self.selectFolderPushButton.clicked.connect(self.select_folder)
         self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
         self.storagePathLineEdit.textChanged.connect(self.update_settings)
+        self.storagePathLineEdit.focusOutEvent = self.check_storage_path
         self.numBurstEnsSpinBox.valueChanged.connect(self.update_settings)
 
     def get_storage_path(self):
@@ -54,10 +56,20 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         """
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        folderPath = QFileDialog.getExistingDirectory(self, "Select an Output Directory")
+        folder_path = QFileDialog.getExistingDirectory(self, "Select an Output Directory")
 
-        self.storagePathLineEdit.setText(folderPath)
-        self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
+        if folder_path:
+            self.storagePathLineEdit.setText(folder_path)
+            self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
+
+    def check_storage_path(self, event):
+        if not os.path.exists(self.storagePathLineEdit.text()):
+            button_reply = QMessageBox.question(self, 'Directory Does Not Exist', "Output Directory does not exist.\nDo you want this directory created?",
+                                               QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if button_reply == QMessageBox.Yes:
+                os.makedirs(self.storagePathLineEdit.text())
+            else:
+                self.storagePathLineEdit.setText(os.path.expanduser('~'))
 
     def update_settings(self):
         """
