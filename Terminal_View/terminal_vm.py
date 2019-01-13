@@ -213,7 +213,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
 
         # Change the ACK to colored ACK
         if str(chr(6)) in serial_text:
-            serial_text = serial_text.replace(str(chr(6)), '<span style="background-color: #339cff">ACK</span>')
+            serial_text = serial_text.replace(str(chr(6)), '<span style="background-color: #2A82DA">ACK</span>')
             self.set_serial_text(serial_text)
 
         # Change the NCK to colored NCK
@@ -238,6 +238,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         if self.recordPushButton.isChecked():
             self.serial_recorder = RtiBinaryWriter.RtiBinaryWriter()
             logging.debug("Start Recording")
+            self.bytesWrittenLabel.setToolTip(self.serial_recorder.get_file_path())
         else:
             if self.serial_recorder:
                 self.serial_recorder.close()
@@ -247,7 +248,9 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
     def record_data(self, data):
         if self.serial_recorder:
             self.serial_recorder.write(data)
-            self.bytesWrittenLabel.setText(self.serial_recorder.get_bytes_written())
+            self.bytesWrittenLabel.setText(self.serial_recorder.get_current_file_bytes_written())
+            self.totalBytesWrittenLabel.setText(self.serial_recorder.get_total_bytes_written())
+            self.bytesWrittenLabel.setToolTip(self.serial_recorder.get_file_path())
 
     def clear_console(self):
         self.serialTextBrowser.setHtml("")
