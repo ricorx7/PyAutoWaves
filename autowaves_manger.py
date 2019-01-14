@@ -24,6 +24,9 @@ class AutoWavesManager:
         self.terminal_vm.on_serial_data += self.serial_data_rcv
         self.setup_vm.on_waves_setting_change += self.update_waves_settings
 
+        # Receive changes from setup
+        self.setup_vm.folder_path_updated_sig.connect(self.folder_path_updated)
+
     def serial_data_rcv(self, sender, data):
         logging.debug(str(sender))
         logging.debug("Data Received: " + str(data))
@@ -55,3 +58,6 @@ class AutoWavesManager:
                                                         bin2=4,
                                                         bin3=5,
                                                         ps_depth=30)
+
+    def folder_path_updated(self, folder_path):
+        self.monitor_vm.set_file_path_sig.emit(folder_path)

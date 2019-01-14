@@ -1,13 +1,17 @@
 from PyQt5.QtWidgets import QWidget, QFileDialog, QMessageBox
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from . import setup_view
 import logging
 from obsub import event
 import os
 
+
 class SetupVM(setup_view.Ui_Setup, QWidget):
     """
     Setup a view to monitor for waves data and covert it to MATLAB format for WaveForce AutoWaves.
     """
+
+    folder_path_updated_sig = pyqtSignal(str)
 
     def __init__(self, parent):
         setup_view.Ui_Setup.__init__(self)
@@ -61,6 +65,7 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         if folder_path:
             self.storagePathLineEdit.setText(folder_path)
             self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
+            self.folder_path_updated_sig.emit(self.storagePathLineEdit.text())      # Emit signal of folder change
 
     def check_storage_path(self, event):
         if not os.path.exists(self.storagePathLineEdit.text()):
@@ -68,8 +73,13 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
                                                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if button_reply == QMessageBox.Yes:
                 os.makedirs(self.storagePathLineEdit.text())
+                self.folder_path_updated_sig.emit(self.storagePathLineEdit.text())  # Emit signal of folder change
             else:
                 self.storagePathLineEdit.setText(os.path.expanduser('~'))
+                self.folder_path_updated_sig.emit(self.storagePathLineEdit.text())  # Emit signal of folder change
+        else:
+            # Folder did exist, so just emit signal that path changed
+            self.folder_path_updated_sig.emit(self.storagePathLineEdit.text())  # Emit signal of folder change
 
     def update_settings(self):
         """
