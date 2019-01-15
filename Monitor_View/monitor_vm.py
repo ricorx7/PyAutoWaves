@@ -4,7 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 from . import monitor_view
 from . import wavedata_vm
 import logging
-
+from rti_python.Utilities.config import RtiConfig
 
 class MonitorVM(monitor_view.Ui_Monitor, QWidget):
     """
@@ -22,6 +22,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         self.setupUi(self)
         self.parent = parent
 
+        self.rti_config = RtiConfig()
         self.file_system_model = QFileSystemModel()
         self.ens_count = 0
 
@@ -29,7 +30,6 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         self.reset_progress_sig.connect(self.reset_progress)        # Connect signal and slot
         self.set_file_path_sig.connect(self.set_file_tree_path)     # Signal when output folder path changed
         self.waveFileTreeView.doubleClicked.connect(self.wave_file_selected) # Connect when tree view item double clicked
-
 
         self.init_display()
 
@@ -41,8 +41,9 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         self.ens_count = 0
         self.progressBar.setValue(0)
         self.numEnsLabel.setText("0")
-        self.file_system_model.setRootPath('')
+        self.file_system_model.setRootPath(self.rti_config.config['Waves']['output_dir'])
         self.waveFileTreeView.setModel(self.file_system_model)
+        self.set_file_path_sig.emit(self.rti_config.config['Waves']['output_dir'])
 
     def shutdown(self):
         """

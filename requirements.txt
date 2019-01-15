@@ -7,3 +7,4 @@ obsub
 pandas
 pynmea2
 pycrc
+ConfigParser

@@ -1,12 +1,14 @@
 import logging
 from rti_python.Codecs.AdcpCodec import AdcpCodec
-
+from rti_python.Utilities.config import RtiConfig
 
 class AutoWavesManager:
     def __init__(self, terminal_vm, setup_vm, monitor_vm):
         self.terminal_vm = terminal_vm
         self.setup_vm = setup_vm
         self.monitor_vm = monitor_vm
+
+        self.config = RtiConfig()
 
         self.adcp_codec = AdcpCodec()
         self.adcp_codec.enable_waveforce_codec(self.setup_vm.numBurstEnsSpinBox.value(),

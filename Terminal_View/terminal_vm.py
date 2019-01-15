@@ -8,6 +8,7 @@ import time
 import serial
 import logging
 from obsub import event
+from rti_python.Utilities.config import RtiConfig
 
 
 class TerminalVM(terminal_view.Ui_Terminal, QWidget):
@@ -23,6 +24,9 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.parent = parent
+
+        self.rti_config = RtiConfig()
+        self.init_config()
 
         self.adcp = None
         self.adcp_thread = None
@@ -46,8 +50,11 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         self.update_serial_list()
         self.serialPortComboBox.setToolTip("If no serial ports are list, make sure it is available and click the scan button to update the serial port list.")
         self.scanSerialPushButton.setToolTip("Scan for any available serial ports.  If nothing is listed, then there are no available serial ports.  Close any applications using a serial port.")
+        if self.rti_config.config['Comm']['Port'] in adcp_serial.get_serial_ports():
+            self.serialPortComboBox.setCurrentText(self.rti_config.config['Comm']['Port'])
+
         self.update_baud_rate_list()
-        self.baudComboBox.setCurrentText("115200")
+        self.baudComboBox.setCurrentText(self.rti_config.config['Comm']['Baud'])
         self.baudComboBox.setToolTip("The default baud rate is 115200.")
         #self.serialTextBrowser.ensureCursorVisible()
         self.serialTextBrowser.textChanged.connect(self.serial_text_changed)
@@ -64,6 +71,31 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         self.clearConsolePushButton.clicked.connect(self.clear_console)
         self.clearBulkCmdPushButton.clicked.connect(self.clear_bulk_cmd)
         self.sendBulkCmdPushButton.clicked.connect(self.send_bulk_cmd)
+
+    def init_config(self):
+        ports = adcp_serial.get_serial_ports()
+
+        # Verify the section exist
+        if not 'Comm' in self.rti_config.config:
+            self.rti_config.config['Comm'] = {}
+            if ports:
+                self.rti_config.config['Comm']['Port'] = ports[0]
+            else:
+                self.rti_config.config['Comm']['Port'] = ''
+            self.rti_config.config['Comm']['Baud'] = '115200'
+
+            self.rti_config.write()
+
+        # Verify each value exist
+        if not self.rti_config.config['Comm']['Port']:
+            if ports:
+                self.rti_config.config['Comm']['Port'] = ports[0]
+            else:
+                self.rti_config.config['Comm']['Port'] = ''
+            self.rti_config.write()
+        if not self.rti_config.config['Comm']['Baud']:
+            self.rti_config.config['Comm']['Baud'] = '115200'
+            self.rti_config.write()
 
     def update_serial_list(self):
         """
@@ -93,6 +125,11 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         baud = int(self.baudComboBox.currentText())
         logging.debug("Serial Connect: " + port + " : " + self.baudComboBox.currentText())
         self.serialTextBrowser.append("Serial Connect: " + port + " : " + self.baudComboBox.currentText())
+
+        # Store the configuration
+        self.rti_config.config['Comm']['Port'] = port
+        self.rti_config.config['Comm']['Baud'] = str(baud)
+        self.rti_config.write()
 
         try:
             self.adcp = adcp_serial.AdcpSerialPort(port, baud)

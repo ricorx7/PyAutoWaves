@@ -4,6 +4,7 @@ from . import setup_view
 import logging
 from obsub import event
 import os
+from rti_python.Utilities.config import RtiConfig
 
 
 class SetupVM(setup_view.Ui_Setup, QWidget):
@@ -19,6 +20,8 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.setupUi(self)
         self.parent = parent
 
+        self.rti_config = self.init_config()
+
         self.init_display()
 
     def init_display(self):
@@ -26,13 +29,34 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         Initialize the display.
         :return:
         """
-        self.storagePathLineEdit.setText(os.path.expanduser('~'))
-        self.numBurstEnsSpinBox.setValue(2048)
+        self.storagePathLineEdit.setText(self.rti_config.config['Waves']['output_dir'])
+        self.numBurstEnsSpinBox.setValue(self.rti_config.config['Waves'].getint('ens_in_burst'))
         self.selectFolderPushButton.clicked.connect(self.select_folder)
         self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
         self.storagePathLineEdit.textChanged.connect(self.update_settings)
         self.storagePathLineEdit.focusOutEvent = self.check_storage_path
         self.numBurstEnsSpinBox.valueChanged.connect(self.update_settings)
+
+    def init_config(self):
+        rti_config = RtiConfig()
+
+        # Verify the section exist
+        if not 'Waves' in rti_config.config:
+            rti_config.config['Waves'] = {}
+            rti_config.config['Waves']['output_dir'] = os.path.expanduser('~')
+            rti_config.config['Waves']['ens_in_burst'] = '2048'
+
+            rti_config.write()
+
+        # Verify each value exist
+        if not rti_config.config['Waves']['output_dir']:
+            rti_config.config['Waves']['output_dir'] = os.path.expanduser('~')
+            rti_config.write()
+        if not rti_config.config['Waves']['ens_in_burst']:
+            rti_config.config['Waves']['ens_in_burst'] = '2048'
+            rti_config.write()
+
+        return rti_config
 
     def get_storage_path(self):
         """
@@ -80,6 +104,9 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         else:
             # Folder did exist, so just emit signal that path changed
             self.folder_path_updated_sig.emit(self.storagePathLineEdit.text())  # Emit signal of folder change
+
+        self.rti_config.config['Waves']['output_dir'] = self.storagePathLineEdit.text()
+        self.rti_config.write()
 
     def update_settings(self):
         """
