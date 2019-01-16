@@ -17,12 +17,15 @@ class Ui_WaveDataDialog(object):
         self.tabWidget.setObjectName("tabWidget")
         self.tab = QtWidgets.QWidget()
         self.tab.setObjectName("tab")
-        self.label = QtWidgets.QLabel(self.tab)
-        self.label.setGeometry(QtCore.QRect(100, 70, 47, 13))
-        self.label.setObjectName("label")
+        self.textBrowser = QtWidgets.QTextBrowser(self.tab)
+        self.textBrowser.setGeometry(QtCore.QRect(10, 0, 341, 181))
+        self.textBrowser.setObjectName("textBrowser")
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
+        self.tableView = QtWidgets.QTableView(self.tab_2)
+        self.tableView.setGeometry(QtCore.QRect(10, 0, 331, 181))
+        self.tableView.setObjectName("tableView")
         self.tabWidget.addTab(self.tab_2, "")
         self.filePathLabel = QtWidgets.QLabel(WaveDataDialog)
         self.filePathLabel.setGeometry(QtCore.QRect(20, 10, 251, 16))
@@ -30,12 +33,12 @@ class Ui_WaveDataDialog(object):
         self.filePathLabel.setObjectName("filePathLabel")
 
         self.retranslateUi(WaveDataDialog)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(WaveDataDialog)
 
     def retranslateUi(self, WaveDataDialog):
         _translate = QtCore.QCoreApplication.translate
         WaveDataDialog.setWindowTitle(_translate("WaveDataDialog", "Dialog"))
-        self.label.setText(_translate("WaveDataDialog", "TextLabel"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("WaveDataDialog", "Tab 1"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("WaveDataDialog", "Tab 2"))
 

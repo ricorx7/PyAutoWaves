@@ -7,4 +7,5 @@ obsub
 pandas
 pynmea2
 pycrc
-ConfigParser
+configparser
+scipy

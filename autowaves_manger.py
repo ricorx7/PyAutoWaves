@@ -2,6 +2,7 @@ import logging
 from rti_python.Codecs.AdcpCodec import AdcpCodec
 from rti_python.Utilities.config import RtiConfig
 
+
 class AutoWavesManager:
     def __init__(self, terminal_vm, setup_vm, monitor_vm):
         self.terminal_vm = terminal_vm

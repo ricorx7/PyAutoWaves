@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget
 from Monitor_View import wavedata_view
+from scipy.io import loadmat
 
 
 class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
@@ -25,3 +26,6 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         """
 
         self.filePathLabel.setText(self.file_path)
+        mat_data = loadmat(self.file_path)
+        self.textBrowser.setText(str(mat_data))
+
