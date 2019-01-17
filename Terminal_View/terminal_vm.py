@@ -19,13 +19,13 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
     # Create a signal to update the GUI on another thread
     display_console_data_changed = pyqtSignal(str)
 
-    def __init__(self, parent):
+    def __init__(self, parent, rti_config):
         terminal_view.Ui_Terminal.__init__(self)
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.parent = parent
 
-        self.rti_config = RtiConfig()
+        self.rti_config = rti_config
         self.init_config()
 
         self.adcp = None

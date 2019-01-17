@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QTableWidgetItem
 from Monitor_View import wavedata_view
-from scipy.io import loadmat
+import scipy.io as sio
+
 
 
 class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
@@ -26,6 +27,12 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         """
 
         self.filePathLabel.setText(self.file_path)
-        mat_data = loadmat(self.file_path)
-        self.textBrowser.setText(str(mat_data))
+        mat_data = sio.loadmat(self.file_path)
+        self.textBrowser.setText(str(mat_data) + str(sio.whosmat(self.file_path)))
+        self.tableWidget.setRowCount(len(mat_data))
+        self.tableWidget.setColumnCount(1)
+        index = 0
+        for data in mat_data:
+            self.tableWidget.setItem(index, 0, QTableWidgetItem(str(data)))
+            index += 1
 

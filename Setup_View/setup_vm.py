@@ -14,13 +14,13 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
 
     folder_path_updated_sig = pyqtSignal(str)
 
-    def __init__(self, parent):
+    def __init__(self, parent, rti_config):
         setup_view.Ui_Setup.__init__(self)
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.parent = parent
 
-        self.rti_config = self.init_config()
+        self.rti_config = rti_config
 
         self.init_display()
 
@@ -38,25 +38,24 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.numBurstEnsSpinBox.valueChanged.connect(self.update_settings)
 
     def init_config(self):
-        rti_config = RtiConfig()
 
         # Verify the section exist
-        if not 'Waves' in rti_config.config:
-            rti_config.config['Waves'] = {}
-            rti_config.config['Waves']['output_dir'] = os.path.expanduser('~')
-            rti_config.config['Waves']['ens_in_burst'] = '2048'
+        if not 'Waves' in self.rti_config.config:
+            self.rti_config.config['Waves'] = {}
+            self.rti_config.config['Waves']['output_dir'] = os.path.expanduser('~')
+            self.rti_config.config['Waves']['ens_in_burst'] = '2048'
 
-            rti_config.write()
+            self.rti_config.write()
 
         # Verify each value exist
-        if not rti_config.config['Waves']['output_dir']:
-            rti_config.config['Waves']['output_dir'] = os.path.expanduser('~')
-            rti_config.write()
-        if not rti_config.config['Waves']['ens_in_burst']:
-            rti_config.config['Waves']['ens_in_burst'] = '2048'
-            rti_config.write()
+        if not self.rti_config.config['Waves']['output_dir']:
+            self.rti_config.config['Waves']['output_dir'] = os.path.expanduser('~')
+            self.rti_config.write()
+        if not self.rti_config.config['Waves']['ens_in_burst']:
+            self.rti_config.config['Waves']['ens_in_burst'] = '2048'
+            self.rti_config.write()
 
-        return rti_config
+        return self.rti_config
 
     def get_storage_path(self):
         """
@@ -115,6 +114,10 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         """
         self.on_waves_setting_change(self.numBurstEnsSpinBox.value(),
                                      self.storagePathLineEdit.text())
+
+        self.rti_config.config['Waves']['output_dir'] = self.storagePathLineEdit.text()
+        self.rti_config.config['Waves']['ens_in_burst'] = str(self.numBurstEnsSpinBox.value())
+        self.rti_config.write()
 
     @event
     def on_waves_setting_change(self, num_ens, file_path):

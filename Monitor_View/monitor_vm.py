@@ -16,13 +16,13 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
     reset_progress_sig = pyqtSignal()
     set_file_path_sig = pyqtSignal(str)
 
-    def __init__(self, parent):
+    def __init__(self, parent, rti_config):
         monitor_view.Ui_Monitor.__init__(self)
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.parent = parent
 
-        self.rti_config = RtiConfig()
+        self.rti_config = rti_config
         self.file_system_model = QFileSystemModel()
         self.ens_count = 0
 

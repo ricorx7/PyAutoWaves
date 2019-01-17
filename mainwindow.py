@@ -8,6 +8,7 @@ import logging
 import autowaves_manger
 # import qdarkstyle
 # import images_qr
+from rti_python.Utilities.config import RtiConfig
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -21,8 +22,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # Setup the logging
         RtiLogging.RtiLogger(log_level=logging.WARNING)
 
+        self.rti_config = RtiConfig()
+
         # Initialize Monitor
-        self.Monitor = MonitorVM(self)
+        self.Monitor = MonitorVM(self, self.rti_config)
         docked_monitor = QtWidgets.QDockWidget("Monitor", self)
         docked_monitor.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         docked_monitor.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
@@ -30,7 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.TopDockWidgetArea, docked_monitor)
 
         # Initialize the Setup
-        self.Setup = SetupVM(self)
+        self.Setup = SetupVM(self, self.rti_config)
         docked_setup = QtWidgets.QDockWidget("Setup", self)
         docked_setup.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         docked_setup.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
@@ -38,7 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.TopDockWidgetArea, docked_setup)
 
         # Initialize Terminal
-        self.Terminal = TerminalVM(self)
+        self.Terminal = TerminalVM(self, self.rti_config)
         docked_terminal = QtWidgets.QDockWidget("Terminal", self)
         docked_terminal.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         docked_terminal.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
