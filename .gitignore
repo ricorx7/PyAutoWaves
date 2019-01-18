@@ -120,3 +120,5 @@ Updater/pyu-data/new/predictr.app/Contents/Frameworks/
 
 # PyTest
 .pytest_cache/
+
+config.ini
