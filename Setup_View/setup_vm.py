@@ -21,6 +21,7 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.parent = parent
 
         self.rti_config = rti_config
+        self.rti_config.init_waves_config()
 
         self.init_display()
 
@@ -36,26 +37,6 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.storagePathLineEdit.textChanged.connect(self.update_settings)
         self.storagePathLineEdit.focusOutEvent = self.check_storage_path
         self.numBurstEnsSpinBox.valueChanged.connect(self.update_settings)
-
-    def init_config(self):
-
-        # Verify the section exist
-        if not 'Waves' in self.rti_config.config:
-            self.rti_config.config['Waves'] = {}
-            self.rti_config.config['Waves']['output_dir'] = os.path.expanduser('~')
-            self.rti_config.config['Waves']['ens_in_burst'] = '2048'
-
-            self.rti_config.write()
-
-        # Verify each value exist
-        if not self.rti_config.config['Waves']['output_dir']:
-            self.rti_config.config['Waves']['output_dir'] = os.path.expanduser('~')
-            self.rti_config.write()
-        if not self.rti_config.config['Waves']['ens_in_burst']:
-            self.rti_config.config['Waves']['ens_in_burst'] = '2048'
-            self.rti_config.write()
-
-        return self.rti_config
 
     def get_storage_path(self):
         """

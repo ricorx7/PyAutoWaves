@@ -26,7 +26,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         self.parent = parent
 
         self.rti_config = rti_config
-        self.init_config()
+        self.rti_config.init_terminal_config()
 
         self.adcp = None
         self.adcp_thread = None
@@ -71,31 +71,6 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         self.clearConsolePushButton.clicked.connect(self.clear_console)
         self.clearBulkCmdPushButton.clicked.connect(self.clear_bulk_cmd)
         self.sendBulkCmdPushButton.clicked.connect(self.send_bulk_cmd)
-
-    def init_config(self):
-        ports = adcp_serial.get_serial_ports()
-
-        # Verify the section exist
-        if not 'Comm' in self.rti_config.config:
-            self.rti_config.config['Comm'] = {}
-            if ports:
-                self.rti_config.config['Comm']['Port'] = ports[0]
-            else:
-                self.rti_config.config['Comm']['Port'] = ''
-            self.rti_config.config['Comm']['Baud'] = '115200'
-
-            self.rti_config.write()
-
-        # Verify each value exist
-        if not self.rti_config.config['Comm']['Port']:
-            if ports:
-                self.rti_config.config['Comm']['Port'] = ports[0]
-            else:
-                self.rti_config.config['Comm']['Port'] = ''
-            self.rti_config.write()
-        if not self.rti_config.config['Comm']['Baud']:
-            self.rti_config.config['Comm']['Baud'] = '115200'
-            self.rti_config.write()
 
     def update_serial_list(self):
         """
@@ -273,7 +248,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
 
     def turn_on_off_record(self):
         if self.recordPushButton.isChecked():
-            self.serial_recorder = RtiBinaryWriter.RtiBinaryWriter()
+            self.serial_recorder = RtiBinaryWriter.RtiBinaryWriter(folder_path=self.rti_config.config['Comm']['output_dir'])
             logging.debug("Start Recording")
             self.bytesWrittenLabel.setToolTip(self.serial_recorder.get_file_path())
         else:

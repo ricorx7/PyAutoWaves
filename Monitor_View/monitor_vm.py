@@ -23,6 +23,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         self.parent = parent
 
         self.rti_config = rti_config
+        self.rti_config.init_waves_config()
         self.file_system_model = QFileSystemModel()
         self.ens_count = 0
 
@@ -67,6 +68,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         percentage = (self.ens_count / max_count) * 100
         self.numEnsLabel.setText(str(self.ens_count))
         self.progressBar.setValue(percentage)
+
 
     @pyqtSlot()
     def reset_progress(self):
