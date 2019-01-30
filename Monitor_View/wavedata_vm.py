@@ -3,7 +3,6 @@ from Monitor_View import wavedata_view
 import scipy.io as sio
 
 
-
 class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
     """
     Dialog to view the wave data.
