@@ -6,6 +6,7 @@ from . import wavedata_vm
 import logging
 from rti_python.Utilities.config import RtiConfig
 
+
 class MonitorVM(monitor_view.Ui_Monitor, QWidget):
     """
     Setup a view to monitor for waves data and covert it to MATLAB format for WaveForce AutoWaves.

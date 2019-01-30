@@ -38,6 +38,51 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.storagePathLineEdit.focusOutEvent = self.check_storage_path
         self.numBurstEnsSpinBox.valueChanged.connect(self.update_settings)
 
+        bin_list = []
+        bin_list.append('Disable')
+        for bin_num in range(200):
+            bin_list.append(str(bin_num))
+
+        self.selectedBin1ComboBox.addItems(bin_list)
+        self.selectedBin1ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_1'])
+        self.selectedBin1ComboBox.currentTextChanged.connect(self.update_settings)
+
+        self.selectedBin2ComboBox.addItems(bin_list)
+        self.selectedBin2ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_2'])
+        self.selectedBin2ComboBox.currentTextChanged.connect(self.update_settings)
+
+        self.selectedBin3ComboBox.addItems(bin_list)
+        self.selectedBin3ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_3'])
+        self.selectedBin3ComboBox.currentTextChanged.connect(self.update_settings)
+
+        self.heightSourceComboBox.addItem('Vertical')
+        self.heightSourceComboBox.addItem('Beam 0')
+        self.heightSourceComboBox.addItem('Beam 1')
+        self.heightSourceComboBox.addItem('Beam 2')
+        self.heightSourceComboBox.addItem('Beam 3')
+        self.heightSourceComboBox.setCurrentText(self.rti_config.config['Waves']['height_source'])
+        self.heightSourceComboBox.currentTextChanged.connect(self.update_settings)
+
+        self.corelationThresholdDoubleSpinBox.setValue(float(self.rti_config.config['Waves']['corr_thresh']))
+        self.corelationThresholdDoubleSpinBox.setToolTip("Correlation Threshold")
+        self.corelationThresholdDoubleSpinBox.valueChanged.connect(self.update_settings)
+
+        self.pressureSensorHeightDoubleSpinBox.setValue(float(self.rti_config.config['Waves']['pressure_sensor_height']))
+        self.pressureSensorHeightDoubleSpinBox.setToolTip("Pressure Sensor Height above the surface of the ground in meters.")
+        self.pressureSensorHeightDoubleSpinBox.valueChanged.connect(self.update_settings)
+
+        self.pressureSensorOffsetDoubleSpinBox.setValue(float(self.rti_config.config['Waves']['pressure_sensor_offset']))
+        self.pressureSensorOffsetDoubleSpinBox.setToolTip("Pressure Sensor Height offset in meters.")
+        self.pressureSensorOffsetDoubleSpinBox.valueChanged.connect(self.update_settings)
+
+        self.latitudeDoubleSpinBox.setValue(float(self.rti_config.config['Waves']['latitude']))
+        self.latitudeDoubleSpinBox.setToolTip("Latitude location where the data was collected.")
+        self.latitudeDoubleSpinBox.valueChanged.connect(self.update_settings)
+
+        self.longitudeDoubleSpinBox.setValue(float(self.rti_config.config['Waves']['longitude']))
+        self.longitudeDoubleSpinBox.setToolTip("Longitude location where the data was collected.")
+        self.longitudeDoubleSpinBox.valueChanged.connect(self.update_settings)
+
     def get_storage_path(self):
         """
         :return: The storage path to record the data.
@@ -98,6 +143,15 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
 
         self.rti_config.config['Waves']['output_dir'] = self.storagePathLineEdit.text()
         self.rti_config.config['Waves']['ens_in_burst'] = str(self.numBurstEnsSpinBox.value())
+        self.rti_config.config['Waves']['selected_bin_1'] = self.selectedBin1ComboBox.currentText()
+        self.rti_config.config['Waves']['selected_bin_2'] = self.selectedBin2ComboBox.currentText()
+        self.rti_config.config['Waves']['selected_bin_3'] = self.selectedBin3ComboBox.currentText()
+        self.rti_config.config['Waves']['height_source'] = self.heightSourceComboBox.currentText()
+        self.rti_config.config['Waves']['corr_thresh'] = str(self.corelationThresholdDoubleSpinBox.value())
+        self.rti_config.config['Waves']['pressure_sensor_height'] = str(self.pressureSensorHeightDoubleSpinBox.value())
+        self.rti_config.config['Waves']['pressure_sensor_offset'] = str(self.pressureSensorOffsetDoubleSpinBox.value())
+        self.rti_config.config['Waves']['latitude'] = str(self.latitudeDoubleSpinBox.value())
+        self.rti_config.config['Waves']['longitude'] = str(self.longitudeDoubleSpinBox.value())
         self.rti_config.write()
 
     @event

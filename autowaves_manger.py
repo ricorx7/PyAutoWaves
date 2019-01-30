@@ -9,17 +9,17 @@ class AutoWavesManager:
         self.setup_vm = setup_vm
         self.monitor_vm = monitor_vm
 
-        self.config = RtiConfig()
+        self.rti_config = RtiConfig()
 
         self.adcp_codec = AdcpCodec()
         self.adcp_codec.enable_waveforce_codec(self.setup_vm.numBurstEnsSpinBox.value(),
                                                self.setup_vm.storagePathLineEdit.text(),
-                                               lat=0.0,
-                                               lon=0.0,
-                                               bin1=3,
-                                               bin2=4,
-                                               bin3=5,
-                                               ps_depth=30)
+                                               lat=float(self.rti_config.config['Waves']['latitude']),
+                                               lon=float(self.rti_config.config['Waves']['longitude']),
+                                               bin1=int(self.rti_config.config['Waves']['selected_bin_1']),
+                                               bin2=int(self.rti_config.config['Waves']['selected_bin_2']),
+                                               bin3=int(self.rti_config.config['Waves']['selected_bin_3']),
+                                               ps_depth=float(self.rti_config.config['Waves']['pressure_sensor_height']))
         self.adcp_codec.EnsembleEvent += self.ensemble_rcv
         self.adcp_codec.publish_waves_event += self.waves_rcv
 
@@ -55,12 +55,12 @@ class AutoWavesManager:
         """
         self.adcp_codec.update_settings_waveforce_codec(ens_in_burst=num_ens,
                                                         path=file_path,
-                                                        lat=0.0,
-                                                        lon=0.0,
-                                                        bin1=3,
-                                                        bin2=4,
-                                                        bin3=5,
-                                                        ps_depth=30)
+                                                        lat=float(self.rti_config.config['Waves']['latitude']),
+                                                        lon=float(self.rti_config.config['Waves']['longitude']),
+                                                        bin1=int(self.rti_config.config['Waves']['selected_bin_1']),
+                                                        bin2=int(self.rti_config.config['Waves']['selected_bin_2']),
+                                                        bin3=int(self.rti_config.config['Waves']['selected_bin_3']),
+                                                        ps_depth=float(self.rti_config.config['Waves'][ 'pressure_sensor_height']))
 
     def folder_path_updated(self, folder_path):
         self.monitor_vm.set_file_path_sig.emit(folder_path)

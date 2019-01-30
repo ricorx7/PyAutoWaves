@@ -1,5 +1,8 @@
 import sys
 from PyQt5 import QtGui, QtWidgets, QtCore
+from PyQt5.QtWidgets import QAction
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from Setup_View.setup_vm import SetupVM
 from Terminal_View.terminal_vm import TerminalVM
 from Monitor_View.monitor_vm import MonitorVM
@@ -34,11 +37,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Initialize the Setup
         self.Setup = SetupVM(self, self.rti_config)
-        docked_setup = QtWidgets.QDockWidget("Setup", self)
-        docked_setup.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
-        docked_setup.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
-        docked_setup.setWidget(self.Setup)
-        self.addDockWidget(QtCore.Qt.TopDockWidgetArea, docked_setup)
+        self.docked_setup = QtWidgets.QDockWidget("Setup", self)
+        self.docked_setup.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        self.docked_setup.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
+        self.docked_setup.setWidget(self.Setup)
+        #self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.docked_setup)
 
         # Initialize Terminal
         self.Terminal = TerminalVM(self, self.rti_config)
@@ -47,6 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         docked_terminal.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
         docked_terminal.setWidget(self.Terminal)
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, docked_terminal)
+        #self.tabifyDockWidget(self.docked_setup, docked_terminal)
 
         # Add the displays to the manager to monitor all the data
         self.AutoWavesManager = autowaves_manger.AutoWavesManager(self.Terminal, self.Setup, self.Monitor)
@@ -60,10 +64,32 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowIcon(QtGui.QIcon(":rti.ico"))
 
-        self.resize(830, 530)
+        self.resize(930, 550)
+
+        mainMenu = self.menuBar()
+        fileMenu = mainMenu.addMenu('File')
+        setupMenu = mainMenu.addMenu('Setup')
+
+        exitButton = QAction(QIcon('exit24.png'), 'Exit', self)
+        exitButton.setShortcut('Ctrl+Q')
+        exitButton.setStatusTip('Exit application')
+        exitButton.triggered.connect(self.close)
+        fileMenu.addAction(exitButton)
+
+        setupButton = QAction(QIcon('exit24.png'), 'Waves Setup', self)
+        setupButton.setShortcut('Ctrl+S')
+        setupButton.setStatusTip('Setup The Waves Settings')
+        setupButton.triggered.connect(self.display_setup_view)
+        setupMenu.addAction(setupButton)
 
         # Show the main window
         self.show()
+
+    @pyqtSlot()
+    def display_setup_view(self):
+            self.docked_setup.show()
+            self.docked_setup.resize(500, 400)
+            self.docked_setup.setFloating(True)
 
     def closeEvent(self, event):
         """
