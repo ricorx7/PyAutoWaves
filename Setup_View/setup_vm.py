@@ -44,11 +44,17 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
             bin_list.append(str(bin_num))
 
         self.selectedBin1ComboBox.addItems(bin_list)
-        self.selectedBin1ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_1'])
+        if self.rti_config.config['Waves']['selected_bin_1'] == '-1':
+            self.selectedBin1ComboBox.setCurrentText('Disable')
+        else:
+            self.selectedBin1ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_1'])
         self.selectedBin1ComboBox.currentTextChanged.connect(self.update_settings)
 
         self.selectedBin2ComboBox.addItems(bin_list)
-        self.selectedBin2ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_2'])
+        if self.rti_config.config['Waves']['selected_bin_2'] == '-1':
+            self.selectedBin2ComboBox.setCurrentText('Disable')
+        else:
+            self.selectedBin2ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_2'])
         self.selectedBin2ComboBox.currentTextChanged.connect(self.update_settings)
 
         self.selectedBin3ComboBox.addItems(bin_list)
@@ -138,9 +144,6 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         Publish the settings changed.
         :return:
         """
-        self.on_waves_setting_change(self.numBurstEnsSpinBox.value(),
-                                     self.storagePathLineEdit.text())
-
         self.rti_config.config['Waves']['output_dir'] = self.storagePathLineEdit.text()
         self.rti_config.config['Waves']['ens_in_burst'] = str(self.numBurstEnsSpinBox.value())
         self.rti_config.config['Waves']['selected_bin_1'] = self.selectedBin1ComboBox.currentText()
@@ -154,6 +157,30 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.rti_config.config['Waves']['longitude'] = str(self.longitudeDoubleSpinBox.value())
         self.rti_config.write()
 
+        # Verify the selected bin is not disabled
+        selected_bin_1 = -1
+        if self.rti_config.config['Waves']['selected_bin_1'] != 'Disable':
+            selected_bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
+
+        selected_bin_2 = -1
+        if self.rti_config.config['Waves']['selected_bin_2'] != 'Disable':
+            selected_bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
+
+        selected_bin_3 = -1
+        if self.rti_config.config['Waves']['selected_bin_3'] != 'Disable':
+            selected_bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+
+        # Update waves settings
+        self.on_waves_setting_change(self.numBurstEnsSpinBox.value(),
+                                     self.storagePathLineEdit.text(),
+                                     self.latitudeDoubleSpinBox.value(),
+                                     self.longitudeDoubleSpinBox.value(),
+                                     selected_bin_1,
+                                     selected_bin_2,
+                                     selected_bin_3,
+                                     self.pressureSensorHeightDoubleSpinBox.value())
+
+
     @event
-    def on_waves_setting_change(self, num_ens, file_path):
+    def on_waves_setting_change(self, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth):
         logging.debug("Waves Settings update: " + str(num_ens) + " " + file_path)

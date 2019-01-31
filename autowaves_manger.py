@@ -12,13 +12,25 @@ class AutoWavesManager:
         self.rti_config = RtiConfig()
 
         self.adcp_codec = AdcpCodec()
+
+        # Verify the selected bin is not disabled
+        selected_bin_1 = -1
+        if self.rti_config.config['Waves']['selected_bin_1'] != 'Disable':
+            selected_bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
+        selected_bin_2 = -1
+        if self.rti_config.config['Waves']['selected_bin_2'] != 'Disable':
+            selected_bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
+        selected_bin_3 = -1
+        if self.rti_config.config['Waves']['selected_bin_3'] != 'Disable':
+            selected_bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+
         self.adcp_codec.enable_waveforce_codec(self.setup_vm.numBurstEnsSpinBox.value(),
                                                self.setup_vm.storagePathLineEdit.text(),
                                                lat=float(self.rti_config.config['Waves']['latitude']),
                                                lon=float(self.rti_config.config['Waves']['longitude']),
-                                               bin1=int(self.rti_config.config['Waves']['selected_bin_1']),
-                                               bin2=int(self.rti_config.config['Waves']['selected_bin_2']),
-                                               bin3=int(self.rti_config.config['Waves']['selected_bin_3']),
+                                               bin1=selected_bin_1,
+                                               bin2=selected_bin_2,
+                                               bin3=selected_bin_3,
                                                ps_depth=float(self.rti_config.config['Waves']['pressure_sensor_height']))
         self.adcp_codec.EnsembleEvent += self.ensemble_rcv
         self.adcp_codec.publish_waves_event += self.waves_rcv
@@ -45,7 +57,7 @@ class AutoWavesManager:
         self.monitor_vm.reset_progress_sig.emit()
         logging.debug("Waves File Complete: " + file_name)
 
-    def update_waves_settings(self, sender, num_ens, file_path):
+    def update_waves_settings(self, sender, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth):
         """
         Receive event that the settings changed and need to be updated.
         :param sender:
@@ -53,14 +65,15 @@ class AutoWavesManager:
         :param file_path: File path to store data
         :return:
         """
+
         self.adcp_codec.update_settings_waveforce_codec(ens_in_burst=num_ens,
                                                         path=file_path,
-                                                        lat=float(self.rti_config.config['Waves']['latitude']),
-                                                        lon=float(self.rti_config.config['Waves']['longitude']),
-                                                        bin1=int(self.rti_config.config['Waves']['selected_bin_1']),
-                                                        bin2=int(self.rti_config.config['Waves']['selected_bin_2']),
-                                                        bin3=int(self.rti_config.config['Waves']['selected_bin_3']),
-                                                        ps_depth=float(self.rti_config.config['Waves'][ 'pressure_sensor_height']))
+                                                        lat=lat,
+                                                        lon=lon,
+                                                        bin1=bin1,
+                                                        bin2=bin2,
+                                                        bin3=bin3,
+                                                        ps_depth=ps_depth)
 
     def folder_path_updated(self, folder_path):
         self.monitor_vm.set_file_path_sig.emit(folder_path)
