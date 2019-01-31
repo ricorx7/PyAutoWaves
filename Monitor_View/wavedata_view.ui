@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>300</height>
+    <height>649</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,13 +22,34 @@
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="txtLabel">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="latLabel">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="lonLabel">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
-     <widget class="QWidget" name="tab">
+     <widget class="QWidget" name="TextTab">
       <attribute name="title">
-       <string>Tab 1</string>
+       <string>Text</string>
       </attribute>
       <widget class="QWidget" name="gridLayoutWidget">
        <property name="geometry">
@@ -36,7 +57,7 @@
          <x>0</x>
          <y>0</y>
          <width>371</width>
-         <height>231</height>
+         <height>351</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout">
@@ -46,24 +67,354 @@
        </layout>
       </widget>
      </widget>
-     <widget class="QWidget" name="tab_2">
+     <widget class="QWidget" name="wtsTab">
       <attribute name="title">
-       <string>Tab 2</string>
+       <string>wts</string>
       </attribute>
       <widget class="QWidget" name="verticalLayoutWidget">
        <property name="geometry">
         <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>371</width>
-         <height>231</height>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
         </rect>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <item>
-         <widget class="QTableWidget" name="tableWidget"/>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="0" column="0">
+         <widget class="QTableWidget" name="wtsTableWidget"/>
         </item>
        </layout>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wb0Tab">
+      <attribute name="title">
+       <string>wb0</string>
+      </attribute>
+      <widget class="QTableWidget" name="wb0TableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wb1Tab">
+      <attribute name="title">
+       <string>wb1</string>
+      </attribute>
+      <widget class="QTableWidget" name="wb1TableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wb2Tab">
+      <attribute name="title">
+       <string>wb2</string>
+      </attribute>
+      <widget class="QTableWidget" name="wb2TableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>361</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wb3Tab">
+      <attribute name="title">
+       <string>wb3</string>
+      </attribute>
+      <widget class="QTableWidget" name="wb3TableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wusTab">
+      <attribute name="title">
+       <string>wus</string>
+      </attribute>
+      <widget class="QTableWidget" name="wusTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wvsTab">
+      <attribute name="title">
+       <string>wvs</string>
+      </attribute>
+      <widget class="QTableWidget" name="wvsTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wzsTab">
+      <attribute name="title">
+       <string>wzs</string>
+      </attribute>
+      <widget class="QTableWidget" name="wzsTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wr0Tab">
+      <attribute name="title">
+       <string>wr0</string>
+      </attribute>
+      <widget class="QTableWidget" name="wr0TableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>351</width>
+         <height>321</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wr1Tab">
+      <attribute name="title">
+       <string>wr1</string>
+      </attribute>
+      <widget class="QTableWidget" name="wr1TableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wr2Tab">
+      <attribute name="title">
+       <string>wr2</string>
+      </attribute>
+      <widget class="QTableWidget" name="wr2TableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wr3Tab">
+      <attribute name="title">
+       <string>wr3</string>
+      </attribute>
+      <widget class="QTableWidget" name="wr3TableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wz0Tab">
+      <attribute name="title">
+       <string>wz0</string>
+      </attribute>
+      <widget class="QTableWidget" name="wz0TableWidget">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>20</y>
+         <width>341</width>
+         <height>321</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wftTab">
+      <attribute name="title">
+       <string>wft</string>
+      </attribute>
+      <widget class="QTableWidget" name="wftTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>20</y>
+         <width>341</width>
+         <height>321</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="whrTab">
+      <attribute name="title">
+       <string>whr</string>
+      </attribute>
+      <widget class="QTableWidget" name="whrTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>341</width>
+         <height>321</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wzrTab">
+      <attribute name="title">
+       <string>wzr</string>
+      </attribute>
+      <widget class="QTableWidget" name="wzrTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>351</width>
+         <height>321</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wahTab">
+      <attribute name="title">
+       <string>wah</string>
+      </attribute>
+      <widget class="QTableWidget" name="wahTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>351</width>
+         <height>321</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="whsTab">
+      <attribute name="title">
+       <string>whs</string>
+      </attribute>
+      <widget class="QTableWidget" name="whsTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="whpTab">
+      <attribute name="title">
+       <string>whp</string>
+      </attribute>
+      <widget class="QTableWidget" name="whpTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="whgTab">
+      <attribute name="title">
+       <string>whg</string>
+      </attribute>
+      <widget class="QTableWidget" name="whgTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wphTab">
+      <attribute name="title">
+       <string>wph</string>
+      </attribute>
+      <widget class="QTableWidget" name="wphTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>10</y>
+         <width>341</width>
+         <height>331</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wdtTab">
+      <attribute name="title">
+       <string>wdt</string>
+      </attribute>
+      <widget class="QTableWidget" name="wdtTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>20</y>
+         <width>351</width>
+         <height>321</height>
+        </rect>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="wzpTab">
+      <attribute name="title">
+       <string>wzp</string>
+      </attribute>
+      <widget class="QTableWidget" name="wzpTableWidget">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>351</width>
+         <height>331</height>
+        </rect>
+       </property>
       </widget>
      </widget>
     </widget>

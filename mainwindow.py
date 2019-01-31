@@ -1,6 +1,6 @@
 import sys
 from PyQt5 import QtGui, QtWidgets, QtCore
-from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QAction, QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from Setup_View.setup_vm import SetupVM
@@ -70,6 +70,12 @@ class MainWindow(QtWidgets.QMainWindow):
         fileMenu = mainMenu.addMenu('File')
         setupMenu = mainMenu.addMenu('Setup')
 
+        playbackButton = QAction(QIcon('exit24.png'), 'Playback', self)
+        playbackButton.setShortcut('Ctrl+P')
+        playbackButton.setStatusTip('Playback files')
+        playbackButton.triggered.connect(self.playback)
+        fileMenu.addAction(playbackButton)
+
         exitButton = QAction(QIcon('exit24.png'), 'Exit', self)
         exitButton.setShortcut('Ctrl+Q')
         exitButton.setStatusTip('Exit application')
@@ -85,11 +91,36 @@ class MainWindow(QtWidgets.QMainWindow):
         # Show the main window
         self.show()
 
+    def openFileNamesDialog(self):
+        """
+        Open a file names dialog to select multiple files.
+        :return:
+        """
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        files, _ = QFileDialog.getOpenFileNames(self, "Open Ensemble Files", "", "All Files (*);;Ensemble Files (*.ens)", options=options)
+        return files
+
     @pyqtSlot()
     def display_setup_view(self):
             self.docked_setup.show()
             self.docked_setup.resize(500, 400)
             self.docked_setup.setFloating(True)
+
+    @pyqtSlot()
+    def playback(self):
+        """
+        Playback files.  Select the files.  Then
+        pass them to the manager to read and playback the
+        files.
+        :return:
+        """
+        # Select Files
+        files = self.openFileNamesDialog()
+
+        # Pass files to manager
+        if files:
+            self.AutoWavesManager.playback_file(files)
 
     def closeEvent(self, event):
         """

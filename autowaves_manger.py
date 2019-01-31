@@ -77,3 +77,21 @@ class AutoWavesManager:
 
     def folder_path_updated(self, folder_path):
         self.monitor_vm.set_file_path_sig.emit(folder_path)
+
+    def playback_file(self, files):
+        """
+        Playback the given files.  This will add all the data
+        from the files into the codec.
+        :param files: List of files.
+        :return:
+        """
+        if files:
+            print(files)
+
+        # Read the file
+        for file in files:
+            with open(file, "rb") as f:
+                for line in f:
+                    # Pass it to the codec
+                    self.adcp_codec.add(line)
+
