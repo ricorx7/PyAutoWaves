@@ -26,8 +26,6 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         :return:
         """
 
-        self.resize(700, 650)
-
         # Set the file path of the MATLAB file
         self.filePathLabel.setText(self.file_path)
 
@@ -62,6 +60,8 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
             self.waveHeightSourceLabel.setText("Height Source: Avg Range Tracking or Pressure")
         elif height_source == 5:
             self.waveHeightSourceLabel.setText("Height Source: Pressure")
+
+        print(height_source)
 
         # Display the MATLAB as a string
         self.textBrowser.setText(str(mat_data) + str(sio.whosmat(self.file_path)))
@@ -152,7 +152,7 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         self.wz0TableWidget.setHorizontalHeaderLabels(['wz0'])
         index = 0
         for col_data in mat_data['wz0']:
-            self.wzsTableWidget.setItem(index, 4, QTableWidgetItem(str(col_data[0])))
+            self.wz0TableWidget.setItem(index, 0, QTableWidgetItem(str(col_data[0])))
             index += 1
 
         # wus
@@ -195,14 +195,14 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         self.wr0TableWidget.setHorizontalHeaderLabels(['Beam 0', 'Beam 1', 'Beam 2', 'Beam 3', 'Vertical Beam'])
         index = 0
         for col_data in range(len(mat_data['wr0'])):
-            self.wr0TableWidget.setItem(index, 0, QTableWidgetItem(str(mat_data['wr0'][0][0])))
-            self.wr0TableWidget.setItem(index, 1, QTableWidgetItem(str(mat_data['wr1'][0][0])))
-            self.wr0TableWidget.setItem(index, 2, QTableWidgetItem(str(mat_data['wr2'][0][0])))
-            self.wr0TableWidget.setItem(index, 3, QTableWidgetItem(str(mat_data['wr3'][0][0])))
+            self.wr0TableWidget.setItem(index, 0, QTableWidgetItem(str(mat_data['wr0'][index][0])))
+            self.wr0TableWidget.setItem(index, 1, QTableWidgetItem(str(mat_data['wr1'][index][0])))
+            self.wr0TableWidget.setItem(index, 2, QTableWidgetItem(str(mat_data['wr2'][index][0])))
+            self.wr0TableWidget.setItem(index, 3, QTableWidgetItem(str(mat_data['wr3'][index][0])))
             index += 1
         index = 0
         for col_data in mat_data['wzr']:
-            self.wzsTableWidget.setItem(index, 4, QTableWidgetItem(str(col_data[0])))
+            self.wr0TableWidget.setItem(index, 4, QTableWidgetItem(str(col_data[0])))
             index += 1
 
         # wah
