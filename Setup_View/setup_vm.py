@@ -62,6 +62,7 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.selectedBin3ComboBox.currentTextChanged.connect(self.update_settings)
 
         self.heightSourceComboBox.addItem('Vertical')
+        self.heightSourceComboBox.addItem('Pressure')
         self.heightSourceComboBox.addItem('Beam 0')
         self.heightSourceComboBox.addItem('Beam 1')
         self.heightSourceComboBox.addItem('Beam 2')
@@ -170,6 +171,20 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         if self.rti_config.config['Waves']['selected_bin_3'] != 'Disable':
             selected_bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
 
+        height_source = 4
+        if self.rti_config.config['Waves']['height_source'] == 'Beam 0':
+            height_source = 0
+        if self.rti_config.config['Waves']['height_source'] == 'Beam 1':
+            height_source = 1
+        if self.rti_config.config['Waves']['height_source'] == 'Beam 2':
+            height_source = 2
+        if self.rti_config.config['Waves']['height_source'] == 'Beam 3':
+            height_source = 3
+        if self.rti_config.config['Waves']['height_source'] == 'Vertical':
+            height_source = 4
+        if self.rti_config.config['Waves']['height_source'] == 'Pressure':
+            height_source = 5
+
         # Update waves settings
         self.on_waves_setting_change(self.numBurstEnsSpinBox.value(),
                                      self.storagePathLineEdit.text(),
@@ -178,9 +193,10 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
                                      selected_bin_1,
                                      selected_bin_2,
                                      selected_bin_3,
-                                     self.pressureSensorHeightDoubleSpinBox.value())
+                                     self.pressureSensorHeightDoubleSpinBox.value(),
+                                     height_source)
 
 
     @event
-    def on_waves_setting_change(self, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth):
+    def on_waves_setting_change(self, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth, height_source):
         logging.debug("Waves Settings update: " + str(num_ens) + " " + file_path)

@@ -24,6 +24,20 @@ class AutoWavesManager:
         if self.rti_config.config['Waves']['selected_bin_3'] != 'Disable':
             selected_bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
 
+        height_source = 4
+        if self.rti_config.config['Waves']['height_source'] == 'Beam 0':
+            height_source = 0
+        if self.rti_config.config['Waves']['height_source'] == 'Beam 1':
+            height_source = 1
+        if self.rti_config.config['Waves']['height_source'] == 'Beam 2':
+            height_source = 2
+        if self.rti_config.config['Waves']['height_source'] == 'Beam 3':
+            height_source = 3
+        if self.rti_config.config['Waves']['height_source'] == 'Vertical':
+            height_source = 4
+        if self.rti_config.config['Waves']['height_source'] == 'Pressure':
+            height_source = 5
+
         self.adcp_codec.enable_waveforce_codec(self.setup_vm.numBurstEnsSpinBox.value(),
                                                self.setup_vm.storagePathLineEdit.text(),
                                                lat=float(self.rti_config.config['Waves']['latitude']),
@@ -31,7 +45,8 @@ class AutoWavesManager:
                                                bin1=selected_bin_1,
                                                bin2=selected_bin_2,
                                                bin3=selected_bin_3,
-                                               ps_depth=float(self.rti_config.config['Waves']['pressure_sensor_height']))
+                                               ps_depth=float(self.rti_config.config['Waves']['pressure_sensor_height']),
+                                               height_source=height_source)
         self.adcp_codec.EnsembleEvent += self.ensemble_rcv
         self.adcp_codec.publish_waves_event += self.waves_rcv
 
@@ -57,12 +72,19 @@ class AutoWavesManager:
         self.monitor_vm.reset_progress_sig.emit()
         logging.debug("Waves File Complete: " + file_name)
 
-    def update_waves_settings(self, sender, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth):
+    def update_waves_settings(self, sender, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth, height_source):
         """
         Receive event that the settings changed and need to be updated.
         :param sender:
         :param num_ens: Number of ensembles in a burst.
         :param file_path: File path to store data
+        :param lat:  Latitude
+        :param lon:  Longitude
+        :param bin1: Selected Bin 1.
+        :param bin2: Selected Bin 2.
+        :param bin3: Selected Bin 3.
+        :param ps_depth: Pressure sensor depth.
+        :param height_source: Height source.
         :return:
         """
 
@@ -73,7 +95,8 @@ class AutoWavesManager:
                                                         bin1=bin1,
                                                         bin2=bin2,
                                                         bin3=bin3,
-                                                        ps_depth=ps_depth)
+                                                        ps_depth=ps_depth,
+                                                        height_source=height_source)
 
     def folder_path_updated(self, folder_path):
         self.monitor_vm.set_file_path_sig.emit(folder_path)

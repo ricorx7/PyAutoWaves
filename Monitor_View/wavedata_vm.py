@@ -47,22 +47,6 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         self.timeBetweenEnsembleLabel.setText("Time Between Ensembles (sec): " + str(round(mat_data['wdt'][0][0], 2)))
         self.pressureSensorHeightLabel.setText("Pressure Sensor Height (m): " + str(mat_data['whp'][0][0]))
 
-        height_source = int(mat_data['whs'][0][0])
-        if height_source == 0:
-            self.waveHeightSourceLabel.setText("Height Source: Range Tracking Beam 0")
-        elif height_source == 1:
-            self.waveHeightSourceLabel.setText("Height Source: Range Tracking Beam 1")
-        elif height_source == 2:
-            self.waveHeightSourceLabel.setText("Height Source: Range Tracking Beam 2")
-        elif height_source == 3:
-            self.waveHeightSourceLabel.setText("Height Source: Range Tracking Beam 3")
-        elif height_source == 4:
-            self.waveHeightSourceLabel.setText("Height Source: Avg Range Tracking or Pressure")
-        elif height_source == 5:
-            self.waveHeightSourceLabel.setText("Height Source: Pressure")
-
-        print(height_source)
-
         # Display the MATLAB as a string
         self.textBrowser.setText(str(mat_data) + str(sio.whosmat(self.file_path)))
 
@@ -203,6 +187,16 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         index = 0
         for col_data in mat_data['wzr']:
             self.wr0TableWidget.setItem(index, 4, QTableWidgetItem(str(col_data[0])))
+            index += 1
+
+        # whs
+        # Selected Height Source Range
+        self.whsTableWidget.setRowCount(len(mat_data['whs']))
+        self.whsTableWidget.setColumnCount(1)
+        self.whsTableWidget.setHorizontalHeaderLabels(['whs'])
+        index = 0
+        for col_data in mat_data['whs']:
+            self.whsTableWidget.setItem(index, 0, QTableWidgetItem(str(col_data[0])))
             index += 1
 
         # wah
