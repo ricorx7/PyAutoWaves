@@ -122,3 +122,6 @@ Updater/pyu-data/new/predictr.app/Contents/Frameworks/
 .pytest_cache/
 
 config.ini
+
+rti_python/Unittest/Waves/*.mat
+rti_python/Unittest/.pytest*
