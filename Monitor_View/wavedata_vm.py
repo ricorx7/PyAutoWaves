@@ -131,13 +131,14 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
 
         # wz0
         # Vertical Beam Beam Velocity
-        self.wz0TableWidget.setRowCount(len(mat_data['wz0']))
-        self.wz0TableWidget.setColumnCount(1)
-        self.wz0TableWidget.setHorizontalHeaderLabels(['wz0'])
-        index = 0
-        for col_data in mat_data['wz0']:
-            self.wz0TableWidget.setItem(index, 0, QTableWidgetItem(str(col_data[0])))
-            index += 1
+        if 'wz0' in mat_data:
+            self.wz0TableWidget.setRowCount(len(mat_data['wz0']))
+            self.wz0TableWidget.setColumnCount(1)
+            self.wz0TableWidget.setHorizontalHeaderLabels(['wz0'])
+            index = 0
+            for col_data in mat_data['wz0']:
+                self.wz0TableWidget.setItem(index, 0, QTableWidgetItem(str(col_data[0])))
+                index += 1
 
         # wus
         # East Velocity

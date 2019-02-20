@@ -46,7 +46,9 @@ class AutoWavesManager:
                                                bin2=selected_bin_2,
                                                bin3=selected_bin_3,
                                                ps_depth=float(self.rti_config.config['Waves']['pressure_sensor_height']),
-                                               height_source=height_source)
+                                               height_source=height_source,
+                                               corr_thresh=float(self.rti_config.config['Waves']['corr_thresh']),
+                                               pressure_offset=float(self.rti_config.config['Waves']['pressure_sensor_offset']))
         self.adcp_codec.EnsembleEvent += self.ensemble_rcv
         self.adcp_codec.publish_waves_event += self.waves_rcv
 
@@ -72,7 +74,7 @@ class AutoWavesManager:
         self.monitor_vm.reset_progress_sig.emit()
         logging.debug("Waves File Complete: " + file_name)
 
-    def update_waves_settings(self, sender, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth, height_source):
+    def update_waves_settings(self, sender, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth, height_source, corr_thresh, pressure_offset):
         """
         Receive event that the settings changed and need to be updated.
         :param sender:
@@ -85,6 +87,8 @@ class AutoWavesManager:
         :param bin3: Selected Bin 3.
         :param ps_depth: Pressure sensor depth.
         :param height_source: Height source.
+        :param corr_thresh Correlation Threshold.
+        :param pressure_offset Pressure sensor offset in meters.
         :return:
         """
 
@@ -96,7 +100,9 @@ class AutoWavesManager:
                                                         bin2=bin2,
                                                         bin3=bin3,
                                                         ps_depth=ps_depth,
-                                                        height_source=height_source)
+                                                        height_source=height_source,
+                                                        corr_thresh=corr_thresh,
+                                                        pressure_offset=pressure_offset)
 
     def folder_path_updated(self, folder_path):
         self.monitor_vm.set_file_path_sig.emit(folder_path)

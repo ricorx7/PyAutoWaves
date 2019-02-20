@@ -194,9 +194,11 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
                                      selected_bin_2,
                                      selected_bin_3,
                                      self.pressureSensorHeightDoubleSpinBox.value(),
-                                     height_source)
+                                     height_source,
+                                     self.corelationThresholdDoubleSpinBox.value(),
+                                     self.pressureSensorOffsetDoubleSpinBox.value())
 
 
     @event
-    def on_waves_setting_change(self, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth, height_source):
+    def on_waves_setting_change(self, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth, height_source, corr_thresh, pressure_offset):
         logging.debug("Waves Settings update: " + str(num_ens) + " " + file_path)
