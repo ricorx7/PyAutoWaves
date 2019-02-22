@@ -18,6 +18,19 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
 
     # Create a signal to update the GUI on another thread
     display_console_data_changed = pyqtSignal(str)
+    send_break_btn_sig = pyqtSignal()
+    start_ping_btn_sig = pyqtSignal()
+    stop_ping_btn_sig = pyqtSignal()
+    send_cmd_btn_sig = pyqtSignal()
+    clear_console_btn_sig = pyqtSignal()
+    record_btn_sig = pyqtSignal()
+    scan_serial_port_btn_sig = pyqtSignal()
+    connect_serial_btn_sig = pyqtSignal()
+    disconnect_serial_btn_sig = pyqtSignal()
+    clear_bulk_btn_sig = pyqtSignal()
+    send_bulk_btn_sig = pyqtSignal()
+    serial_txt_changed_sig = pyqtSignal()
+    update_record_count_sig = pyqtSignal(str, str, str)
 
     def __init__(self, parent, rti_config):
         terminal_view.Ui_Terminal.__init__(self)
@@ -34,6 +47,21 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
 
         # Connect signal and slot for multithread updating GUI
         self.display_console_data_changed.connect(self.display_console)
+
+        # Setup signals
+        self.send_break_btn_sig.connect(self.serial_break)
+        self.start_ping_btn_sig.connect(self.start_pinging)
+        self.stop_ping_btn_sig.connect(self.stop_pinging)
+        self.send_cmd_btn_sig.connect(self.send_cmd)
+        self.clear_console_btn_sig.connect(self.clear_console)
+        self.record_btn_sig.connect(self.turn_on_off_record)
+        self.scan_serial_port_btn_sig.connect(self.update_serial_list)
+        self.connect_serial_btn_sig.connect(self.connect_serial)
+        self.disconnect_serial_btn_sig.connect(self.disconnect_serial)
+        self.clear_bulk_btn_sig.connect(self.clear_bulk_cmd)
+        self.send_bulk_btn_sig.connect(self.send_bulk_cmd)
+        self.serial_txt_changed_sig.connect(self.serial_text_changed)
+        self.update_record_count_sig.connect(self.update_record_count)
 
         self.serial_recorder = None
 
@@ -57,20 +85,20 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         self.baudComboBox.setCurrentText(self.rti_config.config['Comm']['Baud'])
         self.baudComboBox.setToolTip("The default baud rate is 115200.")
         #self.serialTextBrowser.ensureCursorVisible()
-        self.serialTextBrowser.textChanged.connect(self.serial_text_changed)
+        self.serialTextBrowser.textChanged.connect(self.serial_txt_changed_sig.emit)
 
         # Setup buttons
-        self.scanSerialPushButton.clicked.connect(self.update_serial_list)
-        self.serialConnectPushButton.clicked.connect(self.connect_serial)
-        self.serialDisconnectPushButton.clicked.connect(self.disconnect_serial)
-        self.breakPushButton.clicked.connect(self.serial_break)
-        self.sendCmdPushButton.clicked.connect(self.send_cmd)
-        self.startPingPushButton.clicked.connect(self.start_pinging)
-        self.stopPingPushButton.clicked.connect(self.stop_pinging)
-        self.recordPushButton.clicked.connect(self.turn_on_off_record)
-        self.clearConsolePushButton.clicked.connect(self.clear_console)
-        self.clearBulkCmdPushButton.clicked.connect(self.clear_bulk_cmd)
-        self.sendBulkCmdPushButton.clicked.connect(self.send_bulk_cmd)
+        self.scanSerialPushButton.clicked.connect(self.scan_serial_port_btn_sig.emit)
+        self.serialConnectPushButton.clicked.connect(self.connect_serial_btn_sig.emit)
+        self.serialDisconnectPushButton.clicked.connect(self.disconnect_serial_btn_sig.emit)
+        self.sendCmdPushButton.clicked.connect(self.send_cmd_btn_sig.emit)
+        self.breakPushButton.clicked.connect(self.send_break_btn_sig.emit)
+        self.startPingPushButton.clicked.connect(self.start_ping_btn_sig.emit)
+        self.stopPingPushButton.clicked.connect(self.stop_ping_btn_sig.emit)
+        self.recordPushButton.clicked.connect(self.record_btn_sig.emit)
+        self.clearConsolePushButton.clicked.connect(self.clear_console_btn_sig.emit)
+        self.clearBulkCmdPushButton.clicked.connect(self.clear_bulk_btn_sig.emit)
+        self.sendBulkCmdPushButton.clicked.connect(self.send_bulk_btn_sig.emit)
 
     def update_serial_list(self):
         """
@@ -260,9 +288,21 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
     def record_data(self, data):
         if self.serial_recorder:
             self.serial_recorder.write(data)
-            self.bytesWrittenLabel.setText(self.serial_recorder.get_current_file_bytes_written())
-            self.totalBytesWrittenLabel.setText(self.serial_recorder.get_total_bytes_written())
-            self.bytesWrittenLabel.setToolTip(self.serial_recorder.get_file_path())
+            self.update_record_count_sig.emit(self.serial_recorder.get_current_file_bytes_written(),
+                                              self.serial_recorder.get_total_bytes_written(),
+                                              self.serial_recorder.get_file_path())
+
+    def update_record_count(self, file_count, total_count, file_path):
+        """
+        Update the recording file sizes.
+        :param file_count: Total file size of current file.
+        :param total_count: Total size of all files written.
+        :param file_path: Path of current filr.
+        :return:
+        """
+        self.bytesWrittenLabel.setText(file_count)
+        self.totalBytesWrittenLabel.setText(total_count)
+        self.bytesWrittenLabel.setToolTip(file_path)
 
     def clear_console(self):
         self.serialTextBrowser.setHtml("")

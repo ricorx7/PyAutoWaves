@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>WaveDataDialog</class>
+ <widget class="QDialog" name="WaveDataDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>823</width>
+    <height>876</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QVBoxLayout" name="verticalLayout_18">
+     <item>
+      <widget class="QLabel" name="filePathLabel">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="txtLabel">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="timeBetweenEnsembleLabel">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="timeFirstEnsembleLabel">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="latLabel">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="lonLabel">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="pressureSensorHeightLabel">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="currentIndex">
+        <number>12</number>
+       </property>
+       <widget class="QWidget" name="TextTab">
+        <attribute name="title">
+         <string>Text</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_17">
+         <item>
+          <widget class="QTextBrowser" name="textBrowser"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="whvTab">
+        <attribute name="title">
+         <string>Selected Bin Depth</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_12">
+         <item>
+          <widget class="QLabel" name="label_11">
+           <property name="text">
+            <string>whv</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="whvTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wtsTab">
+        <attribute name="title">
+         <string>Water Temp</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_7">
+         <item>
+          <widget class="QLabel" name="label_6">
+           <property name="text">
+            <string>wts</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wtsTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wb0Tab">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>680</height>
+         </size>
+        </property>
+        <attribute name="title">
+         <string>Beam Velocity Beam 0</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_19">
+         <item>
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>wb0</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wb0TableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wb1Tab">
+        <attribute name="title">
+         <string>Beam Velocity Beam 1</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <item>
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>wb1</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wb1TableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wb2Tab">
+        <attribute name="title">
+         <string>Beam Velocity Beam 2</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_4">
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>wb2</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wb2TableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wb3Tab">
+        <attribute name="title">
+         <string>Beam Velocity Beam 3</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>wb3</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wb3TableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wz0Tab">
+        <attribute name="title">
+         <string>Beam Velocity Vertical Beam</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_5">
+         <item>
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>wz0</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wz0TableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wusTab">
+        <attribute name="title">
+         <string>East Velocity</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_8">
+         <item>
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>wus</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wusTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wvsTab">
+        <attribute name="title">
+         <string>North Velocity</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_9">
+         <item>
+          <widget class="QLabel" name="label_9">
+           <property name="text">
+            <string>wvs</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wvsTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wzsTab">
+        <attribute name="title">
+         <string>Vertical Velocity</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_10">
+         <item>
+          <widget class="QLabel" name="label_10">
+           <property name="text">
+            <string>wzs</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wzsTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wahTab">
+        <attribute name="title">
+         <string>Average Range</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_11">
+         <item>
+          <widget class="QLabel" name="label_13">
+           <property name="text">
+            <string>wah</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wahTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="whsTab">
+        <attribute name="title">
+         <string>Selected Range</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_20">
+         <item>
+          <widget class="QLabel" name="label_17">
+           <property name="text">
+            <string>whs</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="whsTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wr0Tab">
+        <attribute name="title">
+         <string>Range</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>wr0, wr1, wr2, wr3, wzr</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wr0TableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wpsTab">
+        <attribute name="title">
+         <string>Pressure</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_13">
+         <item>
+          <widget class="QLabel" name="label_12">
+           <property name="text">
+            <string>wps, wzp</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wpsTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="whgTab">
+        <attribute name="title">
+         <string>Heading</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_14">
+         <item>
+          <widget class="QLabel" name="label_14">
+           <property name="text">
+            <string>whg</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="whgTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wphTab">
+        <attribute name="title">
+         <string>Pitch</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_15">
+         <item>
+          <widget class="QLabel" name="label_16">
+           <property name="text">
+            <string>wph</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wphTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wrlTab">
+        <attribute name="title">
+         <string>Roll</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_16">
+         <item>
+          <widget class="QLabel" name="label_15">
+           <property name="text">
+            <string>wrl</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wrlTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
