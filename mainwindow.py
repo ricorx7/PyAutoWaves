@@ -40,7 +40,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.docked_setup = QtWidgets.QDockWidget("Setup", self)
         self.docked_setup.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         self.docked_setup.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
+        self.docked_setup.resize(500, 400)
         self.docked_setup.setWidget(self.Setup)
+        self.docked_setup.setVisible(False)
         #self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.docked_setup)
 
         # Initialize Terminal
@@ -103,9 +105,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @pyqtSlot()
     def display_setup_view(self):
-            self.docked_setup.show()
-            self.docked_setup.resize(500, 400)
-            self.docked_setup.setFloating(True)
+        self.docked_setup.setFloating(True)
+        self.docked_setup.show()
 
     @pyqtSlot()
     def playback(self):

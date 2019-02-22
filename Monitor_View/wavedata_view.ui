@@ -68,7 +68,7 @@
      <item>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>12</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="TextTab">
         <attribute name="title">
@@ -94,6 +94,57 @@
          </item>
          <item>
           <widget class="QTableWidget" name="whvTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wr0Tab">
+        <attribute name="title">
+         <string>Range</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>wr0, wr1, wr2, wr3, wzr</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wr0TableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wahTab">
+        <attribute name="title">
+         <string>Average Range</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_11">
+         <item>
+          <widget class="QLabel" name="label_13">
+           <property name="text">
+            <string>wah</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wahTableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="whsTab">
+        <attribute name="title">
+         <string>Selected Range</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_20">
+         <item>
+          <widget class="QLabel" name="label_17">
+           <property name="text">
+            <string>whs</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="whsTableWidget"/>
          </item>
         </layout>
        </widget>
@@ -253,57 +304,6 @@
          </item>
          <item>
           <widget class="QTableWidget" name="wzsTableWidget"/>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="wahTab">
-        <attribute name="title">
-         <string>Average Range</string>
-        </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_11">
-         <item>
-          <widget class="QLabel" name="label_13">
-           <property name="text">
-            <string>wah</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTableWidget" name="wahTableWidget"/>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="whsTab">
-        <attribute name="title">
-         <string>Selected Range</string>
-        </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_20">
-         <item>
-          <widget class="QLabel" name="label_17">
-           <property name="text">
-            <string>whs</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTableWidget" name="whsTableWidget"/>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="wr0Tab">
-        <attribute name="title">
-         <string>Range</string>
-        </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <item>
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>wr0, wr1, wr2, wr3, wzr</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTableWidget" name="wr0TableWidget"/>
          </item>
         </layout>
        </widget>

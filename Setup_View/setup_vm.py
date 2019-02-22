@@ -36,7 +36,9 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.storagePathLineEdit.setToolTip(self.storagePathLineEdit.text())
         self.storagePathLineEdit.textChanged.connect(self.update_settings)
         self.storagePathLineEdit.focusOutEvent = self.check_storage_path
+        self.storagePathLineEdit.setToolTip("Set the storage path for all the waves files generated.")
         self.numBurstEnsSpinBox.valueChanged.connect(self.update_settings)
+        self.numBurstEnsSpinBox.setToolTip("Set the number of ensembles included in the burst.  A burst is a collections of ensembles used to calculate the waves features.  Default is 1024 ensembles")
 
         bin_list = []
         bin_list.append('Disable')
@@ -49,6 +51,7 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         else:
             self.selectedBin1ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_1'])
         self.selectedBin1ComboBox.currentTextChanged.connect(self.update_settings)
+        self.selectedBin1ComboBox.setToolTip("Select the 1st bin to calcualte the wave speed and direction.  Ensure this bin is within the water column and not above the surface.  Ensure the bin is not too close to the surface.")
 
         self.selectedBin2ComboBox.addItems(bin_list)
         if self.rti_config.config['Waves']['selected_bin_2'] == '-1':
@@ -56,10 +59,12 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         else:
             self.selectedBin2ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_2'])
         self.selectedBin2ComboBox.currentTextChanged.connect(self.update_settings)
+        self.selectedBin2ComboBox.setToolTip("Select the 2nd bin to calcualte the wave speed and direction.  Ensure this bin is within the water column and not above the surface.  Ensure the bin is not too close to the surface.")
 
         self.selectedBin3ComboBox.addItems(bin_list)
         self.selectedBin3ComboBox.setCurrentText(self.rti_config.config['Waves']['selected_bin_3'])
         self.selectedBin3ComboBox.currentTextChanged.connect(self.update_settings)
+        self.selectedBin3ComboBox.setToolTip("Select the 3rd bin to calcualte the wave speed and direction.  Ensure this bin is within the water column and not above the surface.  Ensure the bin is not too close to the surface.")
 
         self.heightSourceComboBox.addItem('Vertical')
         self.heightSourceComboBox.addItem('Pressure')
@@ -69,17 +74,20 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.heightSourceComboBox.addItem('Beam 3')
         self.heightSourceComboBox.setCurrentText(self.rti_config.config['Waves']['height_source'])
         self.heightSourceComboBox.currentTextChanged.connect(self.update_settings)
+        self.heightSourceComboBox.setToolTip("Select the source for the wave height.  Default is Pressure.")
 
         self.corelationThresholdDoubleSpinBox.setValue(float(self.rti_config.config['Waves']['corr_thresh']))
-        self.corelationThresholdDoubleSpinBox.setToolTip("Correlation Threshold")
+        self.corelationThresholdDoubleSpinBox.setToolTip("Correlation Threshold used to screen the Beam Velocity data.  If the correlation is less than this value, the beam velocity is marked bad.  [0.0 - 1.0]")
         self.corelationThresholdDoubleSpinBox.valueChanged.connect(self.update_settings)
+        self.corelationThresholdDoubleSpinBox.setMinimum(0.0)
+        self.corelationThresholdDoubleSpinBox.setMaximum(1.0)
 
         self.pressureSensorHeightDoubleSpinBox.setValue(float(self.rti_config.config['Waves']['pressure_sensor_height']))
         self.pressureSensorHeightDoubleSpinBox.setToolTip("Pressure Sensor Height above the surface of the ground in meters.")
         self.pressureSensorHeightDoubleSpinBox.valueChanged.connect(self.update_settings)
 
         self.pressureSensorOffsetDoubleSpinBox.setValue(float(self.rti_config.config['Waves']['pressure_sensor_offset']))
-        self.pressureSensorOffsetDoubleSpinBox.setToolTip("Pressure Sensor Height offset in meters.")
+        self.pressureSensorOffsetDoubleSpinBox.setToolTip("Pressure Sensor Height offset in meters.  This value is added to the pressure sensor depth.")
         self.pressureSensorOffsetDoubleSpinBox.valueChanged.connect(self.update_settings)
 
         self.latitudeDoubleSpinBox.setValue(float(self.rti_config.config['Waves']['latitude']))
