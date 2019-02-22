@@ -1,4 +1,10 @@
-from PyQt5.QtWidgets import QWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox
+import matplotlib.pyplot as plt
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtCore import QUrl
+import os
+import numpy as np
+from bokeh.plotting import figure, output_file, show, save
 from Monitor_View import wavedata_view
 import scipy.io as sio
 import datetime
@@ -29,10 +35,21 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         # Set the file path of the MATLAB file
         self.filePathLabel.setText(self.file_path)
 
-        # Read in the MATLAB file
-        mat_data = sio.loadmat(self.file_path)
+        # Try to open the MATLAB waves files
+        # If fails, give a warning
+        try:
+            # Read in the MATLAB file
+            mat_data = sio.loadmat(self.file_path)
 
-        self.txtLabel.setText(str(mat_data['txt'][0]))
+            self.txtLabel.setText(str(mat_data['txt'][0]))
+        except:
+            QMessageBox.question(self,
+                                 'Error Opening MATLAB file',
+                                 "Only MATLAB Waves file can be opened and displayed.\nAll other files cannot be viewed.",
+                                 QMessageBox.Ok)
+            return
+
+
         self.latLabel.setText("Latitude: " + str(mat_data['lat'][0][0]))
         self.lonLabel.setText("Longitude: " + str(mat_data['lon'][0][0]))
 
@@ -70,6 +87,23 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         for col_data in mat_data['wts']:
             self.wtsTableWidget.setItem(index, 0, QTableWidgetItem(str(col_data[0])))
             index += 1
+
+        #plt.plot(mat_data['wts'])
+        #plt.show()
+
+        #output_file("water_temp.html")
+        #p = figure()
+        #ens_num = list(range(len(mat_data['wts'])))
+        #x_axis = np.array(list(range(len(mat_data['wts']))))
+        #y_axis = list(mat_data['wts'])
+        #p.line(x_axis, y_axis)
+        ##show(p)
+        #save(p)
+        #browser2 = QWebEngineView()
+        #file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), mag.HTML_FILE_NAME))
+        #local_url = QUrl.fromLocalFile("water_temp.html")
+        #browser2.load(local_url)
+        #browser2.show()
 
         # wps
         # Pressure

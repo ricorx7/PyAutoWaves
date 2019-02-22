@@ -29,3 +29,22 @@ pyuic5 dialog.ui > dialog.py
 pyuic5 -x file.ui > -o file.py
 ```
 
+# Create PredictR application
+OSX
+```javascript
+pyinstaller Predictr_installer_OSX.spec
+venv\bin\pyinstaller.exe PyAutoWaves_Installer_WIN.spec
+```
+
+Windows
+
+You will need to install MSVC 2015 redistribution.
+
+
+Then add C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\x64 to environment PATH. Then the warning message about api-ms-win-crt-***.dll will disappear and all works correctly.
+
+```javascript
+venv\Scripts\pyinstaller.exe PyAutoWaves_Installer_WIN.spec
+```
+
+This will create a dist and build folder.  The exe in is the dist folder.
