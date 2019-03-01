@@ -19,9 +19,11 @@ C:\Users\XXX\AppData\Local\Programs\Python\Python35\Scripts\pyuic5.exe -x file.u
 
 ```bash
 pip install pyqt5-installer
-pip install pyqt5
+pip install pyqt5==5.7.1
 pip install pyqt5-tools
 ```
+
+Version 5.7.1 of PyQt5 must be used to include QtWebEngineWidgets.  All other versions do not include this library.
 
 Convert the file
 ```bash

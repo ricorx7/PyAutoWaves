@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QMessageBox
 from PyQt5.QtCore import QThread, pyqtSlot, QObject, pyqtSignal
 from . import terminal_view
 import rti_python.Comm.adcp_serial_port as adcp_serial
@@ -343,22 +343,34 @@ def thread_worker(vm):
     :return:
     """
     while vm.adcp_thread_alive:
-        if vm.adcp.raw_serial.in_waiting:
-            # Read the data from the serial port
-            data = vm.adcp.read(vm.adcp.raw_serial.in_waiting)
+        try:
+            if vm.adcp.raw_serial.in_waiting:
+                # Read the data from the serial port
+                data = vm.adcp.read(vm.adcp.raw_serial.in_waiting)
 
-            try:
-                ascii_data = data.decode('ascii')
-                vm.display_console_data_changed.emit(ascii_data)        # Emit signal
-                logging.debug(ascii_data)
-            except Exception:
-                # Do nothing
-                vm.display_console_data_changed.emit(str(data))         # Emit signal
+                try:
+                    ascii_data = data.decode('ascii')
+                    vm.display_console_data_changed.emit(ascii_data)        # Emit signal
+                    logging.debug(ascii_data)
+                except Exception:
+                    # Do nothing
+                    vm.display_console_data_changed.emit(str(data))         # Emit signal
 
-            # Record data if turned on
-            vm.record_data(data)
+                # Record data if turned on
+                vm.record_data(data)
 
-            # Publish the data
-            vm.on_serial_data(data)
+                # Publish the data
+                vm.on_serial_data(data)
 
-        time.sleep(0.01)
+            time.sleep(0.01)
+        except serial.SerialException as se:
+            QMessageBox.question(vm.parent, 'Serial Port Error',
+                                            "Error using the serial port.\n" + str(se),
+                                            QMessageBox.Ok)
+            logging.error("Error using the serial port.\n" + str(se))
+            vm.disconnect_serial()
+        except Exception as ex:
+            QMessageBox.question(vm.parent, 'Error Processing Data',
+                                 "Error processing the data.\n" + str(se),
+                                 QMessageBox.Ok)
+            logging.error("Error processing the data.\n" + str(se))

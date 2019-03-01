@@ -4,10 +4,11 @@ from rti_python.Utilities.config import RtiConfig
 
 
 class AutoWavesManager:
-    def __init__(self, terminal_vm, setup_vm, monitor_vm):
+    def __init__(self, terminal_vm, setup_vm, monitor_vm, avg_water_vm):
         self.terminal_vm = terminal_vm
         self.setup_vm = setup_vm
         self.monitor_vm = monitor_vm
+        self.avg_water_vm = avg_water_vm
 
         self.rti_config = RtiConfig()
 
@@ -59,6 +60,9 @@ class AutoWavesManager:
         # Receive changes from setup
         self.setup_vm.folder_path_updated_sig.connect(self.folder_path_updated)
 
+    def shutdown(self):
+        self.adcp_codec.shutdown()
+
     def serial_data_rcv(self, sender, data):
         logging.debug(str(sender))
         logging.debug("Data Received: " + str(data))
@@ -67,7 +71,14 @@ class AutoWavesManager:
         self.adcp_codec.add(data)
 
     def ensemble_rcv(self, sender, ens):
+        """
+        Event when an ensemble is processed from the codec.
+        :param sender:
+        :param ens: Ensemble object
+        :return:
+        """
         self.monitor_vm.increment_value.emit(self.setup_vm.numBurstEnsSpinBox.value())      # Emit signal
+        #self.avg_water_vm.add_ens_sig.emit(ens)
         logging.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
 
     def waves_rcv(self, sender, file_name):

@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox
-import matplotlib.pyplot as plt
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtCore import QUrl
-import os
-import numpy as np
-from bokeh.plotting import figure, output_file, show, save
+#import matplotlib.pyplot as plt
+#from PyQt5.QtWebEngineWidgets import QWebEngineView
+#from PyQt5.QtCore import QUrl
+#import os
+#import numpy as np
+#from bokeh.plotting import figure, output_file, show, save
 from Monitor_View import wavedata_view
 import scipy.io as sio
 import datetime

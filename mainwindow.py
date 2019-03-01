@@ -6,6 +6,7 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from Setup_View.setup_vm import SetupVM
 from Terminal_View.terminal_vm import TerminalVM
 from Monitor_View.monitor_vm import MonitorVM
+from Average_Water_View.average_water_vm import AverageWaterVM
 import rti_python.Utilities.logger as RtiLogging
 import logging
 import autowaves_manger
@@ -54,8 +55,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, docked_terminal)
         #self.tabifyDockWidget(self.docked_setup, docked_terminal)
 
+        # Initialize the Average Water Column
+        self.AvgWater = AverageWaterVM(self, self.rti_config)
+        self.docked_avg_water = QtWidgets.QDockWidget("AvgWater", self)
+        self.docked_avg_water.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        self.docked_avg_water.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
+        self.docked_avg_water.resize(500, 400)
+        self.docked_avg_water.setWidget(self.AvgWater)
+        self.docked_avg_water.setVisible(False)
+
         # Add the displays to the manager to monitor all the data
-        self.AutoWavesManager = autowaves_manger.AutoWavesManager(self.Terminal, self.Setup, self.Monitor)
+        self.AutoWavesManager = autowaves_manger.AutoWavesManager(self.Terminal, self.Setup, self.Monitor, self.AvgWater)
 
         # Initialize the window
         self.main_window_init()
@@ -70,6 +80,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         mainMenu = self.menuBar()
         fileMenu = mainMenu.addMenu('File')
+        avgMenu = mainMenu.addMenu('Average Water')
         setupMenu = mainMenu.addMenu('Setup')
 
         playbackButton = QAction(QIcon('exit24.png'), 'Playback', self)
@@ -90,6 +101,12 @@ class MainWindow(QtWidgets.QMainWindow):
         setupButton.triggered.connect(self.display_setup_view)
         setupMenu.addAction(setupButton)
 
+        avgWaterButton = QAction(QIcon('exit24.png'), 'Average Water', self)
+        avgWaterButton.setShortcut('Ctrl+S')
+        avgWaterButton.setStatusTip('Average the Water Column')
+        avgWaterButton.triggered.connect(self.display_avg_water_view)
+        avgMenu.addAction(avgWaterButton)
+
         # Show the main window
         self.show()
 
@@ -107,6 +124,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def display_setup_view(self):
         self.docked_setup.setFloating(True)
         self.docked_setup.show()
+
+    @pyqtSlot()
+    def display_avg_water_view(self):
+        self.docked_avg_water.setFloating(True)
+        self.docked_avg_water.show()
 
     @pyqtSlot()
     def playback(self):
@@ -136,6 +158,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if reply == QtWidgets.QMessageBox.Close:
             self.Setup.shutdown()
             self.Terminal.shutdown()
+            self.AutoWavesManager.shutdown()
             event.accept()
         else:
             event.ignore()
