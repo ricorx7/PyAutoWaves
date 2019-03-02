@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QFileSystemModel
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QModelIndex
 from PyQt5 import QtGui, QtWidgets, QtCore
 from . import monitor_view
 from . import wavedata_vm
@@ -70,12 +70,15 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         self.numEnsLabel.setText(str(self.ens_count))
         self.progressBar.setValue(percentage)
 
-
     @pyqtSlot()
     def reset_progress(self):
         self.ens_count = 0
         self.numEnsLabel.setText("0")
         self.progressBar.setValue(0)
+
+        # Need to reset the root path so the file size is updated
+        self.file_system_model.setRootPath("")
+        self.file_system_model.setRootPath(self.rti_config.config['Waves']['output_dir'])
 
     @pyqtSlot(str)
     def set_file_tree_path(self, folder_path):

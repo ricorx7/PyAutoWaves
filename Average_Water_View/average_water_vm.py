@@ -22,7 +22,7 @@ from rti_python.Utilities.config import RtiConfig
 class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
 
-    add_ens_sig = pyqtSignal(object)
+    #add_ens_sig = pyqtSignal(object)
 
     def __init__(self, parent, rti_config):
         average_water_view.Ui_AvgWater.__init__(self)
@@ -39,7 +39,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.rti_config.init_water_average_config()
 
         # Setup Signal
-        self.add_ens_sig.connect(self.add_ens)
+        #self.add_ens_sig.connect(self.add_ens)
 
         self.html = None
         self.web_view = QWebEngineView()
@@ -70,8 +70,8 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
     def add_ens(self, ens):
         self.process_ens(ens)
-        self.create_plot()
-        self.web_view.reload()
+        #self.create_plot()
+        #self.web_view.reload()
 
     def process_ens(self, ens):
         # Ensemble number

@@ -39,6 +39,7 @@ class AutoWavesManager:
         if self.rti_config.config['Waves']['height_source'] == 'Pressure':
             height_source = 5
 
+        # Setup Waves Codec to generate waves MATLAB files
         self.adcp_codec.enable_waveforce_codec(self.setup_vm.numBurstEnsSpinBox.value(),
                                                self.setup_vm.storagePathLineEdit.text(),
                                                lat=float(self.rti_config.config['Waves']['latitude']),
@@ -50,10 +51,12 @@ class AutoWavesManager:
                                                height_source=height_source,
                                                corr_thresh=float(self.rti_config.config['Waves']['corr_thresh']),
                                                pressure_offset=float(self.rti_config.config['Waves']['pressure_sensor_offset']))
+
+        # Subscribe to receive ensembles and waves data
         self.adcp_codec.EnsembleEvent += self.ensemble_rcv
         self.adcp_codec.publish_waves_event += self.waves_rcv
 
-        # Subscribe to receiver serial data
+        # Subscribe to receive serial data
         self.terminal_vm.on_serial_data += self.serial_data_rcv
         self.setup_vm.on_waves_setting_change += self.update_waves_settings
 
@@ -79,6 +82,7 @@ class AutoWavesManager:
         """
         self.monitor_vm.increment_value.emit(self.setup_vm.numBurstEnsSpinBox.value())      # Emit signal
         #self.avg_water_vm.add_ens_sig.emit(ens)
+        self.avg_water_vm.add_ens(ens)
         logging.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
 
     def waves_rcv(self, sender, file_name):
