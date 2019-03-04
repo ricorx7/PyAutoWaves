@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QWidget, QFileDialog, QMessageBox, QTableWidget, QTableWidgetItem, QVBoxLayout
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QUrl, QEventLoop
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
@@ -17,12 +17,15 @@ import logging
 from obsub import event
 import os
 from rti_python.Utilities.config import RtiConfig
+from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
 
 
 class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
 
     #add_ens_sig = pyqtSignal(object)
+    add_tab_sig = pyqtSignal(str)
+    populate_table_sig = pyqtSignal(str, object)
 
     def __init__(self, parent, rti_config):
         average_water_view.Ui_AvgWater.__init__(self)
@@ -36,19 +39,22 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.data = []
 
         self.rti_config = rti_config
-        #self.rti_config.init_water_average_config()
+        self.rti_config.init_average_waves_config()
 
-        # Setup Signal
-        #self.add_ens_sig.connect(self.add_ens)
+        # Setup signal
+        self.add_tab_sig.connect(self.add_tab)
+        self.populate_table_sig.connect(self.populate_table)
+
+        # Dictionary to hold all the average water column objects
+        self.awc_dict = {}
+        self.tab_dict = {}
+
+        # Latest Average Water Column
+        self.avg_counter = 0
 
         self.html = None
         self.web_view = QWebEngineView()
-        #self.web_view.loadFinished.connect(self._loadFinished)
-        #elf.web_view.load(QUrl("www.google.com"))
-        #while self.html is None:
-        #    logging.debug("Waiting")
         html_path = os.path.split(os.path.abspath(__file__))[0] + os.sep + ".." + os.sep + self.HTML_FILE_NAME
-        #html_path = self.HTML_FILE_NAME
         print(html_path)
         self.web_view.load(QUrl().fromLocalFile(html_path))
 
@@ -61,19 +67,123 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
     #    self.web_view.page().toHtml(self._callable)
 
     def init_display(self):
-        self.tableWidget.setToolTip("Average Water Column")
-        self.horizontalLayout.addWidget(self.web_view)
+        #self.tableWidget.setToolTip("Average Water Column")
+        #self.horizontalLayout.addWidget(self.web_view)
+        self.tabWidget.clear()
+        self.setWindowTitle("Average Water Column")
 
-        self.tableWidget.setRowCount(200)
-        self.tableWidget.setColumnCount(1)
-        self.tableWidget.setHorizontalHeaderLabels(['Average Water Column'])
+        #self.tableWidget.setRowCount(200)
+        #self.tableWidget.setColumnCount(5)
+        #self.tableWidget.setHorizontalHeaderLabels(['Average Water Column'])
 
     def add_ens(self, ens):
-        self.process_ens(ens)
+        #self.plot_ens(ens)
         #self.create_plot()
         #self.web_view.reload()
 
-    def process_ens(self, ens):
+        # Accumulate the water column data
+        self.accumulate_ens(ens)
+
+        # Check if it is time to average data
+        for awc_key in self.awc_dict.keys():
+            if len(self.awc_dict[awc_key].ens_beam_list) >= int(self.rti_config.config['AWC']['num_ensembles']):
+                # Average the data
+                awc_average = self.awc_dict[awc_key].average()
+
+                # Update the display
+                self.populate_table_sig.emit(awc_key, awc_average)
+
+    def accumulate_ens(self, ens):
+        # Get the key from the ensemble
+        # If none is returned, then the ensemble does not have the Ensemble Data Set
+        key = self.gen_dict_key(ens)
+
+        if key:
+            # Increment the counter
+            self.avg_counter += 1
+
+            # Get the average water column object from dict if exist
+            # If it does not exist, create the entry
+            # Then add the ensemble to the list
+            if key not in self.awc_dict:
+                self.awc_dict[key] = AverageWaterColumn(int(self.rti_config.config['AWC']['num_ensembles']),
+                                                        ens.EnsembleData.SysFirmwareSubsystemCode,
+                                                        ens.EnsembleData.SubsystemConfig)
+
+                # Add the new tab for each subsystem configuration
+                self.add_tab_sig.emit(key)
+
+            return self.awc_dict[key].add_ens(ens)
+        else:
+            return None
+
+    def add_tab(self, key):
+        # Create tab
+        tab1 = QWidget()
+        self.tabWidget.addTab(tab1, key)
+        tab1.layout = QVBoxLayout(self)
+        table1 = QTableWidget()
+        tab1.layout.addWidget(table1)
+        tab1.setLayout(tab1.layout)
+        tab1.setAccessibleName(key)
+
+        # Set the tab index for the dictionary to keep track of all the tabs
+        self.tab_dict[key] = len(self.tabWidget)-1
+
+    def gen_dict_key(self, ens):
+        if ens.IsEnsembleData:
+            ss_code = ens.EnsembleData.SysFirmwareSubsystemCode
+            ss_config = ens.EnsembleData.SubsystemConfig
+            return str(str(ss_code) + "_" + str(ss_config))
+        else:
+            return None
+
+    def populate_table(self, key, avg_vel):
+        if key in self.tab_dict:
+
+            self.populate_beam_table(key, avg_vel)
+            #self.populate_earth_table(key, avg_vel)
+
+    def populate_beam_table(self, key, avg_vel):
+        tab_index = self.tab_dict[key]
+        tab = self.tabWidget.widget(tab_index)
+        table_widget = tab.layout.itemAt(0).widget()  # There is only 1 widget, the table
+
+        if avg_vel[AverageWaterColumn.INDEX_BEAM] and avg_vel[AverageWaterColumn.INDEX_BEAM][0]:
+            num_bins = len(avg_vel[AverageWaterColumn.INDEX_BEAM])
+            num_beams = len(avg_vel[AverageWaterColumn.INDEX_BEAM][0])
+
+            # Set the number of rows based off the numbers bins
+            table_widget.setRowCount(num_bins)
+            table_widget.setColumnCount(num_beams)
+
+            # Add Earth data to the row
+            if avg_vel[AverageWaterColumn.INDEX_BEAM]:
+                for bin_num in range(num_bins):
+                    for beam_num in range(num_beams):
+                        #print(num_bins, num_beams, table_widget.rowCount(), table_widget.columnCount(), len(avg_vel[AverageWaterColumn.INDEX_BEAM]), len(avg_vel[AverageWaterColumn.INDEX_BEAM][0]), bin_num, beam_num)
+                        table_widget.setItem(bin_num, beam_num, QTableWidgetItem(avg_vel[AverageWaterColumn.INDEX_BEAM][bin_num][beam_num]))
+
+    def populate_earth_table(self, key, avg_vel):
+        tab_index = self.tab_dict[key]
+        tab = self.tabWidget.widget(tab_index)
+        table_widget = tab.layout.itemAt(0).widget()  # There is only 1 widget, the table
+
+        if avg_vel[AverageWaterColumn.INDEX_EARTH] and avg_vel[AverageWaterColumn.INDEX_EARTH][0]:
+            num_bins = len(avg_vel[AverageWaterColumn.INDEX_EARTH])
+            num_beams = len(avg_vel[AverageWaterColumn.INDEX_EARTH][0])
+
+            # Set the number of rows based off the numbers bins
+            table_widget.setRowCount(num_bins)
+            table_widget.setColumnCount(num_beams)
+
+            # Add Earth data to the row
+            if avg_vel[AverageWaterColumn.INDEX_EARTH]:
+                for bin_num in range(num_bins):
+                    for beam_num in range(num_beams):
+                        table_widget.setItem(bin_num, beam_num, QTableWidgetItem(avg_vel[AverageWaterColumn.INDEX_EARTH][bin_num][beam_num]))
+
+    def plot_ens(self, ens):
         # Ensemble number
         self.ens_num.append(ens.EnsembleData.EnsembleNumber)
 
