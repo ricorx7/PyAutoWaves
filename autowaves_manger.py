@@ -120,7 +120,21 @@ class AutoWavesManager:
                                                         pressure_offset=pressure_offset)
 
     def folder_path_updated(self, folder_path):
+        """
+        Update the folder path from Setup VM to Monitor VM.
+        Then update the config file so that all the output directory
+        match.  In this application, they should store all the data
+        to the same folder.
+        :param folder_path: Updated folder path.
+        :return:
+        """
+        # Update the file tree in Monitor
         self.monitor_vm.set_file_path_sig.emit(folder_path)
+
+        # Set the output directory for all the sections so they are consistent
+        self.rti_config.config['Comm']['output_dir'] = folder_path
+        self.rti_config.config['AWC']['output_dir'] = folder_path
+        self.rti_config.write()
 
     def playback_file(self, files):
         """

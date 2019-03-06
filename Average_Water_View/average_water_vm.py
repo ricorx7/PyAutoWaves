@@ -11,6 +11,8 @@ from bokeh.models import Range1d
 import math
 import pandas as pd
 import numpy as np
+from threading import Thread
+import csv
 
 from . import average_water_view
 import logging
@@ -87,11 +89,27 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Check if it is time to average data
         for awc_key in self.awc_dict.keys():
             if len(self.awc_dict[awc_key].ens_beam_list) >= int(self.rti_config.config['AWC']['num_ensembles']):
-                # Average the data
-                awc_average = self.awc_dict[awc_key].average()
+                # Create a thread to take the average
+                thread = Thread(target=self.average_and_display, args=(awc_key, ))
+                thread.start()
+                thread.join(1000)
 
-                # Update the display
-                self.populate_table_sig.emit(awc_key, awc_average)
+    def average_and_display(self, awc_key):
+        """
+        Average the data and display the data.
+        :param awc_key: Average Water Column key to find the correct tables.
+        :return:
+        """
+        # Average the data
+        awc_average = self.awc_dict[awc_key].average()
+
+        # Update CSV file
+        self.write_csv(awc_average)
+
+        # Update the display
+        #self.populate_table_sig.emit(awc_key, awc_average)
+
+        print("Thread average and display complete")
 
     def accumulate_ens(self, ens):
         # Get the key from the ensemble
@@ -116,6 +134,13 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
             return self.awc_dict[key].add_ens(ens)
         else:
             return None
+
+    def write_csv(self, awc_vel):
+        file_name = self.rti_config.config['AWC']['output_dir'] + os.sep + "earth.csv"
+        with open(file_name, 'w', newline='') as csv_file:
+            wr = csv.writer(csv_file)
+            wr.writerow(["Bin1Beam0"])
+            wr.writerows(awc_vel[AverageWaterColumn.INDEX_EARTH])
 
     def add_tab(self, key):
         # Create tab
@@ -163,6 +188,8 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
                     for beam_num in range(num_beams):
                         #print(num_bins, num_beams, table_widget.rowCount(), table_widget.columnCount(), len(avg_vel[AverageWaterColumn.INDEX_BEAM]), len(avg_vel[AverageWaterColumn.INDEX_BEAM][0]), bin_num, beam_num)
                         table_widget.setItem(bin_num, beam_num, QTableWidgetItem(avg_vel[AverageWaterColumn.INDEX_BEAM][bin_num][beam_num]))
+
+            table_widget.viewport().update()
 
     def populate_earth_table(self, key, avg_vel):
         tab_index = self.tab_dict[key]
