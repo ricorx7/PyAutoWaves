@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 from threading import Thread
 import csv
+import datetime
 
 from . import average_water_view
 import logging
@@ -20,6 +21,22 @@ from obsub import event
 import os
 from rti_python.Utilities.config import RtiConfig
 from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
+
+# pyviz
+import numpy as np
+import scipy.stats as ss
+import pandas as pd
+import holoviews as hv
+from holoviews import opts, dim, Palette
+hv.extension('bokeh')
+
+opts.defaults(
+    opts.Bars(xrotation=45, tools=['hover']),
+    opts.BoxWhisker(width=800, xrotation=30, box_fill_color=Palette('Category20')),
+    opts.Curve(width=600, tools=['hover']),
+    opts.GridSpace(shared_yaxis=True),
+    opts.Scatter(width=800, height=400, color=Palette('Category20'), size=dim('growth')+5, tools=['hover']),
+    opts.NdOverlay(legend_position='left'))
 
 
 class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
@@ -79,6 +96,15 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.tableWidget.setHorizontalHeaderLabels(['Average Water Column'])
 
     def add_ens(self, ens):
+        """
+        Add an ensemble to this view model.
+
+        This will accumulate the ensemble in the Average Water Column
+        objects in a dictionary.  When the correct number of ensembles
+        have been accumulated, the average will be taken.
+        :param ens: Ensemble to accumulate.
+        :return:
+        """
         #self.plot_ens(ens)
         #self.create_plot()
         #self.web_view.reload()
@@ -104,14 +130,49 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         awc_average = self.awc_dict[awc_key].average()
 
         # Update CSV file
-        self.write_csv(awc_average)
+        self.write_csv(awc_average, awc_key)
 
         # Update the display
         #self.populate_table_sig.emit(awc_key, awc_average)
 
-        print("Thread average and display complete")
+        # Display data
+        self.display_data(awc_key)
+
+    def display_data(self, awc_key):
+
+        file_title = "earth_east_"
+        file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + awc_key + ".csv"
+        html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Earth_bin1.html"
+
+        macro_df = pd.read_csv(file_path)
+        print(macro_df.head())
+        macro = hv.Dataset(macro_df, ['datetime', 'Bin 1'])
+        print(macro)
+
+        curves = macro.to(hv.Curve, 'datetime', 'Bin 1')
+        print(curves)
+
+        # Render the plot
+        renderer = hv.renderer('bokeh')
+        renderer.save(curves, html_file)
+        plot = renderer.get_plot(curves).state
+
+        save(plot, html_file)
+        # or
+        output_file(html_file)
+        show(plot)
 
     def accumulate_ens(self, ens):
+        """
+        Accumulate the ensemble data.
+        If a dictionary entry does not exist,
+        create a dictionary entry.  Then create an
+        Average Water Column and store it in the dictionary.
+
+        Then add the ensemble to the Average Water Column.
+        :param ens: Ensemble to accumulate.
+        :return:
+        """
         # Get the key from the ensemble
         # If none is returned, then the ensemble does not have the Ensemble Data Set
         key = self.gen_dict_key(ens)
@@ -135,12 +196,56 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         else:
             return None
 
-    def write_csv(self, awc_vel):
-        file_name = self.rti_config.config['AWC']['output_dir'] + os.sep + "earth.csv"
-        with open(file_name, 'w', newline='') as csv_file:
-            wr = csv.writer(csv_file)
-            wr.writerow(["Bin1Beam0"])
-            wr.writerows(awc_vel[AverageWaterColumn.INDEX_EARTH])
+    def write_csv(self, awc_vel, awc_key):
+        """
+        Write all the CSV data.
+        :param awc_vel: Average Velocity data
+        :param awc_key: Key to identify the subsystem and config.
+        :return:
+        """
+        self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, 0, "earth_east_")
+        self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, 1, "earth_north_")
+        self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, 2, "earth_vertical_")
+
+    def write_csv_data(self, awc_vel, awc_key, beam_index, file_title):
+        """
+        Append the data to the CSV file.
+        :param awc_vel: Average Velocity data for all beams.
+        :param awc_key: Key used to give the file an identifier for the subsystem and config.
+        :param beam_index: Beam index within the velocity data.
+        :param file_title: Title to use for the file name.
+        :return:
+        """
+        # Check if the file exist, if it does not, create the file and add the first row
+        file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + awc_key + ".csv"
+        self.check_or_create_file(file_path)
+
+        # Get the data
+        awc_bin_data = [datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S:%f')]
+        for data in awc_vel:
+            awc_bin_data.append(str(data[beam_index]))
+
+        # Write the data to the CSV file
+        # Added newline='' to ensure no extra lines included
+        with open(file_path, 'a', newline='') as csv_file:
+            wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
+            wr.writerow(awc_bin_data)
+
+    def check_or_create_file(self, file_path):
+        """
+        Check if the file exist.  If it does not exist,
+        create the file.
+        :param file_path: File path to create
+        :return:
+        """
+        if not os.path.exists(file_path):
+            bins = ["datetime"]
+            for bin_num in range(1, 200):
+                bins.append("Bin " + str(bin_num))
+
+            with open(file_path, 'w', newline='') as csv_file:
+                wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
+                wr.writerow(bins)
 
     def add_tab(self, key):
         # Create tab
@@ -156,6 +261,13 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.tab_dict[key] = len(self.tabWidget)-1
 
     def gen_dict_key(self, ens):
+        """
+        Generate a dictionary key from the subsystem code and
+        subsystem configuration.
+        [ssCode_ssConfig]
+        :param ens: Ensemble to get the informaton
+        :return:
+        """
         if ens.IsEnsembleData:
             ss_code = ens.EnsembleData.SysFirmwareSubsystemCode
             ss_config = ens.EnsembleData.SubsystemConfig

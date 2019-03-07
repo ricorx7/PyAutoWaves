@@ -9,3 +9,5 @@ pynmea2
 pycrc
 configparser
 scipy
+pyviz
+holoviews
