@@ -145,8 +145,8 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
             # Folder did exist, so just emit signal that path changed
             self.folder_path_updated_sig.emit(self.storagePathLineEdit.text())  # Emit signal of folder change
 
-        self.rti_config.config['Waves']['output_dir'] = self.storagePathLineEdit.text()
-        self.rti_config.write()
+        #self.rti_config.config['Waves']['output_dir'] = self.storagePathLineEdit.text()
+        #self.rti_config.write()
 
     def update_settings(self):
         """

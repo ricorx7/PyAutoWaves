@@ -12,6 +12,7 @@ import math
 import pandas as pd
 import numpy as np
 from threading import Thread
+import threading
 import csv
 import datetime
 
@@ -52,7 +53,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.setupUi(self)
         self.parent = parent
 
-        self.HTML_FILE_NAME = "avg_water_heatmap.html"
+        self.HTML_FILE_NAME = "Earth.html"
         self.num_bins = 30
         self.ens_num = []
         self.data = []
@@ -142,25 +143,31 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         file_title = "earth_east_"
         file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + awc_key + ".csv"
-        html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Earth_bin1.html"
+        html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Earth"
 
         macro_df = pd.read_csv(file_path)
-        print(macro_df.head())
-        macro = hv.Dataset(macro_df, ['datetime', 'Bin 1'])
-        print(macro)
+        #print(macro_df.head())
+        macro = hv.Dataset(macro_df, ['datetime', 'value'])
+        #print(macro)
 
-        curves = macro.to(hv.Curve, 'datetime', 'Bin 1')
-        print(curves)
+        # Plot and select a bin
+        curves = macro.to(hv.Curve, 'datetime', 'value', groupby='bin_num')
+        #print(curves)
+
+        # Plot and list the bins
+        #subset = macro.select(bin_num=[1, 3, 5])
+        #curves = subset.to(hv.Curve, 'datetime', 'value').layout()
+
 
         # Render the plot
         renderer = hv.renderer('bokeh')
         renderer.save(curves, html_file)
-        plot = renderer.get_plot(curves).state
+        #plot = renderer.get_plot(curves).state
 
-        save(plot, html_file)
+        #save(plot, html_file)
         # or
-        output_file(html_file)
-        show(plot)
+        #output_file(html_file)
+        #show(plot)
 
     def accumulate_ens(self, ens):
         """
@@ -192,9 +199,8 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
                 # Add the new tab for each subsystem configuration
                 self.add_tab_sig.emit(key)
 
-            return self.awc_dict[key].add_ens(ens)
-        else:
-            return None
+            # Add the ensemble to the correct AverageWaterColumn
+            self.awc_dict[key].add_ens(ens)
 
     def write_csv(self, awc_vel, awc_key):
         """
@@ -220,16 +226,28 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + awc_key + ".csv"
         self.check_or_create_file(file_path)
 
-        # Get the data
-        awc_bin_data = [datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S:%f')]
-        for data in awc_vel:
-            awc_bin_data.append(str(data[beam_index]))
-
         # Write the data to the CSV file
         # Added newline='' to ensure no extra lines included
         with open(file_path, 'a', newline='') as csv_file:
             wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
-            wr.writerow(awc_bin_data)
+
+            # Get the data
+            bin = 1
+            curr_time = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S:%f')
+
+            # Go through each bin and add a line to the csv file
+            for data in awc_vel:
+                # Add the bin data to the line
+                awc_bin_data = []
+                awc_bin_data.append(curr_time)
+                awc_bin_data.append(bin)
+                awc_bin_data.append(str(data[beam_index]))
+
+                # Write the data
+                wr.writerow(awc_bin_data)
+
+                # Increment the bin number
+                bin += 1
 
     def check_or_create_file(self, file_path):
         """
@@ -239,13 +257,11 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :return:
         """
         if not os.path.exists(file_path):
-            bins = ["datetime"]
-            for bin_num in range(1, 200):
-                bins.append("Bin " + str(bin_num))
+            header = ["datetime", "bin_num", "value"]
 
             with open(file_path, 'w', newline='') as csv_file:
                 wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
-                wr.writerow(bins)
+                wr.writerow(header)
 
     def add_tab(self, key):
         # Create tab

@@ -371,6 +371,6 @@ def thread_worker(vm):
             vm.disconnect_serial()
         except Exception as ex:
             QMessageBox.question(vm.parent, 'Error Processing Data',
-                                 "Error processing the data.\n" + str(se),
+                                 "Error processing the data.\n" + str(ex),
                                  QMessageBox.Ok)
-            logging.error("Error processing the data.\n" + str(se))
+            logging.error("Error processing the data.\n" + str(ex))

@@ -132,6 +132,7 @@ class AutoWavesManager:
         self.monitor_vm.set_file_path_sig.emit(folder_path)
 
         # Set the output directory for all the sections so they are consistent
+        self.rti_config.config['Waves']['output_dir'] = folder_path
         self.rti_config.config['Comm']['output_dir'] = folder_path
         self.rti_config.config['AWC']['output_dir'] = folder_path
         self.rti_config.write()
@@ -145,6 +146,9 @@ class AutoWavesManager:
         """
         if files:
             print(files)
+
+            # Reset the monitor progress
+            self.monitor_vm.reset_progress_sig.emit()
 
         # Read the file
         for file in files:
