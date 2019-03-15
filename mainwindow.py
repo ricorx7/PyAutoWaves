@@ -65,7 +65,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.docked_avg_water.setVisible(False)
 
         # Add the displays to the manager to monitor all the data
-        self.AutoWavesManager = autowaves_manger.AutoWavesManager(self.Terminal, self.Setup, self.Monitor, self.AvgWater)
+        self.AutoWavesManager = autowaves_manger.AutoWavesManager(self.rti_config,
+                                                                  self.Terminal,
+                                                                  self.Setup,
+                                                                  self.Monitor,
+                                                                  self.AvgWater)
 
         # Initialize the window
         self.main_window_init()

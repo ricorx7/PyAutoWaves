@@ -4,13 +4,13 @@ from rti_python.Utilities.config import RtiConfig
 
 
 class AutoWavesManager:
-    def __init__(self, terminal_vm, setup_vm, monitor_vm, avg_water_vm):
+    def __init__(self, rti_config, terminal_vm, setup_vm, monitor_vm, avg_water_vm):
         self.terminal_vm = terminal_vm
         self.setup_vm = setup_vm
         self.monitor_vm = monitor_vm
         self.avg_water_vm = avg_water_vm
 
-        self.rti_config = RtiConfig()
+        self.rti_config = rti_config
 
         self.adcp_codec = AdcpCodec()
 

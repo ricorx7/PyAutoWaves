@@ -21,6 +21,7 @@ import logging
 from obsub import event
 import os
 from rti_python.Utilities.config import RtiConfig
+from rti_python.Ensemble.Ensemble import Ensemble
 from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
 
 # pyviz
@@ -137,7 +138,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.populate_table_sig.emit(awc_key, awc_average)
 
         # Display data
-        self.display_data(awc_key)
+        #self.display_data(awc_key)
 
     def display_data(self, awc_key):
 
@@ -202,52 +203,184 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
             # Add the ensemble to the correct AverageWaterColumn
             self.awc_dict[key].add_ens(ens)
 
-    def write_csv(self, awc_vel, awc_key):
+    def write_csv(self, awc_avg, awc_key):
         """
         Write all the CSV data.
         :param awc_vel: Average Velocity data
         :param awc_key: Key to identify the subsystem and config.
         :return:
         """
-        self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, 0, "earth_east_")
-        self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, 1, "earth_north_")
-        self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, 2, "earth_vertical_")
+        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, Ensemble.CSV_EARTH_VEL, 0, "earth_east_")
+        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, Ensemble.CSV_EARTH_VEL, 1, "earth_north_")
+        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, Ensemble.CSV_EARTH_VEL, 2, "earth_vertical_")
+        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_MAG], awc_key, Ensemble.CSV_MAG, None, "mag_")
+        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_DIR], awc_key, Ensemble.CSV_DIR, None, "dir_")
 
-    def write_csv_data(self, awc_vel, awc_key, beam_index, file_title):
+        csv_rows = []
+        # Earth Velocity data
+        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_EARTH],              # Earth Velocity data average
+                                      awc_key,                                              # Key for subsystem code and config
+                                      Ensemble.CSV_EARTH_VEL,                               # Data Type CSV Title
+                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
+        # Mag Data
+        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_MAG],                # Mag data average
+                                      awc_key,                                              # Key for subsystem code and config
+                                      Ensemble.CSV_MAG,                                     # Data Type Title
+                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
+        # Dir Data
+        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_DIR],                # Dir Data average
+                                      awc_key,                                              # Key for subsystem code and config
+                                      Ensemble.CSV_DIR,                                     # Data Type Title
+                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+
+        # Pressure Data
+        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_PRESSURE],           # Pressure Data average
+                                      awc_key,                                              # Key for subsystem code and config
+                                      Ensemble.CSV_PRESSURE,                                # Data Type Title
+                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+
+        # Transducer Depth Data
+        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],         # Transducer Depth Data average
+                                      awc_key,                                              # Key for subsystem code and config
+                                      Ensemble.CSV_XDCR_DEPTH,                              # Data Type Title
+                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+
+
+        # Write the accumulated rows to the file
+        self.write_csv_file(csv_rows, "average_data_" + awc_key)
+
+    def write_csv_data(self, awc_vel, awc_key, data_type, beam_index, file_title):
         """
         Append the data to the CSV file.
+
+        Ex:
+        [datetime], [bin_num], [bin_depth], [value]
+        2019/02/23 15:23:22.56, 2, 7.5, 1.245
+
         :param awc_vel: Average Velocity data for all beams.
         :param awc_key: Key used to give the file an identifier for the subsystem and config.
         :param beam_index: Beam index within the velocity data.
         :param file_title: Title to use for the file name.
         :return:
         """
-        # Check if the file exist, if it does not, create the file and add the first row
-        file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + awc_key + ".csv"
-        self.check_or_create_file(file_path)
+        try:
+            # Check if the file exist, if it does not, create the file and add the first row
+            file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + awc_key + ".csv"
+            self.check_or_create_file(file_path)
 
-        # Write the data to the CSV file
-        # Added newline='' to ensure no extra lines included
-        with open(file_path, 'a', newline='') as csv_file:
-            wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
+            blank = self.awc_dict[awc_key].blank
+            bin_size = self.awc_dict[awc_key].bin_size
+            ss_code = self.awc_dict[awc_key].ss_code
+            ss_config = self.awc_dict[awc_key].ss_config
 
-            # Get the data
-            bin = 1
-            curr_time = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S:%f')
+            # Write the data to the CSV file
+            # Added newline='' to ensure no extra lines included
+            with open(file_path, 'a', newline='') as csv_file:
+                wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
 
-            # Go through each bin and add a line to the csv file
-            for data in awc_vel:
-                # Add the bin data to the line
-                awc_bin_data = []
-                awc_bin_data.append(curr_time)
-                awc_bin_data.append(bin)
-                awc_bin_data.append(str(data[beam_index]))
+                # Get the data
+                bin_num = 1
+                curr_time = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S:%f')
+
+                row_data = []
+
+                # Go through each bin and add a line to the csv file
+                for data in awc_vel:
+                    # Add the bin data to the line
+                    #awc_bin_data = []
+                    #awc_bin_data.append(curr_time)
+                    #awc_bin_data.append(bin_num)
+                    #awc_bin_data.append(Ensemble.get_bin_depth(blank, bin_size, bin_num))
+
+                    # If it has beam data (Velocity data)
+                    val = ""
+                    #if beam_index:
+                        #awc_bin_data.append(str(data[beam_index]))
+                    #    val = str(data[beam_index])
+                    # Only bin data, no beam data (Mag and Dir data)
+                    #else:
+                        #awc_bin_data.append(str(data))
+                    #    val = str(data)
+                    for beam in len(data):
+                        val = data[beam]
+                        row_data.append(Ensemble.gen_csv_line(curr_time, data_type, ss_code, ss_config, bin_num, beam, blank, bin_size, val))
+
+                    # Increment the bin number
+                    bin_num += 1
+
+            # Write the data
+            wr.writerows(row_data)
+        except PermissionError as pe:
+            logging.error("File in use.  Permission error.  ", pe)
+        except Exception as e:
+            logging.error("Error writing to the CSV file.  ", e)
+
+    def write_csv_file(self, csv_rows, file_title):
+        try:
+            # Check if the file exist, if it does not, create the file and add the first row
+            file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + ".csv"
+            self.check_or_create_file(file_path)
+
+            # Write the data to the CSV file
+            # Added newline='' to ensure no extra lines included
+            with open(file_path, 'a', newline='') as csv_file:
+                wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_NONE, escapechar=' ')
 
                 # Write the data
-                wr.writerow(awc_bin_data)
+                wr.writerows(csv_rows)
 
-                # Increment the bin number
-                bin += 1
+        except PermissionError as pe:
+            logging.error("File in use.  Permission error.  ", pe)
+        except Exception as e:
+            logging.error("Error writing to the CSV file.  ", e)
+
+    def get_csv_data(self, data, awc_key, data_type, last_time):
+        """
+        Append the data to the CSV file.
+
+        Ex:
+        ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "bin_depth", "value"]
+        2019/02/23 15:23:22.56, EARTH_VEL, 4, 1, 2, 2, 7.5, 1.245
+
+        :param data: Data for all beams.
+        :param awc_key: Key used to give the file an identifier for the subsystem and config.
+        :param data_type: Data type to place into the csv line.
+        :param last_time: Last time in the average.
+        :return:
+        """
+
+        # Get the parameters for the data
+        blank = self.awc_dict[awc_key].blank
+        bin_size = self.awc_dict[awc_key].bin_size
+        ss_code = self.awc_dict[awc_key].ss_code
+        ss_config = self.awc_dict[awc_key].ss_config
+
+        # Use the current time as a backup
+        #dt_time = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S:%f')
+        dt_time = datetime.datetime.now()
+        if last_time:
+            dt_time = last_time
+
+        # Get the data
+        bin_num = 1
+        beam_num = 0
+        row_data = []
+
+        # Go through each bin and add a line to the csv file
+        for bin_data in data:
+            if type(bin_data) == list:
+                beam_num = 0
+                for beam_data in bin_data:
+                    val = beam_data
+                    row_data.append([(Ensemble.gen_csv_line(dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, val))])
+                    beam_num += 1
+            else:
+                row_data.append([(Ensemble.gen_csv_line(dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, bin_data))])
+
+            # Increment the bin number
+            bin_num += 1
+
+        return row_data
 
     def check_or_create_file(self, file_path):
         """
@@ -257,7 +390,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :return:
         """
         if not os.path.exists(file_path):
-            header = ["datetime", "bin_num", "value"]
+            header = ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "bin_depth", "value"]
 
             with open(file_path, 'w', newline='') as csv_file:
                 wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
