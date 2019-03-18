@@ -11,3 +11,4 @@ configparser
 scipy
 pyviz
 holoviews
+matplotlib

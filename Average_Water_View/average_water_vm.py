@@ -55,6 +55,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.parent = parent
 
         self.HTML_FILE_NAME = "Earth.html"
+        self.CSV_AVG_FILE_NAME = "average_data.csv"
         self.num_bins = 30
         self.ens_num = []
         self.data = []
@@ -115,45 +116,70 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.accumulate_ens(ens)
 
         # Check if it is time to average data
-        for awc_key in self.awc_dict.keys():
-            if len(self.awc_dict[awc_key].ens_beam_list) >= int(self.rti_config.config['AWC']['num_ensembles']):
-                # Create a thread to take the average
-                thread = Thread(target=self.average_and_display, args=(awc_key, ))
-                thread.start()
-                thread.join(1000)
+        if self.avg_counter >= int(self.rti_config.config['AWC']['num_ensembles']):
+            thread = Thread(target=self.average_and_display)
+            thread.start()
+            thread.join(1000)
 
-    def average_and_display(self, awc_key):
+    def average_and_display(self):
         """
         Average the data and display the data.
         :param awc_key: Average Water Column key to find the correct tables.
         :return:
         """
-        # Average the data
-        awc_average = self.awc_dict[awc_key].average()
 
-        # Update CSV file
-        self.write_csv(awc_average, awc_key)
+        for awc_key in self.awc_dict.keys():
+            # Average the data
+            awc_average = self.awc_dict[awc_key].average()
+
+            # Update CSV file
+            self.write_csv(awc_average, awc_key)
+
+        # Reset the counter
+        self.avg_counter = 0
 
         # Update the display
         #self.populate_table_sig.emit(awc_key, awc_average)
 
         # Display data
-        #self.display_data(awc_key)
+        self.display_data("")
 
-    def display_data(self, awc_key):
+    def display_data(self, file_index):
 
         file_title = "earth_east_"
-        file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + awc_key + ".csv"
-        html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Earth"
+        file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_index + self.CSV_AVG_FILE_NAME
+        wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + file_index + "WaveHeight"
 
-        macro_df = pd.read_csv(file_path)
-        #print(macro_df.head())
-        macro = hv.Dataset(macro_df, ['datetime', 'value'])
-        #print(macro)
+        # Read in the CSV data of the average data
+        avg_df = pd.read_csv(file_path)
+        print(avg_df.head())
+
+        # Set the dependent
+        vdims = [('value', 'Values')]
+
+        # Set the independent columns
+        # Create the Holoview dataset
+        ds = hv.Dataset(avg_df, ['datetime', 'data_type', 'ss_code', 'ss_config', 'bin_num', 'beam_num'], vdims)
+        print(ds)
 
         # Plot and select a bin
-        curves = macro.to(hv.Curve, 'datetime', 'value', groupby='bin_num')
+        #selected_data_type = [('Pressure', "Pressure (Bar)"), ('XdcrDepth', "Water Level (m)")]
+        selected_data_type = ['Pressure']
+        selected_presure_xdcr_height_ds = ds.select().sort()
+        print(selected_presure_xdcr_height_ds)
+        pressure_xdcr_height = selected_presure_xdcr_height_ds.to(hv.Curve, 'datetime', 'value', ['data_type']) + hv.Table(selected_presure_xdcr_height_ds)
+        #pressure_xdcr_height = ds.to(hv.Curve, 'datetime', 'value')
+
+
         #print(curves)
+
+        # Set the options for the plot
+        #pressure_xdcr_height.opts(
+        #    opts.Curve(width=600, height=250, framewise=True, tools=['hover']))
+
+
+        # Save to HTML
+        hv.save(pressure_xdcr_height, wave_height_html_file, fmt='html')
 
         # Plot and list the bins
         #subset = macro.select(bin_num=[1, 3, 5])
@@ -161,14 +187,17 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
 
         # Render the plot
-        renderer = hv.renderer('bokeh')
-        renderer.save(curves, html_file)
+        #renderer = hv.renderer('bokeh')
+
+        # Pressure and Wave Height Plot
+        #renderer.save(pressure_xdcr_height, wave_height_html_file)
         #plot = renderer.get_plot(curves).state
 
-        #save(plot, html_file)
+        #save(pressure_xdcr_height, wave_height_html_file)
         # or
         #output_file(html_file)
         #show(plot)
+        #show(pressure_xdcr_height)
 
     def accumulate_ens(self, ens):
         """
@@ -210,115 +239,48 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :param awc_key: Key to identify the subsystem and config.
         :return:
         """
-        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, Ensemble.CSV_EARTH_VEL, 0, "earth_east_")
-        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, Ensemble.CSV_EARTH_VEL, 1, "earth_north_")
-        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_EARTH], awc_key, Ensemble.CSV_EARTH_VEL, 2, "earth_vertical_")
-        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_MAG], awc_key, Ensemble.CSV_MAG, None, "mag_")
-        #self.write_csv_data(awc_vel[AverageWaterColumn.INDEX_DIR], awc_key, Ensemble.CSV_DIR, None, "dir_")
 
         csv_rows = []
         # Earth Velocity data
-        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_EARTH],              # Earth Velocity data average
-                                      awc_key,                                              # Key for subsystem code and config
-                                      Ensemble.CSV_EARTH_VEL,                               # Data Type CSV Title
-                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
+        if awc_avg[AverageWaterColumn.INDEX_EARTH]:
+            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_EARTH],              # Earth Velocity data average
+                                          awc_key,                                              # Key for subsystem code and config
+                                          Ensemble.CSV_EARTH_VEL,                               # Data Type CSV Title
+                                          awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
         # Mag Data
-        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_MAG],                # Mag data average
-                                      awc_key,                                              # Key for subsystem code and config
-                                      Ensemble.CSV_MAG,                                     # Data Type Title
-                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
+        if awc_avg[AverageWaterColumn.INDEX_MAG]:
+            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_MAG],                # Mag data average
+                                          awc_key,                                              # Key for subsystem code and config
+                                          Ensemble.CSV_MAG,                                     # Data Type Title
+                                          awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
         # Dir Data
-        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_DIR],                # Dir Data average
-                                      awc_key,                                              # Key for subsystem code and config
-                                      Ensemble.CSV_DIR,                                     # Data Type Title
-                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+        if awc_avg[AverageWaterColumn.INDEX_DIR]:
+            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_DIR],                # Dir Data average
+                                          awc_key,                                              # Key for subsystem code and config
+                                          Ensemble.CSV_DIR,                                     # Data Type Title
+                                          awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
 
         # Pressure Data
-        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_PRESSURE],           # Pressure Data average
-                                      awc_key,                                              # Key for subsystem code and config
-                                      Ensemble.CSV_PRESSURE,                                # Data Type Title
-                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+        if awc_avg[AverageWaterColumn.INDEX_PRESSURE]:
+            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_PRESSURE],           # Pressure Data average
+                                          awc_key,                                              # Key for subsystem code and config
+                                          Ensemble.CSV_PRESSURE,                                # Data Type Title
+                                          awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
 
         # Transducer Depth Data
-        csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],         # Transducer Depth Data average
-                                      awc_key,                                              # Key for subsystem code and config
-                                      Ensemble.CSV_XDCR_DEPTH,                              # Data Type Title
-                                      awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
-
+        if awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH]:
+            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],         # Transducer Depth Data average
+                                          awc_key,                                              # Key for subsystem code and config
+                                          Ensemble.CSV_XDCR_DEPTH,                              # Data Type Title
+                                          awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
 
         # Write the accumulated rows to the file
-        self.write_csv_file(csv_rows, "average_data_" + awc_key)
-
-    def write_csv_data(self, awc_vel, awc_key, data_type, beam_index, file_title):
-        """
-        Append the data to the CSV file.
-
-        Ex:
-        [datetime], [bin_num], [bin_depth], [value]
-        2019/02/23 15:23:22.56, 2, 7.5, 1.245
-
-        :param awc_vel: Average Velocity data for all beams.
-        :param awc_key: Key used to give the file an identifier for the subsystem and config.
-        :param beam_index: Beam index within the velocity data.
-        :param file_title: Title to use for the file name.
-        :return:
-        """
-        try:
-            # Check if the file exist, if it does not, create the file and add the first row
-            file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + awc_key + ".csv"
-            self.check_or_create_file(file_path)
-
-            blank = self.awc_dict[awc_key].blank
-            bin_size = self.awc_dict[awc_key].bin_size
-            ss_code = self.awc_dict[awc_key].ss_code
-            ss_config = self.awc_dict[awc_key].ss_config
-
-            # Write the data to the CSV file
-            # Added newline='' to ensure no extra lines included
-            with open(file_path, 'a', newline='') as csv_file:
-                wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
-
-                # Get the data
-                bin_num = 1
-                curr_time = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S:%f')
-
-                row_data = []
-
-                # Go through each bin and add a line to the csv file
-                for data in awc_vel:
-                    # Add the bin data to the line
-                    #awc_bin_data = []
-                    #awc_bin_data.append(curr_time)
-                    #awc_bin_data.append(bin_num)
-                    #awc_bin_data.append(Ensemble.get_bin_depth(blank, bin_size, bin_num))
-
-                    # If it has beam data (Velocity data)
-                    val = ""
-                    #if beam_index:
-                        #awc_bin_data.append(str(data[beam_index]))
-                    #    val = str(data[beam_index])
-                    # Only bin data, no beam data (Mag and Dir data)
-                    #else:
-                        #awc_bin_data.append(str(data))
-                    #    val = str(data)
-                    for beam in len(data):
-                        val = data[beam]
-                        row_data.append(Ensemble.gen_csv_line(curr_time, data_type, ss_code, ss_config, bin_num, beam, blank, bin_size, val))
-
-                    # Increment the bin number
-                    bin_num += 1
-
-            # Write the data
-            wr.writerows(row_data)
-        except PermissionError as pe:
-            logging.error("File in use.  Permission error.  ", pe)
-        except Exception as e:
-            logging.error("Error writing to the CSV file.  ", e)
+        self.write_csv_file(csv_rows, self.CSV_AVG_FILE_NAME)
 
     def write_csv_file(self, csv_rows, file_title):
         try:
             # Check if the file exist, if it does not, create the file and add the first row
-            file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title + ".csv"
+            file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title
             self.check_or_create_file(file_path)
 
             # Write the data to the CSV file

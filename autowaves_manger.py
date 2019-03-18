@@ -80,8 +80,18 @@ class AutoWavesManager:
         :param ens: Ensemble object
         :return:
         """
-        self.monitor_vm.increment_value.emit(self.setup_vm.numBurstEnsSpinBox.value())      # Emit signal
-        #self.avg_water_vm.add_ens_sig.emit(ens)
+        # Check if the data was a 4 beam or vertical beam data
+        # Emit only on vertical beam data, because it is assumed
+        # the data comes as a pair (4beam and vertical beam)
+        # If the flag is set false, the count all the data
+        if self.rti_config.config.getboolean('Waves', '4b_vert_pair'):
+            if ens.IsEnsembleData and ens.EnsembleData.NumBeams == 1:
+                # Emit signal that an ensemble was received
+                self.monitor_vm.increment_value.emit(self.setup_vm.numBurstEnsSpinBox.value())
+        else:
+            self.monitor_vm.increment_value.emit(self.setup_vm.numBurstEnsSpinBox.value())
+
+        # Add the data to be averaged and displayed
         self.avg_water_vm.add_ens(ens)
         logging.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
 
