@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'setup_view.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.7.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Setup(object):
     def setupUi(self, Setup):
         Setup.setObjectName("Setup")
-        Setup.resize(404, 400)
+        Setup.resize(404, 407)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -28,9 +28,12 @@ class Ui_Setup(object):
         self.numBurstEnsSpinBox.setMaximum(10000)
         self.numBurstEnsSpinBox.setObjectName("numBurstEnsSpinBox")
         self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.numBurstEnsSpinBox)
+        self.numAvgEnsSpinBox = QtWidgets.QSpinBox(Setup)
+        self.numAvgEnsSpinBox.setObjectName("numAvgEnsSpinBox")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.numAvgEnsSpinBox)
         self.storagePathLabel = QtWidgets.QLabel(Setup)
         self.storagePathLabel.setObjectName("storagePathLabel")
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.storagePathLabel)
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.storagePathLabel)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.storagePathLineEdit = QtWidgets.QLineEdit(Setup)
@@ -39,7 +42,10 @@ class Ui_Setup(object):
         self.selectFolderPushButton = QtWidgets.QPushButton(Setup)
         self.selectFolderPushButton.setObjectName("selectFolderPushButton")
         self.horizontalLayout_2.addWidget(self.selectFolderPushButton)
-        self.formLayout.setLayout(1, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2)
+        self.formLayout.setLayout(2, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2)
+        self.label_10 = QtWidgets.QLabel(Setup)
+        self.label_10.setObjectName("label_10")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_10)
         self.verticalLayout.addLayout(self.formLayout)
         self.groupBox = QtWidgets.QGroupBox(Setup)
         self.groupBox.setObjectName("groupBox")
@@ -101,6 +107,12 @@ class Ui_Setup(object):
         self.longitudeDoubleSpinBox = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.longitudeDoubleSpinBox.setObjectName("longitudeDoubleSpinBox")
         self.formLayout_2.setWidget(8, QtWidgets.QFormLayout.FieldRole, self.longitudeDoubleSpinBox)
+        self.label_11 = QtWidgets.QLabel(self.groupBox)
+        self.label_11.setObjectName("label_11")
+        self.formLayout_2.setWidget(9, QtWidgets.QFormLayout.LabelRole, self.label_11)
+        self.isVerticalDataCheckBox = QtWidgets.QCheckBox(self.groupBox)
+        self.isVerticalDataCheckBox.setObjectName("isVerticalDataCheckBox")
+        self.formLayout_2.setWidget(9, QtWidgets.QFormLayout.FieldRole, self.isVerticalDataCheckBox)
         self.verticalLayout_2.addLayout(self.formLayout_2)
         self.verticalLayout.addWidget(self.groupBox)
 
@@ -113,6 +125,7 @@ class Ui_Setup(object):
         self.numBurstEnsLabel.setText(_translate("Setup", "Number of Ensembles in Burst"))
         self.storagePathLabel.setText(_translate("Setup", "Output Directory"))
         self.selectFolderPushButton.setText(_translate("Setup", "DIR"))
+        self.label_10.setText(_translate("Setup", "Number of Ensembles in Average"))
         self.groupBox.setTitle(_translate("Setup", "Wave Setup"))
         self.label.setText(_translate("Setup", "Selected Bin 1"))
         self.label_2.setText(_translate("Setup", "Selected Bin 2"))
@@ -123,6 +136,8 @@ class Ui_Setup(object):
         self.label_7.setText(_translate("Setup", "Pressure Sensor Offset (m)"))
         self.label_8.setText(_translate("Setup", "Latitude"))
         self.label_9.setText(_translate("Setup", "Longitude"))
+        self.label_11.setText(_translate("Setup", "Vertical Beam Data?"))
+        self.isVerticalDataCheckBox.setText(_translate("Setup", " Vertical Data Included"))
 
 
 if __name__ == "__main__":

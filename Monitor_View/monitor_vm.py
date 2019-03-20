@@ -13,9 +13,12 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
     """
 
     # Create signal for value changed
-    increment_value = pyqtSignal(int)
-    reset_progress_sig = pyqtSignal()
+    increment_burst_value = pyqtSignal(int)
+    reset_burst_progress_sig = pyqtSignal()
+    increment_avg_value = pyqtSignal(int, int)
+    reset_avg_progress_sig = pyqtSignal()
     set_file_path_sig = pyqtSignal(str)
+    refresh_file_tree_sig = pyqtSignal()
 
     def __init__(self, parent, rti_config):
         monitor_view.Ui_Monitor.__init__(self)
@@ -26,12 +29,14 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         self.rti_config = rti_config
         self.rti_config.init_waves_config()
         self.file_system_model = QFileSystemModel()
-        self.ens_count = 0
+        self.burst_ens_count = 0
+        self.avg_ens_count = 0
 
-        self.increment_value.connect(self.increment_progress)       # Connect signal and slot
-        self.reset_progress_sig.connect(self.reset_progress)        # Connect signal and slot
-        self.set_file_path_sig.connect(self.set_file_tree_path)     # Signal when output folder path changed
-        self.waveFileTreeView.doubleClicked.connect(self.wave_file_selected) # Connect when tree view item double clicked
+        self.increment_burst_value.connect(self.increment_burst_progress)       # Connect signal and slot
+        self.increment_avg_value.connect(self.increment_avg_progress)           # Connect signal and slot
+        self.set_file_path_sig.connect(self.set_file_tree_path)                 # Signal when output folder path changed
+        self.waveFileTreeView.doubleClicked.connect(self.wave_file_selected)    # Connect when tree view item double clicked
+        self.refresh_file_tree_sig.connect(self.refresh_file_tree)
 
         self.init_display()
 
@@ -40,12 +45,21 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         Initialize the display.
         :return:
         """
-        self.ens_count = 0
-        self.progressBar.setValue(0)
-        self.numEnsLabel.setText("0")
+        self.burst_ens_count = 0
+        self.burstProgressBar.setValue(0)
+        self.burstEnsLabel.setText("0")
+
+        self.avg_ens_count = 0
+        self.avgProgressBar.setValue(0)
+        self.avgEnsLabel.setText("0")
+
         self.file_system_model.setRootPath(self.rti_config.config['Waves']['output_dir'])
         self.waveFileTreeView.setModel(self.file_system_model)
         self.set_file_path_sig.emit(self.rti_config.config['Waves']['output_dir'])
+
+        # Connect the buttons
+        self.burstResetPushButton.clicked.connect(self.reset_burst_progress)
+        self.avgResetPushButton.clicked.connect(self.reset_avg_progress)
 
     def shutdown(self):
         """
@@ -59,23 +73,60 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
             self.serial_recorder.close()
 
     @pyqtSlot(int)
-    def increment_progress(self, max_count):
+    def increment_burst_progress(self, max_count):
         """
         Update the GUI on another thread.
         :param max_count:
         :return:
         """
-        self.ens_count += 1
-        percentage = (self.ens_count / max_count) * 100
-        self.numEnsLabel.setText(str(self.ens_count))
-        self.progressBar.setValue(percentage)
+        self.burst_ens_count += 1
+        percentage = (self.burst_ens_count / max_count) * 100
+        self.burstEnsLabel.setText(str(self.burst_ens_count))
+        self.burstProgressBar.setValue(percentage)
 
     @pyqtSlot()
-    def reset_progress(self):
-        self.ens_count = 0
-        self.numEnsLabel.setText("0")
-        self.progressBar.setValue(0)
+    def reset_burst_progress(self):
+        self.burst_ens_count = 0
+        self.burstEnsLabel.setText("0")
+        self.burstProgressBar.setValue(0)
 
+        # Need to reset the root path so the file size is updated
+        self.file_system_model.setRootPath("")
+        self.file_system_model.setRootPath(self.rti_config.config['Waves']['output_dir'])
+
+        # Send a reset signal so the codec will clear the buffer
+        self.reset_burst_progress_sig.emit()
+
+    @pyqtSlot(int, int)
+    def increment_avg_progress(self, count, max_count):
+        """
+        Update the GUI on another thread.
+        :param max_count:
+        :return:
+        """
+        self.avg_ens_count = count
+        percentage = (self.avg_ens_count / max_count) * 100
+        self.avgEnsLabel.setText(str(self.avg_ens_count))
+        self.avgProgressBar.setValue(percentage)
+
+    def reset_avg_progress(self):
+        self.avg_ens_count = 0
+        self.avgEnsLabel.setText("0")
+        self.avgProgressBar.setValue(0)
+
+        # Need to reset the root path so the file size is updated
+        self.file_system_model.setRootPath("")
+        self.file_system_model.setRootPath(self.rti_config.config['Waves']['output_dir'])
+
+        # Send a signal to reset average water column
+        self.reset_avg_progress_sig.emit()
+
+    def refresh_file_tree(self):
+        """
+        Average taken in Avereage Water Column.
+        Update the file tree.
+        :return:
+        """
         # Need to reset the root path so the file size is updated
         self.file_system_model.setRootPath("")
         self.file_system_model.setRootPath(self.rti_config.config['Waves']['output_dir'])

@@ -98,6 +98,14 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.longitudeDoubleSpinBox.setToolTip("Longitude location where the data was collected.")
         self.longitudeDoubleSpinBox.valueChanged.connect(self.update_settings)
 
+        self.isVerticalDataCheckBox.setChecked(True)
+        self.isVerticalDataCheckBox.setToolTip("Check this box if the ADCP data will include vertical beam data.  This will ensure the ensemble count is correct.  If this check and no vertical data exist, then the Burst ensemble count will not update.  It is assumed that 4 beam data will be with vertical beam data.")
+        self.isVerticalDataCheckBox.stateChanged.connect(self.update_settings)
+
+        self.numAvgEnsSpinBox.setValue(int(self.rti_config.config['AWC']['num_ensembles']))
+        self.numAvgEnsSpinBox.setToolTip("Set the number of ensembles to average together.")
+        self.numAvgEnsSpinBox.valueChanged.connect(self.update_settings)
+
     def get_storage_path(self):
         """
         :return: The storage path to record the data.
@@ -164,6 +172,14 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.rti_config.config['Waves']['pressure_sensor_offset'] = str(self.pressureSensorOffsetDoubleSpinBox.value())
         self.rti_config.config['Waves']['latitude'] = str(self.latitudeDoubleSpinBox.value())
         self.rti_config.config['Waves']['longitude'] = str(self.longitudeDoubleSpinBox.value())
+
+        if self.isVerticalDataCheckBox.isChecked():
+            self.rti_config.config['Waves']['4b_vert_pair'] = str("True")
+        else:
+            self.rti_config.config['Waves']['4b_vert_pair'] = str("False")
+
+        self.rti_config.config['AWC']['num_ensembles'] = str(self.numAvgEnsSpinBox.value())
+
         self.rti_config.write()
 
         # Verify the selected bin is not disabled

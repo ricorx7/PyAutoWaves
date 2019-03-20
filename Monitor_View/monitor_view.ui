@@ -31,21 +31,60 @@
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Ensemble Count: </string>
+        <string>Burst Ensemble Count:     </string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="numEnsLabel">
+      <widget class="QLabel" name="burstEnsLabel">
        <property name="text">
         <string>23</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QProgressBar" name="progressBar">
+      <widget class="QProgressBar" name="burstProgressBar">
        <property name="value">
         <number>24</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="burstResetPushButton">
+       <property name="text">
+        <string>Reset</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Average Ensemble Count: </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="avgEnsLabel">
+       <property name="text">
+        <string>23</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QProgressBar" name="avgProgressBar">
+       <property name="value">
+        <number>24</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="avgResetPushButton">
+       <property name="text">
+        <string>Reset</string>
        </property>
       </widget>
      </item>

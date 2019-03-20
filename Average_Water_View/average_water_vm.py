@@ -43,10 +43,12 @@ opts.defaults(
 
 class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
-
     #add_ens_sig = pyqtSignal(object)
     add_tab_sig = pyqtSignal(str)
     populate_table_sig = pyqtSignal(str, object)
+    increment_ens_sig = pyqtSignal(int)
+    reset_avg_sig = pyqtSignal()
+    avg_taken_sig = pyqtSignal()
 
     def __init__(self, parent, rti_config):
         average_water_view.Ui_AvgWater.__init__(self)
@@ -66,6 +68,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Setup signal
         self.add_tab_sig.connect(self.add_tab)
         self.populate_table_sig.connect(self.populate_table)
+        self.reset_avg_sig.connect(self.reset_average)
 
         # Dictionary to hold all the average water column objects
         self.awc_dict = {}
@@ -127,7 +130,6 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :param awc_key: Average Water Column key to find the correct tables.
         :return:
         """
-
         for awc_key in self.awc_dict.keys():
             # Average the data
             awc_average = self.awc_dict[awc_key].average()
@@ -138,11 +140,28 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Reset the counter
         self.avg_counter = 0
 
+        # Emit signal that average taken
+        # so file list can be updated
+        self.avg_taken_sig.emit()
+
         # Update the display
         #self.populate_table_sig.emit(awc_key, awc_average)
 
         # Display data
-        self.display_data("")
+        #self.display_data("")
+
+    def reset_average(self):
+        """
+        Reset the counters and reset all the
+        AverageWaterColumn in the dictionary.
+        :return:
+        """
+        # Reset the counter
+        self.avg_counter = 0
+
+        # Reset all the AWC in the dictionary
+        for awc_key in self.awc_dict.keys():
+            self.awc_dict[awc_key].reset()
 
     def display_data(self, file_index):
 
@@ -231,6 +250,9 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
             # Add the ensemble to the correct AverageWaterColumn
             self.awc_dict[key].add_ens(ens)
+
+            # Emit a signal that an ensemble was added
+            self.increment_ens_sig.emit(self.avg_counter)
 
     def write_csv(self, awc_avg, awc_key):
         """

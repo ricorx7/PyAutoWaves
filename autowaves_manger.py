@@ -4,7 +4,19 @@ from rti_python.Utilities.config import RtiConfig
 
 
 class AutoWavesManager:
+    """
+    Montitor all the VM.  Pass any events to the VM.
+    Pass data from the serial port to the ADCP codec.
+    """
     def __init__(self, rti_config, terminal_vm, setup_vm, monitor_vm, avg_water_vm):
+        """
+        Initialize the manager.
+        :param rti_config: RTI Config file object.
+        :param terminal_vm: Terminal VM.
+        :param setup_vm: Setup VM.
+        :param monitor_vm: Monitor VM.
+        :param avg_water_vm: Average Water Column VM.
+        """
         self.terminal_vm = terminal_vm
         self.setup_vm = setup_vm
         self.monitor_vm = monitor_vm
@@ -63,15 +75,68 @@ class AutoWavesManager:
         # Receive changes from setup
         self.setup_vm.folder_path_updated_sig.connect(self.folder_path_updated)
 
+        # Reset the waves codec and AverageWaterColumn
+        self.monitor_vm.reset_burst_progress_sig.connect(self.reset_waves_codec)
+        self.monitor_vm.reset_avg_progress_sig.connect(self.reset_awc)
+
+        # Monitor for average ensemble increment
+        self.avg_water_vm.increment_ens_sig.connect(self.increment_avg_water_column)
+        self.avg_water_vm.avg_taken_sig.connect(self.average_taken_awc)
+
     def shutdown(self):
+        """
+        Shutdown the object.
+        :return:
+        """
         self.adcp_codec.shutdown()
 
     def serial_data_rcv(self, sender, data):
+        """
+        Serial data received from the serial port.
+        Pass the serial data to the ADCP Codec.
+        :param sender:
+        :param data: Serial data
+        :return:
+        """
         logging.debug(str(sender))
         logging.debug("Data Received: " + str(data))
 
         # Pass the data to codec to decode
         self.adcp_codec.add(data)
+
+    def reset_waves_codec(self):
+        """
+        Reset the waves codec.  This will clear the buffer and restart
+        the ensemble count.
+        :return:
+        """
+        self.adcp_codec.reset_waves()
+
+    def reset_awc(self):
+        """
+        Reset the Average Water Column average.
+        This will clear the buffers.
+        :return:
+        """
+        self.avg_water_vm.reset_average()
+
+    def average_taken_awc(self):
+        """
+        Average taken in AverageWaterColumn.
+        Reset the file tree.
+        :return:
+        """
+        self.monitor_vm.refresh_file_tree_sig.emit()
+
+    def increment_avg_water_column(self, val):
+        """
+        Increment the average count.  The value is the
+        current count.
+        :param val: Current count in average.
+        :return:
+        """
+        max_val = int(self.rti_config.config['AWC']['num_ensembles'])
+        self.monitor_vm.increment_avg_value.emit(val, max_val)
 
     def ensemble_rcv(self, sender, ens):
         """
@@ -87,17 +152,38 @@ class AutoWavesManager:
         if self.rti_config.config.getboolean('Waves', '4b_vert_pair'):
             if ens.IsEnsembleData and ens.EnsembleData.NumBeams == 1:
                 # Emit signal that an ensemble was received
-                self.monitor_vm.increment_value.emit(self.setup_vm.numBurstEnsSpinBox.value())
+                self.monitor_vm.increment_burst_value.emit(self.setup_vm.numBurstEnsSpinBox.value())
         else:
-            self.monitor_vm.increment_value.emit(self.setup_vm.numBurstEnsSpinBox.value())
+            # Set the ensemble count for a burst
+            self.monitor_vm.increment_burst_value.emit(self.setup_vm.numBurstEnsSpinBox.value())
+
+            # If you find a vertical beam, set the right parameter in the config
+            if ens.IsEnsembleData and ens.EnsembleData.NumBeams == 1:
+                if not self.rti_config.config.getboolean("Waves", "4b_vert_pair"):
+                    self.rti_config.config["Waves"]["4b_vert_pair"] = str("True")
+                    self.rti_config.write()
 
         # Add the data to be averaged and displayed
         self.avg_water_vm.add_ens(ens)
         logging.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
 
     def waves_rcv(self, sender, file_name):
-        self.monitor_vm.reset_progress_sig.emit()
+        """
+        A waves file was generated for AutoWaves.
+        :param sender:
+        :param file_name: File name of the file generated.
+        :return:
+        """
+        # Reset the progress
+        self.monitor_vm.reset_burst_progress_sig.emit()
         logging.debug("Waves File Complete: " + file_name)
+        print(file_name)
+
+        # Refresh the file tree
+        self.monitor_vm.refresh_file_tree_sig.emit()
+
+        # Display the Average Water Column data
+        self.avg_water_vm.display_data("")
 
     def update_waves_settings(self, sender, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth, height_source, corr_thresh, pressure_offset):
         """
@@ -116,7 +202,6 @@ class AutoWavesManager:
         :param pressure_offset Pressure sensor offset in meters.
         :return:
         """
-
         self.adcp_codec.update_settings_waveforce_codec(ens_in_burst=num_ens,
                                                         path=file_path,
                                                         lat=lat,
@@ -155,10 +240,11 @@ class AutoWavesManager:
         :return:
         """
         if files:
-            print(files)
+            # Reset all the monitors
+            self.reset_waves_codec()
+            self.reset_awc()
 
-            # Reset the monitor progress
-            self.monitor_vm.reset_progress_sig.emit()
+            print(files)
 
         # Read the file
         for file in files:
