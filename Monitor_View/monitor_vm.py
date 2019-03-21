@@ -13,7 +13,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
     """
 
     # Create signal for value changed
-    increment_burst_value = pyqtSignal(int)
+    increment_burst_value = pyqtSignal(int, int)
     reset_burst_progress_sig = pyqtSignal()
     increment_avg_value = pyqtSignal(int, int)
     reset_avg_progress_sig = pyqtSignal()
@@ -29,8 +29,6 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         self.rti_config = rti_config
         self.rti_config.init_waves_config()
         self.file_system_model = QFileSystemModel()
-        self.burst_ens_count = 0
-        self.avg_ens_count = 0
 
         self.increment_burst_value.connect(self.increment_burst_progress)       # Connect signal and slot
         self.increment_avg_value.connect(self.increment_avg_progress)           # Connect signal and slot
@@ -45,11 +43,9 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         Initialize the display.
         :return:
         """
-        self.burst_ens_count = 0
         self.burstProgressBar.setValue(0)
         self.burstEnsLabel.setText("0")
 
-        self.avg_ens_count = 0
         self.avgProgressBar.setValue(0)
         self.avgEnsLabel.setText("0")
 
@@ -72,21 +68,20 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         if self.serial_recorder:
             self.serial_recorder.close()
 
-    @pyqtSlot(int)
-    def increment_burst_progress(self, max_count):
+    @pyqtSlot(int, int)
+    def increment_burst_progress(self, ens_count, max_count):
         """
         Update the GUI on another thread.
-        :param max_count:
+        :param ens_count: Current count for ensembles in the wave burst.
+        :param max_count: Maximum ensembles in the wave burst
         :return:
         """
-        self.burst_ens_count += 1
-        percentage = (self.burst_ens_count / max_count) * 100
-        self.burstEnsLabel.setText(str(self.burst_ens_count))
+        percentage = (ens_count / max_count) * 100
+        self.burstEnsLabel.setText(str(ens_count))
         self.burstProgressBar.setValue(percentage)
 
     @pyqtSlot()
     def reset_burst_progress(self):
-        self.burst_ens_count = 0
         self.burstEnsLabel.setText("0")
         self.burstProgressBar.setValue(0)
 
@@ -101,16 +96,19 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
     def increment_avg_progress(self, count, max_count):
         """
         Update the GUI on another thread.
-        :param max_count:
+        :param count: Current count of ensembles in the average.
+        :param max_count: Maximum ensembles in the average.
         :return:
         """
-        self.avg_ens_count = count
-        percentage = (self.avg_ens_count / max_count) * 100
-        self.avgEnsLabel.setText(str(self.avg_ens_count))
+        percentage = (count / max_count) * 100
+        self.avgEnsLabel.setText(str(count))
         self.avgProgressBar.setValue(percentage)
 
     def reset_avg_progress(self):
-        self.avg_ens_count = 0
+        """
+        Reset the average progress.
+        :return:
+        """
         self.avgEnsLabel.setText("0")
         self.avgProgressBar.setValue(0)
 

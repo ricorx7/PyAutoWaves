@@ -1,5 +1,7 @@
 import logging
+import math
 from rti_python.Codecs.AdcpCodec import AdcpCodec
+from rti_python.Codecs.WaveForceCodec import WaveForceCodec
 from rti_python.Utilities.config import RtiConfig
 
 
@@ -52,7 +54,8 @@ class AutoWavesManager:
             height_source = 5
 
         # Setup Waves Codec to generate waves MATLAB files
-        self.adcp_codec.enable_waveforce_codec(self.setup_vm.numBurstEnsSpinBox.value(),
+        self.waves_ens_count = 0
+        self.wave_force_codec = WaveForceCodec(self.setup_vm.numBurstEnsSpinBox.value(),
                                                self.setup_vm.storagePathLineEdit.text(),
                                                lat=float(self.rti_config.config['Waves']['latitude']),
                                                lon=float(self.rti_config.config['Waves']['longitude']),
@@ -66,7 +69,7 @@ class AutoWavesManager:
 
         # Subscribe to receive ensembles and waves data
         self.adcp_codec.EnsembleEvent += self.ensemble_rcv
-        self.adcp_codec.publish_waves_event += self.waves_rcv
+        self.wave_force_codec.process_data_event += self.waves_rcv
 
         # Subscribe to receive serial data
         self.terminal_vm.on_serial_data += self.serial_data_rcv
@@ -110,7 +113,7 @@ class AutoWavesManager:
         the ensemble count.
         :return:
         """
-        self.adcp_codec.reset_waves()
+        self.wave_force_codec.reset()
 
     def reset_awc(self):
         """
@@ -145,6 +148,7 @@ class AutoWavesManager:
         :param ens: Ensemble object
         :return:
         """
+        """
         # Check if the data was a 4 beam or vertical beam data
         # Emit only on vertical beam data, because it is assumed
         # the data comes as a pair (4beam and vertical beam)
@@ -152,16 +156,32 @@ class AutoWavesManager:
         if self.rti_config.config.getboolean('Waves', '4b_vert_pair'):
             if ens.IsEnsembleData and ens.EnsembleData.NumBeams == 1:
                 # Emit signal that an ensemble was received
-                self.monitor_vm.increment_burst_value.emit(self.setup_vm.numBurstEnsSpinBox.value())
+                self.monitor_vm.increment_burst_value.emit(max(self.wave_force_codec.TotalEnsInBurst, self.wave_force_codec.BufferCount),
+                                                           self.setup_vm.numBurstEnsSpinBox.value())
         else:
             # Set the ensemble count for a burst
-            self.monitor_vm.increment_burst_value.emit(self.setup_vm.numBurstEnsSpinBox.value())
-
-            # If you find a vertical beam, set the right parameter in the config
-            if ens.IsEnsembleData and ens.EnsembleData.NumBeams == 1:
+            self.monitor_vm.increment_burst_value.emit(max(self.wave_force_codec.TotalEnsInBurst, self.wave_force_codec.BufferCount),
+                                                       self.setup_vm.numBurstEnsSpinBox.value())
+        
+                # If you find a vertical beam, set the right parameter in the config
+                if ens.IsEnsembleData and ens.EnsembleData.NumBeams == 1:
                 if not self.rti_config.config.getboolean("Waves", "4b_vert_pair"):
                     self.rti_config.config["Waves"]["4b_vert_pair"] = str("True")
                     self.rti_config.write()
+        
+        """
+
+        # Set the ensemble count for a burst
+        # A check is done if the data includes vertical beam data or not
+        if self.wave_force_codec.BufferCount == 0:
+            self.monitor_vm.increment_burst_value.emit(self.wave_force_codec.TotalEnsInBurst,
+                                                   self.setup_vm.numBurstEnsSpinBox.value())
+        else:
+            self.monitor_vm.increment_burst_value.emit(min(self.wave_force_codec.TotalEnsInBurst, self.wave_force_codec.BufferCount),
+                                                   self.setup_vm.numBurstEnsSpinBox.value())
+
+        # Add the data to the WaveForce Codec
+        self.wave_force_codec.add(ens)
 
         # Add the data to be averaged and displayed
         self.avg_water_vm.add_ens(ens)
@@ -175,6 +195,7 @@ class AutoWavesManager:
         :return:
         """
         # Reset the progress
+        self.waves_ens_count = 0
         self.monitor_vm.reset_burst_progress_sig.emit()
         logging.debug("Waves File Complete: " + file_name)
         print(file_name)
@@ -202,17 +223,17 @@ class AutoWavesManager:
         :param pressure_offset Pressure sensor offset in meters.
         :return:
         """
-        self.adcp_codec.update_settings_waveforce_codec(ens_in_burst=num_ens,
-                                                        path=file_path,
-                                                        lat=lat,
-                                                        lon=lon,
-                                                        bin1=bin1,
-                                                        bin2=bin2,
-                                                        bin3=bin3,
-                                                        ps_depth=ps_depth,
-                                                        height_source=height_source,
-                                                        corr_thresh=corr_thresh,
-                                                        pressure_offset=pressure_offset)
+        self.wave_force_codec.update_settings(ens_in_burst=num_ens,
+                                              path=file_path,
+                                              lat=lat,
+                                              lon=lon,
+                                              bin1=bin1,
+                                              bin2=bin2,
+                                              bin3=bin3,
+                                              ps_depth=ps_depth,
+                                              height_source=height_source,
+                                              corr_thresh=corr_thresh,
+                                              pressure_offset=pressure_offset)
 
     def folder_path_updated(self, folder_path):
         """
