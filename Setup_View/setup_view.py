@@ -29,6 +29,7 @@ class Ui_Setup(object):
         self.numBurstEnsSpinBox.setObjectName("numBurstEnsSpinBox")
         self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.numBurstEnsSpinBox)
         self.numAvgEnsSpinBox = QtWidgets.QSpinBox(Setup)
+        self.numAvgEnsSpinBox.setMaximum(10000)
         self.numAvgEnsSpinBox.setObjectName("numAvgEnsSpinBox")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.numAvgEnsSpinBox)
         self.storagePathLabel = QtWidgets.QLabel(Setup)
