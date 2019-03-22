@@ -27,6 +27,9 @@ class MainWindow(QtWidgets.QMainWindow):
         RtiLogging.RtiLogger(log_level=logging.WARNING)
 
         self.rti_config = RtiConfig()
+        self.rti_config.init_average_waves_config()
+        self.rti_config.init_terminal_config()
+        self.rti_config.init_waves_config()
 
         # Initialize Monitor
         self.Monitor = MonitorVM(self, self.rti_config)

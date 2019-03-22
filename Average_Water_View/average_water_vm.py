@@ -236,7 +236,16 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :param avg_df:  Dataframe of the csv file
         :return:
         """
+        # Sort the data for only the "XdcrDepth" data type
         selected_avg_df = avg_df[avg_df.data_type.str.contains("XdcrDepth")]
+
+        # Set the datetime column to a datetime object
+        #selected_avg_df['datetime'] = pd.to_datetime(selected_avg_df.datetime)
+        pd.to_datetime(selected_avg_df['datetime'])
+
+        # Sort the data by date and time
+        selected_avg_df.sort_values(by=['datetime'])
+
 
         # Set the dependent
         vdims = [('value', 'Values')]
