@@ -4,6 +4,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 from . import monitor_view
 from . import wavedata_vm
 import logging
+import os
 from rti_python.Utilities.config import RtiConfig
 
 
@@ -25,6 +26,8 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         QWidget.__init__(self, parent)
         self.setupUi(self)
         self.parent = parent
+
+        os.environ["QT_FILESYSTEMMODEL_WATCH_FILES"] = '1'                      # Automatically monitor for file changes in file tree
 
         self.rti_config = rti_config
         self.rti_config.init_waves_config()

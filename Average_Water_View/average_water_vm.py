@@ -44,11 +44,12 @@ opts.defaults(
 class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
     #add_ens_sig = pyqtSignal(object)
-    add_tab_sig = pyqtSignal(str)
+    add_tab_sig = pyqtSignal(str, object)
     populate_table_sig = pyqtSignal(str, object)
     increment_ens_sig = pyqtSignal(int)
     reset_avg_sig = pyqtSignal()
     avg_taken_sig = pyqtSignal()
+    refresh_web_view_sig = pyqtSignal()
 
     def __init__(self, parent, rti_config):
         average_water_view.Ui_AvgWater.__init__(self)
@@ -56,19 +57,27 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.setupUi(self)
         self.parent = parent
 
+        self.rti_config = rti_config
+        self.rti_config.init_average_waves_config()
+
         self.HTML_FILE_NAME = "Earth.html"
         self.CSV_AVG_FILE_NAME = "average_data.csv"
+        self.CSV_FILE_EXT = ".csv"
+        self.csv_file_path = ""                # Latest CSV file path
+        self.wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight"
+        self.csv_file_index = 1
         self.num_bins = 30
         self.ens_num = []
         self.data = []
 
-        self.rti_config = rti_config
-        self.rti_config.init_average_waves_config()
+        # Web Views
+        self.web_view_wave_height = QWebEngineView()
 
         # Setup signal
         self.add_tab_sig.connect(self.add_tab)
         self.populate_table_sig.connect(self.populate_table)
         self.reset_avg_sig.connect(self.reset_average)
+        self.refresh_web_view_sig.connect(self.refresh_web_view)
 
         # Dictionary to hold all the average water column objects
         self.awc_dict = {}
@@ -77,11 +86,14 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Latest Average Water Column
         self.avg_counter = 0
 
-        self.html = None
-        self.web_view = QWebEngineView()
-        html_path = os.path.split(os.path.abspath(__file__))[0] + os.sep + ".." + os.sep + self.HTML_FILE_NAME
-        print(html_path)
-        self.web_view.load(QUrl().fromLocalFile(html_path))
+        #self.html = None
+        #self.web_view = QWebEngineView()
+        #html_path = os.path.split(os.path.abspath(__file__))[0] + os.sep + ".." + os.sep + self.HTML_FILE_NAME
+        #html_path = self.wave_height_html_file + ".html"
+        #print(html_path)
+        #self.web_view.load(QUrl().fromLocalFile(html_path))
+
+        #self.add_tab("Wave Height")
 
         self.init_display()
 
@@ -96,6 +108,9 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.horizontalLayout.addWidget(self.web_view)
         self.tabWidget.clear()
         self.setWindowTitle("Average Water Column")
+
+        self.web_view_wave_height.load(QUrl().fromLocalFile(self.wave_height_html_file + ".html"))
+        self.add_tab_sig.emit("Wave Height", self.web_view_wave_height)
 
         #self.tableWidget.setRowCount(200)
         #self.tableWidget.setColumnCount(5)
@@ -148,7 +163,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.populate_table_sig.emit(awc_key, awc_average)
 
         # Display data
-        #self.display_data("")
+        self.display_data("")
 
     def reset_average(self):
         """
@@ -165,28 +180,24 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
     def display_data(self, file_index):
 
-        file_title = "earth_east_"
-        file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_index + self.CSV_AVG_FILE_NAME
-        wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + file_index + "WaveHeight"
-
         # Read in the CSV data of the average data
-        avg_df = pd.read_csv(file_path)
-        print(avg_df.head())
+        avg_df = pd.read_csv(self.csv_file_path)
+
+        # Update the Wave Height Plot
+        self.plot_wave_height(avg_df)
+
+        #selected_avg_df = avg_df[avg_df.data_type.str.contains("Pressure") | avg_df.data_type.str.contains("XdcrDepth")]
 
         # Set the dependent
-        vdims = [('value', 'Values')]
+        #vdims = [('value', 'Values')]
 
         # Set the independent columns
         # Create the Holoview dataset
-        ds = hv.Dataset(avg_df, ['datetime', 'data_type', 'ss_code', 'ss_config', 'bin_num', 'beam_num'], vdims)
-        print(ds)
+        #ds = hv.Dataset(selected_avg_df, ['datetime', 'data_type', 'ss_code', 'ss_config', 'bin_num', 'beam_num'], vdims)
+        #print(ds)
 
         # Plot and select a bin
-        #selected_data_type = [('Pressure', "Pressure (Bar)"), ('XdcrDepth', "Water Level (m)")]
-        selected_data_type = ['Pressure']
-        selected_presure_xdcr_height_ds = ds.select().sort()
-        print(selected_presure_xdcr_height_ds)
-        pressure_xdcr_height = selected_presure_xdcr_height_ds.to(hv.Curve, 'datetime', 'value', ['data_type']) + hv.Table(selected_presure_xdcr_height_ds)
+        #pressure_xdcr_height = ds.to(hv.Curve, 'datetime', 'value', ['data_type']) + hv.Table(ds)
         #pressure_xdcr_height = ds.to(hv.Curve, 'datetime', 'value')
 
 
@@ -198,7 +209,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
 
         # Save to HTML
-        hv.save(pressure_xdcr_height, wave_height_html_file, fmt='html')
+        #hv.save(pressure_xdcr_height, self.wave_height_html_file, fmt='html')
 
         # Plot and list the bins
         #subset = macro.select(bin_num=[1, 3, 5])
@@ -217,6 +228,35 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #output_file(html_file)
         #show(plot)
         #show(pressure_xdcr_height)
+
+    def plot_wave_height(self, avg_df):
+        """
+        Create a HTML plot of the wave height data from the
+        CSV file.
+        :param avg_df:  Dataframe of the csv file
+        :return:
+        """
+        selected_avg_df = avg_df[avg_df.data_type.str.contains("XdcrDepth")]
+
+        # Set the dependent
+        vdims = [('value', 'Values')]
+
+        # Set the independent columns
+        # Create the Holoview dataset
+        ds = hv.Dataset(selected_avg_df, ['datetime'], vdims)
+
+        # Plot and select a bin
+        pressure_xdcr_height = ds.to(hv.Curve, 'datetime', 'value') + hv.Table(ds)
+
+        # Save the plot to a file
+        hv.save(pressure_xdcr_height, self.wave_height_html_file, fmt='html')
+
+        # Refresh the web view
+        #self.web_view_wave_height.reload()
+        self.refresh_web_view_sig.emit()
+
+    def refresh_web_view(self):
+        self.web_view_wave_height.reload()
 
     def accumulate_ens(self, ens):
         """
@@ -246,7 +286,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
                                                         ens.EnsembleData.SubsystemConfig)
 
                 # Add the new tab for each subsystem configuration
-                self.add_tab_sig.emit(key)
+                #self.add_tab_sig.emit(key)
 
             # Add the ensemble to the correct AverageWaterColumn
             self.awc_dict[key].add_ens(ens)
@@ -257,11 +297,10 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
     def write_csv(self, awc_avg, awc_key):
         """
         Write all the CSV data.
-        :param awc_vel: Average Velocity data
+        :param awc_avg: Average Velocity data
         :param awc_key: Key to identify the subsystem and config.
         :return:
         """
-
         csv_rows = []
         # Earth Velocity data
         if awc_avg[AverageWaterColumn.INDEX_EARTH]:
@@ -297,17 +336,22 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
 
         # Write the accumulated rows to the file
-        self.write_csv_file(csv_rows, self.CSV_AVG_FILE_NAME)
+        self.write_csv_file(csv_rows)
 
-    def write_csv_file(self, csv_rows, file_title):
+    def write_csv_file(self, csv_rows):
+        """
+        Write the CSV file.  This will write all the lines
+        given to the CSV file.
+        :param csv_rows: Rows to add to the CSV file.
+        :return:
+        """
         try:
-            # Check if the file exist, if it does not, create the file and add the first row
-            file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + file_title
-            self.check_or_create_file(file_path)
+            # Get the latest file path or create one
+            self.csv_file_path = self.check_or_create_file()
 
             # Write the data to the CSV file
             # Added newline='' to ensure no extra lines included
-            with open(file_path, 'a', newline='') as csv_file:
+            with open(self.csv_file_path , 'a', newline='') as csv_file:
                 wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_NONE, escapechar=' ')
 
                 # Write the data
@@ -366,13 +410,28 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         return row_data
 
-    def check_or_create_file(self, file_path):
+    def check_or_create_file(self):
         """
         Check if the file exist.  If it does not exist,
         create the file.
-        :param file_path: File path to create
+        Create a new file if the file exceeds 16mb.
+        Add a header to the new file.
+
+        File name
+        /path/to/A00002.csv
         :return:
         """
+        # Get the max file size in bytes
+        max_file_size = int(self.rti_config.config['AWC']['max_file_size']) * 1048576
+
+        # Create the file name
+        file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + "A" + str(self.csv_file_index).zfill(5) + self.CSV_FILE_EXT
+
+        # Look if the file exist, if it does, make sure it is less than max file size
+        while os.path.isfile(file_path) and os.path.getsize(file_path) >= max_file_size:
+            self.csv_file_index += 1
+            file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + "A" + str(self.csv_file_index).zfill(5) + self.CSV_FILE_EXT
+
         if not os.path.exists(file_path):
             header = ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "bin_depth", "value"]
 
@@ -380,15 +439,22 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
                 wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
                 wr.writerow(header)
 
-    def add_tab(self, key):
+        return file_path
+
+    def add_tab(self, key, web_view):
+        """
+        Add a Tab to the display
+        :param key:
+        :return:
+        """
         # Create tab
         tab1 = QWidget()
         self.tabWidget.addTab(tab1, key)
         tab1.layout = QVBoxLayout(self)
-        table1 = QTableWidget()
-        tab1.layout.addWidget(table1)
         tab1.setLayout(tab1.layout)
         tab1.setAccessibleName(key)
+
+        tab1.layout.addWidget(web_view)
 
         # Set the tab index for the dictionary to keep track of all the tabs
         self.tab_dict[key] = len(self.tabWidget)-1
