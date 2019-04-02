@@ -10,19 +10,23 @@ class AutoWavesManager:
     Montitor all the VM.  Pass any events to the VM.
     Pass data from the serial port to the ADCP codec.
     """
-    def __init__(self, rti_config, terminal_vm, setup_vm, monitor_vm, avg_water_vm):
+    def __init__(self, parent, rti_config, terminal_vm, setup_vm, monitor_vm, avg_water_vm):
         """
         Initialize the manager.
+        :param parent: Parent.  Main window.
         :param rti_config: RTI Config file object.
         :param terminal_vm: Terminal VM.
         :param setup_vm: Setup VM.
         :param monitor_vm: Monitor VM.
         :param avg_water_vm: Average Water Column VM.
         """
+        self.parent = parent
         self.terminal_vm = terminal_vm
         self.setup_vm = setup_vm
         self.monitor_vm = monitor_vm
         self.avg_water_vm = avg_water_vm
+
+        self.logger = logging.getLogger('root')
 
         self.rti_config = rti_config
 
@@ -101,8 +105,8 @@ class AutoWavesManager:
         :param data: Serial data
         :return:
         """
-        logging.debug(str(sender))
-        logging.debug("Data Received: " + str(data))
+        #self.logger.debug(str(sender))
+        #self.logger.debug("Data Received: " + str(data))
 
         # Pass the data to codec to decode
         self.adcp_codec.add(data)
@@ -175,17 +179,18 @@ class AutoWavesManager:
         # A check is done if the data includes vertical beam data or not
         if self.wave_force_codec.BufferCount == 0:
             self.monitor_vm.increment_burst_value.emit(self.wave_force_codec.TotalEnsInBurst,
-                                                   self.setup_vm.numBurstEnsSpinBox.value())
+                                                       self.setup_vm.numBurstEnsSpinBox.value())
         else:
-            self.monitor_vm.increment_burst_value.emit(min(self.wave_force_codec.TotalEnsInBurst, self.wave_force_codec.BufferCount),
-                                                   self.setup_vm.numBurstEnsSpinBox.value())
+            self.monitor_vm.increment_burst_value.emit(min(self.wave_force_codec.TotalEnsInBurst,
+                                                           self.wave_force_codec.BufferCount),
+                                                       self.setup_vm.numBurstEnsSpinBox.value())
 
         # Add the data to the WaveForce Codec
         self.wave_force_codec.add(ens)
 
         # Add the data to be averaged and displayed
         self.avg_water_vm.add_ens(ens)
-        logging.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
+        self.logger.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
 
     def waves_rcv(self, sender, file_name):
         """
@@ -197,7 +202,7 @@ class AutoWavesManager:
         # Reset the progress
         self.waves_ens_count = 0
         self.monitor_vm.reset_burst_progress_sig.emit()
-        logging.debug("Waves File Complete: " + file_name)
+        self.logger.debug("Waves File Complete: " + file_name)
         print(file_name)
 
         # Refresh the file tree
@@ -270,7 +275,13 @@ class AutoWavesManager:
         # Read the file
         for file in files:
             with open(file, "rb") as f:
-                for line in f:
-                    # Pass it to the codec
-                    self.adcp_codec.add(line)
+
+                # Set the statusbar with the file name
+                self.parent.statusBar().showMessage("Loading file: " + file)
+                self.logger.debug("Loading file: " + str(file))
+
+                # Read in the file
+                for chunk in iter(lambda: f.read(4096), b''):
+                    self.adcp_codec.add(chunk)
+
 

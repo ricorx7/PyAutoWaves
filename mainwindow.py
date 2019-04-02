@@ -7,8 +7,10 @@ from Setup_View.setup_vm import SetupVM
 from Terminal_View.terminal_vm import TerminalVM
 from Monitor_View.monitor_vm import MonitorVM
 from Average_Water_View.average_water_vm import AverageWaterVM
-import rti_python.Utilities.logger as RtiLogging
 import logging
+import rti_python.Utilities.logger as RtiLogging
+RtiLogging.RtiLogger.setup_custom_logger(log_level=logging.WARNING)
+
 import autowaves_manger
 # import qdarkstyle
 # import images_qr
@@ -24,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
 
         # Setup the logging
-        RtiLogging.RtiLogger(log_level=logging.WARNING)
+        #RtiLogging.RtiLogger(log_level=logging.DEBUG)
 
         self.rti_config = RtiConfig()
         self.rti_config.init_average_waves_config()
@@ -68,7 +70,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.docked_avg_water.setVisible(False)
 
         # Add the displays to the manager to monitor all the data
-        self.AutoWavesManager = autowaves_manger.AutoWavesManager(self.rti_config,
+        self.AutoWavesManager = autowaves_manger.AutoWavesManager(self,
+                                                                  self.rti_config,
                                                                   self.Terminal,
                                                                   self.Setup,
                                                                   self.Monitor,
@@ -148,6 +151,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Select Files
         files = self.openFileNamesDialog()
 
+        logging.debug("Playing back files: " + str(files))
+
         # Pass files to manager
         if files:
             self.AutoWavesManager.playback_file(files)
@@ -163,9 +168,13 @@ class MainWindow(QtWidgets.QMainWindow):
             "Are you sure you want to quit?", QtWidgets.QMessageBox.Close | QtWidgets.QMessageBox.Cancel)
 
         if reply == QtWidgets.QMessageBox.Close:
+            logging.debug("Shutting down")
             self.Setup.shutdown()
+            logging.debug("Setup VM shutdown")
             self.Terminal.shutdown()
+            logging.debug("Terminal VL shutdown")
             self.AutoWavesManager.shutdown()
+            logging.debug("Auto Waves Manager shutdown")
             event.accept()
         else:
             event.ignore()

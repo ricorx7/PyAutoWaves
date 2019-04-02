@@ -49,7 +49,8 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
     increment_ens_sig = pyqtSignal(int)
     reset_avg_sig = pyqtSignal()
     avg_taken_sig = pyqtSignal()
-    refresh_web_view_sig = pyqtSignal()
+    refresh_wave_height_web_view_sig = pyqtSignal()
+    refresh_earth_vel_web_view_sig = pyqtSignal()
 
     def __init__(self, parent, rti_config):
         average_water_view.Ui_AvgWater.__init__(self)
@@ -65,6 +66,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.CSV_FILE_EXT = ".csv"
         self.csv_file_path = ""                # Latest CSV file path
         self.wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight"
+        self.earth_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel"
         self.csv_file_index = 1
         self.num_bins = 30
         self.ens_num = []
@@ -72,12 +74,14 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         # Web Views
         self.web_view_wave_height = QWebEngineView()
+        self.web_view_earth_vel = QWebEngineView()
 
         # Setup signal
         self.add_tab_sig.connect(self.add_tab)
         self.populate_table_sig.connect(self.populate_table)
         self.reset_avg_sig.connect(self.reset_average)
-        self.refresh_web_view_sig.connect(self.refresh_web_view)
+        self.refresh_wave_height_web_view_sig.connect(self.refresh_wave_height_web_view)
+        self.refresh_earth_vel_web_view_sig.connect(self.refresh_earth_vel_web_view)
 
         # Dictionary to hold all the average water column objects
         self.awc_dict = {}
@@ -111,6 +115,9 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         self.web_view_wave_height.load(QUrl().fromLocalFile(self.wave_height_html_file + ".html"))
         self.add_tab_sig.emit("Wave Height", self.web_view_wave_height)
+
+        self.web_view_earth_vel.load(QUrl().fromLocalFile(self.earth_vel_html_file + ".html"))
+        self.add_tab_sig.emit("Earth Velocity", self.web_view_earth_vel)
 
         #self.tableWidget.setRowCount(200)
         #self.tableWidget.setColumnCount(5)
@@ -163,7 +170,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.populate_table_sig.emit(awc_key, awc_average)
 
         # Display data
-        self.display_data("")
+        #self.display_data("")
 
     def reset_average(self):
         """
@@ -185,6 +192,12 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         # Update the Wave Height Plot
         self.plot_wave_height(avg_df)
+
+        # Update the Earth Vel Plot
+        self.plot_earth_vel(avg_df,
+                            int(self.rti_config.config['Waves']['selected_bin_1']),
+                            int(self.rti_config.config['Waves']['selected_bin_2']),
+                            int(self.rti_config.config['Waves']['selected_bin_3']))
 
         #selected_avg_df = avg_df[avg_df.data_type.str.contains("Pressure") | avg_df.data_type.str.contains("XdcrDepth")]
 
@@ -243,12 +256,16 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #selected_avg_df['datetime'] = pd.to_datetime(selected_avg_df.datetime)
         pd.to_datetime(selected_avg_df['datetime'])
 
+        # Set the index of the data
+        selected_avg_df.set_index('datetime')
+
         # Sort the data by date and time
-        selected_avg_df.sort_values(by=['datetime'])
+        #selected_avg_df.sort_values(by=['datetime'], ascending=False, inplace=True)
+        selected_avg_df.sort_index()
 
 
         # Set the dependent
-        vdims = [('value', 'Values')]
+        vdims = [('value', 'Wave Height (m)')]
 
         # Set the independent columns
         # Create the Holoview dataset
@@ -262,10 +279,62 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         # Refresh the web view
         #self.web_view_wave_height.reload()
-        self.refresh_web_view_sig.emit()
+        self.refresh_wave_height_web_view_sig.emit()
 
-    def refresh_web_view(self):
+    def plot_earth_vel(self, avg_df, selected_bin_1, selected_bin_2, selected_bin_3):
+        """
+        Create a HTML plot of the Earth Velocity data from the
+        CSV file.
+        :param avg_df:  Dataframe of the csv file
+        :return:
+        """
+        # Sort the data for only the "EarthVel" data type
+        #selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel")) & (avg_df.bin_num == bin_num)]
+        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel"))]
+
+        # Set the datetime column to a datetime object
+        pd.to_datetime(selected_avg_df['datetime'])
+
+        # Set the index of the data
+        selected_avg_df.set_index('datetime')
+
+        # Sort the data by date and time
+        selected_avg_df.sort_index()
+
+        # Set the dependent
+        vdims = [('value', 'm/s')]
+
+        # Set the independent columns
+        # Create the Holoview dataset
+        ds = hv.Dataset(selected_avg_df, ['datetime', ('bin_num', 'bin'), ('beam_num', 'beam'), 'ss_code', 'ss_config'], vdims)
+
+        # Plot and select a bin
+        #plot = ds.to(hv.Curve, 'datetime', 'value', groupby='bin_num') + hv.Table(ds)
+
+        bin_list = []
+        bin_list.append(selected_bin_1)
+        bin_list.append(selected_bin_2)
+        bin_list.append(selected_bin_3)
+        subset = ds.select(bin_num=bin_list)
+        plot = subset.to(hv.Curve, 'datetime', 'value').layout()
+        plot.opts(opts.Curve(width=200, height=200))
+
+        # Save the plot to a file
+        hv.save(plot, self.earth_vel_html_file, fmt='html')
+
+        # Save the plot to a file
+        # Include the group by
+        #hv.renderer('bokeh').save(plot, self.earth_vel_html_file, fmt='scrubber')
+
+
+        # Refresh the web view
+        self.refresh_earth_vel_web_view_sig.emit()
+
+    def refresh_wave_height_web_view(self):
         self.web_view_wave_height.reload()
+
+    def refresh_earth_vel_web_view(self):
+        self.web_view_earth_vel.reload()
 
     def accumulate_ens(self, ens):
         """
