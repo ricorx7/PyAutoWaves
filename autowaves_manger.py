@@ -1,8 +1,10 @@
 import logging
 import math
+from threading import Thread
 from rti_python.Codecs.AdcpCodec import AdcpCodec
 from rti_python.Codecs.WaveForceCodec import WaveForceCodec
 from rti_python.Utilities.config import RtiConfig
+from rti_python.Codecs.BinaryCodec import BinaryCodec
 
 
 class AutoWavesManager:
@@ -190,7 +192,9 @@ class AutoWavesManager:
 
         # Add the data to be averaged and displayed
         self.avg_water_vm.add_ens(ens)
-        self.logger.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
+
+        if ens and ens.IsEnsembleData:
+            self.logger.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
 
     def waves_rcv(self, sender, file_name):
         """
@@ -270,18 +274,64 @@ class AutoWavesManager:
             self.reset_waves_codec()
             self.reset_awc()
 
-            print(files)
+            self.logger.debug("Loading files: " + str(files))
 
         # Read the file
         for file in files:
-            with open(file, "rb") as f:
+            # Run a thread to playback the file
+            thread = Thread(target=self.playback, args=(file,))
+            thread.start()
+            thread.join()
 
-                # Set the statusbar with the file name
-                self.parent.statusBar().showMessage("Loading file: " + file)
-                self.logger.debug("Loading file: " + str(file))
+    def playback(self, file_path):
+        """
+        Playback the given file.  This will read the file
+        then call ensemble_rcv to process the ensemble.
+        :param file_path: Ensemble file path.
+        :return:
+        """
+        # RTB ensemble delimiter
+        DELIMITER = b'\x80' * 16
 
-                # Read in the file
-                for chunk in iter(lambda: f.read(4096), b''):
-                    self.adcp_codec.add(chunk)
+        # Create a buffer
+        buff = bytes()
 
+        with open(file_path, "rb") as f:
 
+            # Set the statusbar with the file name
+            self.parent.statusBar().showMessage("Loading file: " + file_path)
+            self.logger.debug("Loading file: " + str(file_path))
+
+            # Read in the file
+            # for chunk in iter(lambda: f.read(4096), b''):
+            #    self.adcp_codec.add(chunk)
+
+            data = f.read(4096)  # Read in data
+
+            while data:                                                 # Verify data was found
+                buff += data                                            # Accumulate the buffer
+                if DELIMITER in buff:                                   # Check for the delimiter
+                    chunks = buff.split(DELIMITER)                      # If delimiter found, split to get the remaining buffer data
+                    buff = chunks.pop()                                 # Put the remaining data back in the buffer
+
+                    for chunk in chunks:                                # Take out the ens data
+                        self.process_playback_ens(DELIMITER + chunk)    # Process the binary ensemble data
+
+                data = f.read(4096)  # Read the next batch of data
+
+        # Process whatever is remaining in the buffer
+        self.process_playback_ens(DELIMITER + buff)
+
+        # Close the file
+        f.close()
+
+    def process_playback_ens(self, ens_bin):
+        # Verify the ENS data is good
+        # This will check that all the data is there and the checksum is good
+        if BinaryCodec.verify_ens_data(ens_bin):
+            # Decode the ens binary data
+            ens = BinaryCodec.decode_data_sets(ens_bin)
+
+            # Pass the ensemble
+            if ens:
+                self.ensemble_rcv(None, ens)

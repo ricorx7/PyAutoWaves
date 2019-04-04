@@ -347,30 +347,31 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :param ens: Ensemble to accumulate.
         :return:
         """
-        # Get the key from the ensemble
-        # If none is returned, then the ensemble does not have the Ensemble Data Set
-        key = self.gen_dict_key(ens)
+        if ens:
+            # Get the key from the ensemble
+            # If none is returned, then the ensemble does not have the Ensemble Data Set
+            key = self.gen_dict_key(ens)
 
-        if key:
-            # Increment the counter
-            self.avg_counter += 1
+            if key:
+                # Increment the counter
+                self.avg_counter += 1
 
-            # Get the average water column object from dict if exist
-            # If it does not exist, create the entry
-            # Then add the ensemble to the list
-            if key not in self.awc_dict:
-                self.awc_dict[key] = AverageWaterColumn(int(self.rti_config.config['AWC']['num_ensembles']),
-                                                        ens.EnsembleData.SysFirmwareSubsystemCode,
-                                                        ens.EnsembleData.SubsystemConfig)
+                # Get the average water column object from dict if exist
+                # If it does not exist, create the entry
+                # Then add the ensemble to the list
+                if key not in self.awc_dict:
+                    self.awc_dict[key] = AverageWaterColumn(int(self.rti_config.config['AWC']['num_ensembles']),
+                                                            ens.EnsembleData.SysFirmwareSubsystemCode,
+                                                            ens.EnsembleData.SubsystemConfig)
 
-                # Add the new tab for each subsystem configuration
-                #self.add_tab_sig.emit(key)
+                    # Add the new tab for each subsystem configuration
+                    #self.add_tab_sig.emit(key)
 
-            # Add the ensemble to the correct AverageWaterColumn
-            self.awc_dict[key].add_ens(ens)
+                # Add the ensemble to the correct AverageWaterColumn
+                self.awc_dict[key].add_ens(ens)
 
-            # Emit a signal that an ensemble was added
-            self.increment_ens_sig.emit(self.avg_counter)
+                # Emit a signal that an ensemble was added
+                self.increment_ens_sig.emit(self.avg_counter)
 
     def write_csv(self, awc_avg, awc_key):
         """
