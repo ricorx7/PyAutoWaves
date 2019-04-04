@@ -5,6 +5,7 @@ from rti_python.Codecs.AdcpCodec import AdcpCodec
 from rti_python.Codecs.WaveForceCodec import WaveForceCodec
 from rti_python.Utilities.config import RtiConfig
 from rti_python.Codecs.BinaryCodec import BinaryCodec
+from rti_python.Codecs.BinaryCodecThreaded import BinaryCodecThreaded
 
 
 class AutoWavesManager:
@@ -33,6 +34,7 @@ class AutoWavesManager:
         self.rti_config = rti_config
 
         self.adcp_codec = AdcpCodec()
+        self.bin_codec_thread = BinaryCodecThreaded()
 
         # Verify the selected bin is not disabled
         selected_bin_1 = -1
@@ -111,7 +113,9 @@ class AutoWavesManager:
         #self.logger.debug("Data Received: " + str(data))
 
         # Pass the data to codec to decode
-        self.adcp_codec.add(data)
+        #self.adcp_codec.add(data)
+
+        self.bin_codec_thread.add_data(data)
 
     def reset_waves_codec(self):
         """
