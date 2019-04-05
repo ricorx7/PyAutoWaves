@@ -71,6 +71,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.num_bins = 30
         self.ens_num = []
         self.data = []
+        self.csv_creation_date = datetime.datetime.now()
 
         # Web Views
         self.web_view_wave_height = QWebEngineView()
@@ -170,7 +171,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.populate_table_sig.emit(awc_key, awc_average)
 
         # Display data
-        #self.display_data("")
+        self.display_data()
 
     def reset_average(self):
         """
@@ -185,19 +186,28 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         for awc_key in self.awc_dict.keys():
             self.awc_dict[awc_key].reset()
 
-    def display_data(self, file_index):
+    def display_data(self):
 
         # Read in the CSV data of the average data
         avg_df = pd.read_csv(self.csv_file_path)
+
+        # Set the datetime column values as datetime values
+        avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
+        #avg_df = avg_df.set_index('datetime')
+        #avg_df.drop(['datetime'], axis=1, inplace=True)
+
+        # Sort the data by date and time
+        avg_df = avg_df.sort_index()
 
         # Update the Wave Height Plot
         self.plot_wave_height(avg_df)
 
         # Update the Earth Vel Plot
-        self.plot_earth_vel(avg_df,
-                            int(self.rti_config.config['Waves']['selected_bin_1']),
-                            int(self.rti_config.config['Waves']['selected_bin_2']),
-                            int(self.rti_config.config['Waves']['selected_bin_3']))
+        #self.plot_earth_vel(avg_df,
+        #                    0,
+        #                    int(self.rti_config.config['Waves']['selected_bin_1']),
+        #                    int(self.rti_config.config['Waves']['selected_bin_2']),
+        #                    int(self.rti_config.config['Waves']['selected_bin_3']))
 
         #selected_avg_df = avg_df[avg_df.data_type.str.contains("Pressure") | avg_df.data_type.str.contains("XdcrDepth")]
 
@@ -252,27 +262,22 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Sort the data for only the "XdcrDepth" data type
         selected_avg_df = avg_df[avg_df.data_type.str.contains("XdcrDepth")]
 
-        # Set the datetime column to a datetime object
-        #selected_avg_df['datetime'] = pd.to_datetime(selected_avg_df.datetime)
-        pd.to_datetime(selected_avg_df['datetime'])
+        # Remove all the colums except datetime and value
+        selected_avg_df = selected_avg_df[['datetime', 'value']]
 
-        # Set the index of the data
-        selected_avg_df.set_index('datetime')
+        # Set independent variables or index
+        kdims = [('datetime', 'Date and Time')]
 
-        # Sort the data by date and time
-        #selected_avg_df.sort_values(by=['datetime'], ascending=False, inplace=True)
-        selected_avg_df.sort_index()
-
-
-        # Set the dependent
+        # Set the dependent variables or measurements
         vdims = [('value', 'Wave Height (m)')]
 
         # Set the independent columns
         # Create the Holoview dataset
-        ds = hv.Dataset(selected_avg_df, ['datetime'], vdims)
+        #ds = hv.Dataset(selected_avg_df, ['index'], vdims)
 
         # Plot and select a bin
-        pressure_xdcr_height = ds.to(hv.Curve, 'datetime', 'value') + hv.Table(ds)
+        #pressure_xdcr_height = ds.to(hv.Curve, 'index', 'value') + hv.Table(ds)
+        pressure_xdcr_height = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
 
         # Save the plot to a file
         hv.save(pressure_xdcr_height, self.wave_height_html_file, fmt='html')
@@ -281,7 +286,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.web_view_wave_height.reload()
         self.refresh_wave_height_web_view_sig.emit()
 
-    def plot_earth_vel(self, avg_df, selected_bin_1, selected_bin_2, selected_bin_3):
+    def plot_earth_vel(self, avg_df, beam_num, selected_bin_1, selected_bin_2, selected_bin_3):
         """
         Create a HTML plot of the Earth Velocity data from the
         CSV file.
@@ -290,16 +295,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         """
         # Sort the data for only the "EarthVel" data type
         #selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel")) & (avg_df.bin_num == bin_num)]
-        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel"))]
-
-        # Set the datetime column to a datetime object
-        pd.to_datetime(selected_avg_df['datetime'])
-
-        # Set the index of the data
-        selected_avg_df.set_index('datetime')
-
-        # Sort the data by date and time
-        selected_avg_df.sort_index()
+        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel") & avg_df.beam_num == beam_num)]
 
         # Set the dependent
         vdims = [('value', 'm/s')]
@@ -317,7 +313,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         bin_list.append(selected_bin_3)
         subset = ds.select(bin_num=bin_list)
         plot = subset.to(hv.Curve, 'datetime', 'value').layout()
-        plot.opts(opts.Curve(width=200, height=200))
+        plot.opts(opts.Curve(width=400, height=400))
 
         # Save the plot to a file
         hv.save(plot, self.earth_vel_html_file, fmt='html')
@@ -430,7 +426,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
             # Write the data to the CSV file
             # Added newline='' to ensure no extra lines included
-            with open(self.csv_file_path , 'a', newline='') as csv_file:
+            with open(self.csv_file_path, 'a', newline='') as csv_file:
                 wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_NONE, escapechar=' ')
 
                 # Write the data
@@ -491,9 +487,15 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
     def check_or_create_file(self):
         """
+
+        Check if the file exceeds the time limit.  If the time limit is met,
+        create a new file.
+
         Check if the file exist.  If it does not exist,
         create the file.
+
         Create a new file if the file exceeds 16mb.
+
         Add a header to the new file.
 
         File name
@@ -503,6 +505,17 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Get the max file size in bytes
         max_file_size = int(self.rti_config.config['AWC']['max_file_size']) * 1048576
 
+        # Check the date the file was created
+        # Create a new file if hour exceeds the limit
+        csv_max_hours = float(self.rti_config.config['AWC']['csv_max_hours'])
+        csv_dt = datetime.timedelta(hours=csv_max_hours)
+        #if csv_max_hours < 1:
+        #    csv_dt = datetime.timedelta(minutes=(csv_max_hours * 60))
+
+        if datetime.datetime.now() > self.csv_creation_date + csv_dt:
+            # Create a new file
+            self.csv_file_index += 1
+
         # Create the file name
         file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + "A" + str(self.csv_file_index).zfill(5) + self.CSV_FILE_EXT
 
@@ -511,12 +524,17 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
             self.csv_file_index += 1
             file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + "A" + str(self.csv_file_index).zfill(5) + self.CSV_FILE_EXT
 
+        # If the file des not exist, create it
         if not os.path.exists(file_path):
             header = ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "bin_depth", "value"]
 
+            # Open the file and write the header to the row
             with open(file_path, 'w', newline='') as csv_file:
                 wr = csv.writer(csv_file, delimiter=',', quoting=csv.QUOTE_ALL)
                 wr.writerow(header)
+
+                # Set the creation time
+                self.csv_creation_date = datetime.datetime.now()
 
         return file_path
 

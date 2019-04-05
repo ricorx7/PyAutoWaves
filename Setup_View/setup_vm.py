@@ -106,6 +106,10 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.numAvgEnsSpinBox.setToolTip("Set the number of ensembles to average together.")
         self.numAvgEnsSpinBox.valueChanged.connect(self.update_settings)
 
+        self.avgFileTimeDoubleSpinBox.setValue(float(self.rti_config.config['AWC']['csv_max_hours']))
+        self.avgFileTimeDoubleSpinBox.setToolTip("Set the number of hours to store a CSV file.  A decimal value can be given for a time less than 1 hour.\nThis will breakup the CSV file.  The CSV file also has a maximum file size that can be set in the configuration file.  The latest CSV file is also used for plotting.")
+        self.avgFileTimeDoubleSpinBox.valueChanged.connect(self.update_settings)
+
     def get_storage_path(self):
         """
         :return: The storage path to record the data.
@@ -172,6 +176,7 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.rti_config.config['Waves']['pressure_sensor_offset'] = str(self.pressureSensorOffsetDoubleSpinBox.value())
         self.rti_config.config['Waves']['latitude'] = str(self.latitudeDoubleSpinBox.value())
         self.rti_config.config['Waves']['longitude'] = str(self.longitudeDoubleSpinBox.value())
+        self.rti_config.config['AWC']['csv_max_hours'] = str(self.avgFileTimeDoubleSpinBox.value())
 
         if self.isVerticalDataCheckBox.isChecked():
             self.rti_config.config['Waves']['4b_vert_pair'] = str("True")

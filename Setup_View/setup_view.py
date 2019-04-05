@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'setup_view.ui'
+# Form implementation generated from reading ui file 'Setup_View\setup_view.ui'
 #
 # Created by: PyQt5 UI code generator 5.7.1
 #
@@ -28,13 +28,19 @@ class Ui_Setup(object):
         self.numBurstEnsSpinBox.setMaximum(10000)
         self.numBurstEnsSpinBox.setObjectName("numBurstEnsSpinBox")
         self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.numBurstEnsSpinBox)
+        self.label_10 = QtWidgets.QLabel(Setup)
+        self.label_10.setObjectName("label_10")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_10)
         self.numAvgEnsSpinBox = QtWidgets.QSpinBox(Setup)
         self.numAvgEnsSpinBox.setMaximum(10000)
         self.numAvgEnsSpinBox.setObjectName("numAvgEnsSpinBox")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.numAvgEnsSpinBox)
+        self.avgFileTimeDoubleSpinBox = QtWidgets.QDoubleSpinBox(Setup)
+        self.avgFileTimeDoubleSpinBox.setObjectName("avgFileTimeDoubleSpinBox")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.avgFileTimeDoubleSpinBox)
         self.storagePathLabel = QtWidgets.QLabel(Setup)
         self.storagePathLabel.setObjectName("storagePathLabel")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.storagePathLabel)
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.storagePathLabel)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.storagePathLineEdit = QtWidgets.QLineEdit(Setup)
@@ -43,10 +49,10 @@ class Ui_Setup(object):
         self.selectFolderPushButton = QtWidgets.QPushButton(Setup)
         self.selectFolderPushButton.setObjectName("selectFolderPushButton")
         self.horizontalLayout_2.addWidget(self.selectFolderPushButton)
-        self.formLayout.setLayout(2, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2)
-        self.label_10 = QtWidgets.QLabel(Setup)
-        self.label_10.setObjectName("label_10")
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_10)
+        self.formLayout.setLayout(3, QtWidgets.QFormLayout.FieldRole, self.horizontalLayout_2)
+        self.label_12 = QtWidgets.QLabel(Setup)
+        self.label_12.setObjectName("label_12")
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_12)
         self.verticalLayout.addLayout(self.formLayout)
         self.groupBox = QtWidgets.QGroupBox(Setup)
         self.groupBox.setObjectName("groupBox")
@@ -124,9 +130,10 @@ class Ui_Setup(object):
         _translate = QtCore.QCoreApplication.translate
         Setup.setWindowTitle(_translate("Setup", "MainWindow"))
         self.numBurstEnsLabel.setText(_translate("Setup", "Number of Ensembles in Burst"))
+        self.label_10.setText(_translate("Setup", "Number of Ensembles in Average"))
         self.storagePathLabel.setText(_translate("Setup", "Output Directory"))
         self.selectFolderPushButton.setText(_translate("Setup", "DIR"))
-        self.label_10.setText(_translate("Setup", "Number of Ensembles in Average"))
+        self.label_12.setText(_translate("Setup", "New Avg File (Hours)"))
         self.groupBox.setTitle(_translate("Setup", "Wave Setup"))
         self.label.setText(_translate("Setup", "Selected Bin 1"))
         self.label_2.setText(_translate("Setup", "Selected Bin 2"))

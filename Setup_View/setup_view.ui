@@ -36,6 +36,13 @@
        </property>
       </widget>
      </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_10">
+       <property name="text">
+        <string>Number of Ensembles in Average</string>
+       </property>
+      </widget>
+     </item>
      <item row="1" column="1">
       <widget class="QSpinBox" name="numAvgEnsSpinBox">
        <property name="maximum">
@@ -43,14 +50,17 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="0">
+     <item row="2" column="1">
+      <widget class="QDoubleSpinBox" name="avgFileTimeDoubleSpinBox"/>
+     </item>
+     <item row="3" column="0">
       <widget class="QLabel" name="storagePathLabel">
        <property name="text">
         <string>Output Directory</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
+     <item row="3" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
         <widget class="QLineEdit" name="storagePathLineEdit"/>
@@ -64,10 +74,10 @@
        </item>
       </layout>
      </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_10">
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_12">
        <property name="text">
-        <string>Number of Ensembles in Average</string>
+        <string>New Avg File (Hours)</string>
        </property>
       </widget>
      </item>

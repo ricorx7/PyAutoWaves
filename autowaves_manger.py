@@ -4,6 +4,8 @@ from threading import Thread
 from rti_python.Codecs.AdcpCodec import AdcpCodec
 from rti_python.Codecs.WaveForceCodec import WaveForceCodec
 from rti_python.Utilities.config import RtiConfig
+from rti_python.Codecs.BinaryCodec import BinaryCodec
+
 
 class AutoWavesManager:
     """
@@ -211,7 +213,7 @@ class AutoWavesManager:
         self.monitor_vm.refresh_file_tree_sig.emit()
 
         # Display the Average Water Column data
-        self.avg_water_vm.display_data("")
+        self.avg_water_vm.display_data()
 
     def update_waves_settings(self, sender, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth, height_source, corr_thresh, pressure_offset):
         """
