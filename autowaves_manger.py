@@ -4,9 +4,6 @@ from threading import Thread
 from rti_python.Codecs.AdcpCodec import AdcpCodec
 from rti_python.Codecs.WaveForceCodec import WaveForceCodec
 from rti_python.Utilities.config import RtiConfig
-from rti_python.Codecs.BinaryCodec import BinaryCodec
-from rti_python.Codecs.BinaryCodecThreaded import BinaryCodecThreaded
-
 
 class AutoWavesManager:
     """
@@ -34,7 +31,6 @@ class AutoWavesManager:
         self.rti_config = rti_config
 
         self.adcp_codec = AdcpCodec()
-        self.bin_codec_thread = BinaryCodecThreaded()
 
         # Verify the selected bin is not disabled
         selected_bin_1 = -1
@@ -76,7 +72,7 @@ class AutoWavesManager:
                                                pressure_offset=float(self.rti_config.config['Waves']['pressure_sensor_offset']))
 
         # Subscribe to receive ensembles and waves data
-        self.adcp_codec.EnsembleEvent += self.ensemble_rcv
+        self.adcp_codec.ensemble_event += self.ensemble_rcv
         self.wave_force_codec.process_data_event += self.waves_rcv
 
         # Subscribe to receive serial data
@@ -113,9 +109,7 @@ class AutoWavesManager:
         #self.logger.debug("Data Received: " + str(data))
 
         # Pass the data to codec to decode
-        #self.adcp_codec.add(data)
-
-        self.bin_codec_thread.add_data(data)
+        self.adcp_codec.add(data)
 
     def reset_waves_codec(self):
         """
