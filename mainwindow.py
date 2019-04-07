@@ -10,10 +10,12 @@ from Average_Water_View.average_water_vm import AverageWaterVM
 import logging
 import rti_python.Utilities.logger as RtiLogging
 RtiLogging.RtiLogger.setup_custom_logger(log_level=logging.WARNING)
-
+import asyncio
+from bokeh.server.server import Server
 import autowaves_manger
 # import qdarkstyle
 # import images_qr
+from threading import Thread
 from rti_python.Utilities.config import RtiConfig
 
 
@@ -60,14 +62,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, docked_terminal)
         #self.tabifyDockWidget(self.docked_setup, docked_terminal)
 
+
         # Initialize the Average Water Column
         self.AvgWater = AverageWaterVM(self, self.rti_config)
         self.docked_avg_water = QtWidgets.QDockWidget("AvgWater", self)
         self.docked_avg_water.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         self.docked_avg_water.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
-        self.docked_avg_water.resize(500, 400)
+        self.docked_avg_water.resize(800, 600)
         self.docked_avg_water.setWidget(self.AvgWater)
         self.docked_avg_water.setVisible(False)
+
+        # Start Event Loop needed for server
+        #asyncio.set_event_loop(asyncio.new_event_loop())
+
+        # Setting num_procs here means we can't touch the IOLoop before now, we must
+        # let Server handle that. If you need to explicitly handle IOLoops then you
+        # will need to use the lower level BaseServer class.
+        #self.server = Server({'/': self.AvgWater.setup_bokeh_server})
+        #self.server.start()
+
+        #thread = Thread(target=self.start_bokeh_server)
+        #thread.start()
 
         # Add the displays to the manager to monitor all the data
         self.AutoWavesManager = autowaves_manger.AutoWavesManager(self,
@@ -112,13 +127,29 @@ class MainWindow(QtWidgets.QMainWindow):
         setupMenu.addAction(setupButton)
 
         avgWaterButton = QAction(QIcon('exit24.png'), 'Average Water', self)
-        avgWaterButton.setShortcut('Ctrl+S')
+        avgWaterButton.setShortcut('Ctrl+A')
         avgWaterButton.setStatusTip('Average the Water Column')
         avgWaterButton.triggered.connect(self.display_avg_water_view)
         avgMenu.addAction(avgWaterButton)
 
+        waveHeightPlotButton = QAction(QIcon('exit24.png'), 'Water Height Plot', self)
+        waveHeightPlotButton.setShortcut('Ctrl+H')
+        waveHeightPlotButton.setStatusTip('Average Water Height Plot')
+        waveHeightPlotButton.triggered.connect(self.display_wave_height_plot_view)
+        avgMenu.addAction(waveHeightPlotButton)
+
+        eastVelPlotButton = QAction(QIcon('exit24.png'), 'East Velocity Plot', self)
+        eastVelPlotButton.setShortcut('Ctrl+H')
+        eastVelPlotButton.setStatusTip('Earth Velocity [East] Plot ')
+        eastVelPlotButton.triggered.connect(self.display_east_vel_plot_view)
+        avgMenu.addAction(eastVelPlotButton)
+
         # Show the main window
         self.show()
+
+    def start_bokeh_server(self):
+        self.server.io_loop.add_callback(self.server.show, "/")
+        self.server.io_loop.start()
 
     def openFileNamesDialog(self):
         """
@@ -139,6 +170,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def display_avg_water_view(self):
         self.docked_avg_water.setFloating(True)
         self.docked_avg_water.show()
+
+    @pyqtSlot()
+    def display_wave_height_plot_view(self):
+        self.AvgWater.docked_wave_height.setFloating(True)
+        self.AvgWater.docked_wave_height.show()
+
+    @pyqtSlot()
+    def display_east_vel_plot_view(self):
+        self.AvgWater.docked_earth_vel_east.setFloating(True)
+        self.AvgWater.docked_earth_vel_east.show()
 
     @pyqtSlot()
     def playback(self):

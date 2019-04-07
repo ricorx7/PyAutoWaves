@@ -12,3 +12,5 @@ scipy
 pyviz
 holoviews
 matplotlib
+streamz
+panel

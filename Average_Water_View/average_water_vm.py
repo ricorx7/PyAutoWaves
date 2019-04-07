@@ -2,12 +2,20 @@ from PyQt5.QtWidgets import QWidget, QFileDialog, QMessageBox, QTableWidget, QTa
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QUrl, QEventLoop
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from PyQt5 import QtGui, QtWidgets, QtCore
 from bokeh.plotting import figure, output_file, show, save
 from bokeh.models import LinearColorMapper, BasicTicker, PrintfTickFormatter, ColorBar
 from bokeh.transform import transform, linear_cmap
 from bokeh.palettes import Viridis3, Viridis256, Inferno256
 from bokeh.models import HoverTool
 from bokeh.models import Range1d
+import holoviews as hv
+import streamz
+import streamz.dataframe
+import asyncio
+
+from holoviews import opts
+from holoviews.streams import Pipe, Buffer
 import math
 import pandas as pd
 import numpy as np
@@ -23,7 +31,8 @@ import os
 from rti_python.Utilities.config import RtiConfig
 from rti_python.Ensemble.Ensemble import Ensemble
 from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
-
+from tornado.ioloop import IOLoop
+from bokeh.server.server import Server
 # pyviz
 import numpy as np
 import scipy.stats as ss
@@ -31,6 +40,8 @@ import pandas as pd
 import holoviews as hv
 from holoviews import opts, dim, Palette
 hv.extension('bokeh')
+import panel as pn
+pn.extension()
 
 opts.defaults(
     opts.Bars(xrotation=45, tools=['hover']),
@@ -91,6 +102,10 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Latest Average Water Column
         self.avg_counter = 0
 
+        self.earth_vel_east_stream = None
+        self.earth_vel_east_dmap = None
+        self.earth_vel_east_plot = None
+
         #self.html = None
         #self.web_view = QWebEngineView()
         #html_path = os.path.split(os.path.abspath(__file__))[0] + os.sep + ".." + os.sep + self.HTML_FILE_NAME
@@ -120,9 +135,34 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.web_view_earth_vel.load(QUrl().fromLocalFile(self.earth_vel_html_file + ".html"))
         self.add_tab_sig.emit("Earth Velocity", self.web_view_earth_vel)
 
+        self.docked_wave_height = QtWidgets.QDockWidget("Wave Height", self)
+        self.docked_wave_height.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        self.docked_wave_height.setFeatures(
+            QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
+        self.docked_wave_height.resize(1100, 400)
+        self.docked_wave_height.setWidget(self.web_view_wave_height)
+        self.docked_wave_height.setVisible(True)
+        #self.addDockWidget(QtCore.Qt.AllDockWidgetAreas, self.docked_wave_height)
+
+        self.docked_earth_vel_east = QtWidgets.QDockWidget("Earth Velocity - East", self)
+        self.docked_earth_vel_east.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        self.docked_earth_vel_east.setFeatures(
+            QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
+        self.docked_earth_vel_east.resize(1100, 400)
+        self.docked_earth_vel_east.setWidget(self.web_view_earth_vel)
+        self.docked_earth_vel_east.setVisible(True)
+        #self.addDockWidget(QtCore.Qt.AllDockWidgetAreas, self.docked_wave_height)
+
         #self.tableWidget.setRowCount(200)
         #self.tableWidget.setColumnCount(5)
         #self.tableWidget.setHorizontalHeaderLabels(['Average Water Column'])
+
+        # Create Streaming plot
+        #self.earth_vel_east_source = streamz.Stream()
+        #pipe = Pipe(data=pd.DataFrame({'x': [], 'y': [], 'count': []}))
+        #self.earth_vel_east_source.sliding_window(20).map(pd.concat).sink(pipe.send)  # Connect streamz to the Pipe
+        #self.earth_vel_plot = hv.DynamicMap(hv.Curve, streams=[pipe])
+
 
     def add_ens(self, ens):
         """
@@ -143,14 +183,14 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         # Check if it is time to average data
         if self.avg_counter >= int(self.rti_config.config['AWC']['num_ensembles']):
-            thread = Thread(target=self.average_and_display)
-            thread.start()
-            thread.join(1000)
+            #thread = Thread(target=self.average_and_display)
+            #thread.start()
+            #thread.join()
+            self.average_and_display()
 
     def average_and_display(self):
         """
         Average the data and display the data.
-        :param awc_key: Average Water Column key to find the correct tables.
         :return:
         """
         for awc_key in self.awc_dict.keys():
@@ -199,15 +239,38 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Sort the data by date and time
         avg_df = avg_df.sort_index()
 
-        # Update the Wave Height Plot
+        # Create a thread to plot the height
         self.plot_wave_height(avg_df)
 
-        # Update the Earth Vel Plot
-        #self.plot_earth_vel(avg_df,
+        # Update the Earth Vel Plot East
+        self.plot_earth_vel(avg_df,
+                            0,
+                            int(self.rti_config.config['Waves']['selected_bin_1']),
+                            int(self.rti_config.config['Waves']['selected_bin_2']),
+                            int(self.rti_config.config['Waves']['selected_bin_3']))
+
+        #self.stream_plot_earth_vel(avg_df,
         #                    0,
         #                    int(self.rti_config.config['Waves']['selected_bin_1']),
         #                    int(self.rti_config.config['Waves']['selected_bin_2']),
         #                    int(self.rti_config.config['Waves']['selected_bin_3']))
+
+        """
+        # Update the Earth Vel Plot North
+        self.plot_earth_vel(avg_df,
+                            1,
+                            int(self.rti_config.config['Waves']['selected_bin_1']),
+                            int(self.rti_config.config['Waves']['selected_bin_2']),
+                            int(self.rti_config.config['Waves']['selected_bin_3']))
+        
+        # Update the Earth Vel Plot Vertical
+        self.plot_earth_vel(avg_df,
+                            2,
+                            int(self.rti_config.config['Waves']['selected_bin_1']),
+                            int(self.rti_config.config['Waves']['selected_bin_2']),
+                            int(self.rti_config.config['Waves']['selected_bin_3']))
+        """
+
 
         #selected_avg_df = avg_df[avg_df.data_type.str.contains("Pressure") | avg_df.data_type.str.contains("XdcrDepth")]
 
@@ -262,7 +325,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Sort the data for only the "XdcrDepth" data type
         selected_avg_df = avg_df[avg_df.data_type.str.contains("XdcrDepth")]
 
-        # Remove all the colums except datetime and value
+        # Remove all the columns except datetime and value
         selected_avg_df = selected_avg_df[['datetime', 'value']]
 
         # Set independent variables or index
@@ -271,19 +334,13 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Set the dependent variables or measurements
         vdims = [('value', 'Wave Height (m)')]
 
-        # Set the independent columns
-        # Create the Holoview dataset
-        #ds = hv.Dataset(selected_avg_df, ['index'], vdims)
-
         # Plot and select a bin
-        #pressure_xdcr_height = ds.to(hv.Curve, 'index', 'value') + hv.Table(ds)
         pressure_xdcr_height = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
 
         # Save the plot to a file
         hv.save(pressure_xdcr_height, self.wave_height_html_file, fmt='html')
 
         # Refresh the web view
-        #self.web_view_wave_height.reload()
         self.refresh_wave_height_web_view_sig.emit()
 
     def plot_earth_vel(self, avg_df, beam_num, selected_bin_1, selected_bin_2, selected_bin_3):
@@ -295,25 +352,39 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         """
         # Sort the data for only the "EarthVel" data type
         #selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel")) & (avg_df.bin_num == bin_num)]
-        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel") & avg_df.beam_num == beam_num)]
+        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel"))]
 
-        # Set the dependent
-        vdims = [('value', 'm/s')]
+        # Remove all the columns except datetime and value
+        #selected_avg_df = selected_avg_df[['datetime', 'bin_num', 'beam_num', 'value']]
+
+        # Set independent variables or index
+        kdims = [('datetime', 'Date and Time'), ('bin_num', 'bin'), 'ss_code', 'ss_config']
+
+        # Set the dependent variables or measurements
+        vdims = [('value', 'Water Velocity (m/s)')]
 
         # Set the independent columns
         # Create the Holoview dataset
-        ds = hv.Dataset(selected_avg_df, ['datetime', ('bin_num', 'bin'), ('beam_num', 'beam'), 'ss_code', 'ss_config'], vdims)
+        ds = hv.Dataset(selected_avg_df, kdims, vdims)
 
         # Plot and select a bin
         #plot = ds.to(hv.Curve, 'datetime', 'value', groupby='bin_num') + hv.Table(ds)
+        #plot = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
 
         bin_list = []
         bin_list.append(selected_bin_1)
-        bin_list.append(selected_bin_2)
-        bin_list.append(selected_bin_3)
-        subset = ds.select(bin_num=bin_list)
-        plot = subset.to(hv.Curve, 'datetime', 'value').layout()
-        plot.opts(opts.Curve(width=400, height=400))
+        #bin_list.append(selected_bin_2)
+        #bin_list.append(selected_bin_3)
+        subset = ds.select(bin_num=bin_list, beam_num=0)
+        #plot = subset.to(hv.Curve, 'datetime', 'value').layout()
+        #plot.opts(opts.Curve(width=400, height=400, title='Earth Velocity Data'))
+
+        # Title
+        title = "Earth Velocity East - [Bin " + str(selected_bin_1) + "]"
+
+        # Create the plot options
+        plot = (subset.to(hv.Curve, 'datetime', 'value') + hv.Table(subset)).opts(
+            opts.Curve(width=400, height=400, title=title))
 
         # Save the plot to a file
         hv.save(plot, self.earth_vel_html_file, fmt='html')
@@ -322,9 +393,88 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Include the group by
         #hv.renderer('bokeh').save(plot, self.earth_vel_html_file, fmt='scrubber')
 
-
         # Refresh the web view
         self.refresh_earth_vel_web_view_sig.emit()
+
+    def setup_bokeh_server(self, doc):
+        """
+        Setup the bokeh server in the mainwindow.py.  The server
+        must be started on the main thread.
+        :param doc:
+        :return:
+        """
+        # Initialize the dataframe
+        columns = ['datetime', 'data_type', 'ss_code', 'ss_config', 'bin_num', 'beam_num', 'bin_depth', 'value']
+        df = pd.DataFrame(columns=columns)
+        df['datetime'] = pd.to_datetime(df['datetime'])
+
+        # Create a stream for the data
+        #self.earth_vel_east_stream = hv.streams.Buffer(df)
+        stream = streamz.Stream()
+        self.earth_vel_east_stream = streamz.dataframe.DataFrame(stream, example=df)
+
+        # dmap to have a plot with live updates
+        self.earth_vel_east_dmap = hv.DynamicMap(hv.Curve, streams=[self.earth_vel_east_stream])
+
+        # Create the plot options
+        self.earth_vel_east_plot = self.earth_vel_east_dmap.opts(
+            opts.Curve(width=400, height=400, title="Earth Velocity East"))
+
+        plot_panel = pn.Row(self.earth_vel_east_plot)
+        plot_panel.show(port=0)
+
+        doc.add_root(plot_panel)
+        #doc.add_root(self.earth_vel_east_plot)
+
+    def stream_plot_earth_vel(self, avg_df, beam_num, selected_bin_1, selected_bin_2, selected_bin_3):
+        """
+        Create a HTML plot of the Earth Velocity data from the
+        CSV file.
+        :param avg_df:  Dataframe of the csv file
+        :return:
+        """
+        # Sort the data for only the "EarthVel" data type
+        #selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel")) & (avg_df.bin_num == bin_num)]
+        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel") & avg_df.beam_num == beam_num)]
+
+        if self.earth_vel_east_stream:
+            #self.earth_vel_east_stream.send(selected_avg_df)
+            self.earth_vel_east_stream.emit(selected_avg_df)
+
+            # Save the plot to a file
+            #hv.save(self.earth_vel_east_plot, self.earth_vel_html_file, fmt='html')
+
+        # Create the plot if it does not exist
+        #if not self.earth_vel_east_stream:
+        #    self.earth_vel_east_stream = hv.streams.Buffer(selected_avg_df)
+        #    self.earth_vel_east_dmap = hv.DynamicMap(hv.Curve, streams=[self.earth_vel_east_stream])
+
+         #   self.earth_vel_east_plot = self.earth_vel_east_dmap.opts(
+         #       opts.Curve(width=800, height=800, title="Earth Velocity East"))
+         #   renderer = hv.renderer('bokeh')
+            #renderer = renderer.instance(mode='server')
+            #doc = renderer.server_doc(self.earth_vel_east_plot)
+
+            #app = renderer.app(self.earth_vel_east_dmap)
+
+            # Start Event Loop needed for server
+            #asyncio.set_event_loop(asyncio.new_event_loop())
+
+            #server = Server({'/': app}, port=0)
+
+            #server.io_loop.add_callback(server.show, "/")
+            #server.io_loop.start()
+
+            #server.start()
+            #server.show('/')
+
+            #loop = IOLoop.current()
+            #loop.start()
+
+            #server = renderer.app(self.earth_vel_east_dmap, show=True)
+
+            #plot_panel = pn.Row(self.earth_vel_east_plot)
+            #plot_panel.show(port=0)
 
     def refresh_wave_height_web_view(self):
         self.web_view_wave_height.reload()
