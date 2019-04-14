@@ -214,6 +214,8 @@ class MainWindow(QtWidgets.QMainWindow):
             logging.debug("Setup VM shutdown")
             self.Terminal.shutdown()
             logging.debug("Terminal VL shutdown")
+            self.AvgWater.shutdown()
+            logging.debug("Average Water shutdown")
             self.AutoWavesManager.shutdown()
             logging.debug("Auto Waves Manager shutdown")
             event.accept()

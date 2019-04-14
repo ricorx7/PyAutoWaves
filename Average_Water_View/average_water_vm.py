@@ -23,11 +23,13 @@ from threading import Thread
 import threading
 import csv
 import datetime
-
+import queue
+import collections
 from . import average_water_view
 import logging
 from obsub import event
 import os
+import time
 from rti_python.Utilities.config import RtiConfig
 from rti_python.Ensemble.Ensemble import Ensemble
 from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
@@ -83,6 +85,12 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.ens_num = []
         self.data = []
         self.csv_creation_date = datetime.datetime.now()
+
+        self.ens_queue = collections.deque()
+        self.display_eventt = threading.Event()
+        self.display_thread_alive = True
+        self.display_thread = threading.Thread(name="avg_water_vm", target=self.thread_display_run)
+        self.display_thread.start()
 
         # Web Views
         self.web_view_wave_height = QWebEngineView()
@@ -163,6 +171,10 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.earth_vel_east_source.sliding_window(20).map(pd.concat).sink(pipe.send)  # Connect streamz to the Pipe
         #self.earth_vel_plot = hv.DynamicMap(hv.Curve, streams=[pipe])
 
+    def shutdown(self):
+        self.display_thread_alive = False
+        self.display_eventt.set()
+        self.display_thread.join()
 
     def add_ens(self, ens):
         """
@@ -178,15 +190,62 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.create_plot()
         #self.web_view.reload()
 
+        # Add data to the queue
+        #start = time.clock()
+        self.ens_queue.append(ens)
+        #print("Add Que: " + str(time.clock()-start))
+
+        print(threading.current_thread().getName() + " data added")
+
+        #start = time.clock()
+        # Emit a signal that an ensemble was added
+        self.increment_ens_sig.emit(self.avg_counter)
+        #print("increment sig: " + str(time.clock()-start))
+
+        # Wakekup the thread
+        self.display_eventt.set()
+
+
         # Accumulate the water column data
-        self.accumulate_ens(ens)
+        #self.accumulate_ens(ens)
 
         # Check if it is time to average data
-        if self.avg_counter >= int(self.rti_config.config['AWC']['num_ensembles']):
+        #if self.avg_counter >= int(self.rti_config.config['AWC']['num_ensembles']):
             #thread = Thread(target=self.average_and_display)
             #thread.start()
             #thread.join()
-            self.average_and_display()
+        #    self.average_and_display()
+
+
+    def thread_display_run(self):
+
+        while self.display_thread_alive:
+
+            if self.display_eventt.is_set():
+
+            # Wait to be woken up
+            self.display_eventt.wait()
+
+            print(threading.current_thread().getName() + " " + str(len(self.ens_queue)))
+
+            while len(self.ens_queue) > 0:
+                # Remove the ensemble from the queue
+                ens = self.ens_queue.popleft()
+
+                # Accumulate the water column data
+                start = time.clock()
+                self.accumulate_ens(ens)
+                print("Accum : " + str(time.clock()-start))
+
+                # Check if it is time to average data
+                if self.avg_counter >= int(self.rti_config.config['AWC']['num_ensembles']):
+                    #thread = Thread(target=self.average_and_display)
+                    #thread.start()
+                    #thread.join()
+                    start = time.clock()
+                    self.average_and_display()
+                    print("avg and display : " + str(time.clock() - start))
+
 
     def average_and_display(self):
         """

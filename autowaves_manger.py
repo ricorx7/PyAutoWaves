@@ -1,10 +1,13 @@
 import logging
 import math
-from threading import Thread
+from collections import deque
+from threading import Thread, Event
+import threading
 from rti_python.Codecs.AdcpCodec import AdcpCodec
 from rti_python.Codecs.WaveForceCodec import WaveForceCodec
 from rti_python.Utilities.config import RtiConfig
 from rti_python.Codecs.BinaryCodec import BinaryCodec
+import time
 
 
 class AutoWavesManager:
@@ -33,6 +36,13 @@ class AutoWavesManager:
         self.rti_config = rti_config
 
         self.adcp_codec = AdcpCodec()
+
+        # Ensemble processing thread
+        self.ens_thread_alive = True
+        self.ens_queue = deque()
+        self.ens_thread_event = Event()
+        self.ens_thread = Thread(name="autowaves_mgr", target=self.ens_thread_run)
+        self.ens_thread.start()
 
         # Verify the selected bin is not disabled
         selected_bin_1 = -1
@@ -98,6 +108,10 @@ class AutoWavesManager:
         :return:
         """
         self.adcp_codec.shutdown()
+
+        # Shutdown the Ensemble thread
+        self.ens_thread_alive = False
+        self.ens_thread_event.set()
 
     def serial_data_rcv(self, sender, data):
         """
@@ -177,24 +191,44 @@ class AutoWavesManager:
         
         """
 
-        # Set the ensemble count for a burst
-        # A check is done if the data includes vertical beam data or not
-        if self.wave_force_codec.BufferCount == 0:
-            self.monitor_vm.increment_burst_value.emit(self.wave_force_codec.TotalEnsInBurst,
-                                                       self.setup_vm.numBurstEnsSpinBox.value())
-        else:
-            self.monitor_vm.increment_burst_value.emit(min(self.wave_force_codec.TotalEnsInBurst,
-                                                           self.wave_force_codec.BufferCount),
-                                                       self.setup_vm.numBurstEnsSpinBox.value())
+        # Add the data to the queue
+        self.ens_queue.append(ens)
 
-        # Add the data to the WaveForce Codec
-        self.wave_force_codec.add(ens)
+        # Wakeup the thread
+        self.ens_thread_event.set()
 
-        # Add the data to be averaged and displayed
-        self.avg_water_vm.add_ens(ens)
+    def ens_thread_run(self):
 
-        if ens and ens.IsEnsembleData:
-            self.logger.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
+        while self.ens_thread_alive:
+
+            # Wait until the thread is awoken
+            self.ens_thread_event.wait()
+
+            # Check if data is in the queue
+            while len(self.ens_queue) > 0:
+                # Get the data from the queue
+                ens = self.ens_queue.popleft()
+
+                # Set the ensemble count for a burst
+                # A check is done if the data includes vertical beam data or not
+                if self.wave_force_codec.BufferCount == 0:
+                    self.monitor_vm.increment_burst_value.emit(self.wave_force_codec.TotalEnsInBurst,
+                                                               self.setup_vm.numBurstEnsSpinBox.value())
+                else:
+                    self.monitor_vm.increment_burst_value.emit(min(self.wave_force_codec.TotalEnsInBurst,
+                                                                   self.wave_force_codec.BufferCount),
+                                                               self.setup_vm.numBurstEnsSpinBox.value())
+
+                # Add the data to the WaveForce Codec
+                self.wave_force_codec.add(ens)
+
+                # Add the data to be averaged and displayed
+                self.avg_water_vm.add_ens(ens)
+
+                # if ens and ens.IsEnsembleData:
+                #    self.logger.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
+
+                print(threading.current_thread().getName() + " ens arrived")
 
     def waves_rcv(self, sender, file_name):
         """
@@ -335,3 +369,6 @@ class AutoWavesManager:
             # Pass the ensemble
             if ens:
                 self.ensemble_rcv(None, ens)
+
+                # Playback is too fast, so slow it down
+                #time.sleep(0.1)
