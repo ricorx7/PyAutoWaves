@@ -173,11 +173,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @pyqtSlot()
     def display_wave_height_plot_view(self):
+        self.AvgWater.update_html()
+
         self.AvgWater.docked_wave_height.setFloating(True)
         self.AvgWater.docked_wave_height.show()
 
     @pyqtSlot()
     def display_east_vel_plot_view(self):
+        self.AvgWater.update_html()
+
         self.AvgWater.docked_earth_vel_east.setFloating(True)
         self.AvgWater.docked_earth_vel_east.show()
 

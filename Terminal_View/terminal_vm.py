@@ -151,7 +151,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
 
         # Start the read thread
         self.adcp_thread_alive = True
-        self.adcp_thread = threading.Thread(target=thread_worker, args=(self,))
+        self.adcp_thread = threading.Thread(name="Serial Terminal Thread", target=thread_worker, args=(self,))
         self.adcp_thread.start()
 
         # Disable buttons

@@ -228,8 +228,6 @@ class AutoWavesManager:
                 # if ens and ens.IsEnsembleData:
                 #    self.logger.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
 
-                print(threading.current_thread().getName() + " ens arrived")
-
     def waves_rcv(self, sender, file_name):
         """
         A waves file was generated for AutoWaves.
@@ -247,7 +245,7 @@ class AutoWavesManager:
         self.monitor_vm.refresh_file_tree_sig.emit()
 
         # Display the Average Water Column data
-        self.avg_water_vm.display_data()
+        #self.avg_water_vm.display_data()
 
     def update_waves_settings(self, sender, num_ens, file_path, lat, lon, bin1, bin2, bin3, ps_depth, height_source, corr_thresh, pressure_offset):
         """
@@ -313,9 +311,9 @@ class AutoWavesManager:
         # Read the file
         for file in files:
             # Run a thread to playback the file
-            thread = Thread(target=self.playback, args=(file,))
+            thread = Thread(name="Playback Autowaves Mgr Thread", target=self.playback, args=(file,))
             thread.start()
-            thread.join()
+            #thread.join()
 
     def playback(self, file_path):
         """

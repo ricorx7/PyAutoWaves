@@ -1,25 +1,33 @@
-from PyQt5.QtCore import QThread, QEvent, pyqtSignal
+from PyQt5.QtCore import QThread, QEvent, pyqtSignal, QMutex, QWaitCondition
 import collections
 from rti_python.Ensemble.Ensemble import Ensemble
 from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
 import logging
 import csv
 import datetime
+from threading import Event, Thread
 import os
 import pandas as pd
+import holoviews as hv
+from holoviews import opts, dim, Palette
+hv.extension('bokeh')
+import time
 
 
 class AverageWaterThread(QThread):
 
     increment_ens_sig = pyqtSignal(int)
     avg_taken_sig = pyqtSignal()
+    refresh_wave_height_web_view_sig = pyqtSignal()
+    refresh_earth_vel_web_view_sig = pyqtSignal()
 
     def __init__(self, rti_config):
         QThread.__init__(self)
 
         self.rti_config = rti_config
         self.thread_alive = True
-        self.event = QEvent()
+        self.event = Event()
+        self.mutex = QMutex()
 
         self.ens_queue = collections.deque()
 
@@ -28,11 +36,18 @@ class AverageWaterThread(QThread):
         self.csv_creation_date = datetime.datetime.now()
         self.CSV_FILE_EXT = ".csv"
 
+        self.wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight"
+        self.earth_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel"
+
         # Dictionary to hold all the average water column objects
         self.awc_dict = {}
 
         # Latest Average Water Column
         self.avg_counter = 0
+
+    def shutdown(self):
+        self.thread_alive = False
+        self.event.set()
 
     def add_ens(self, ens):
         """
@@ -53,6 +68,19 @@ class AverageWaterThread(QThread):
 
         # Wakeup the thread
         self.event.set()
+
+    def reset_average(self):
+        """
+        Reset the counters and reset all the
+        AverageWaterColumn in the dictionary.
+        :return:
+        """
+        # Reset the counter
+        self.avg_counter = 0
+
+        # Reset all the AWC in the dictionary
+        for awc_key in self.awc_dict.keys():
+            self.awc_dict[awc_key].reset()
 
     def run(self):
 
@@ -106,6 +134,21 @@ class AverageWaterThread(QThread):
                 # Emit a signal that an ensemble was added
                 self.increment_ens_sig.emit(self.avg_counter)
 
+    def gen_dict_key(self, ens):
+        """
+        Generate a dictionary key from the subsystem code and
+        subsystem configuration.
+        [ssCode_ssConfig]
+        :param ens: Ensemble to get the informaton
+        :return:
+        """
+        if ens.IsEnsembleData:
+            ss_code = ens.EnsembleData.SysFirmwareSubsystemCode
+            ss_config = ens.EnsembleData.SubsystemConfig
+            return str(str(ss_code) + "_" + str(ss_config))
+        else:
+            return None
+
     def average_and_display(self):
         """
         Average the data and display the data.
@@ -126,7 +169,9 @@ class AverageWaterThread(QThread):
         self.avg_taken_sig.emit()
 
         # Display data
-        self.display_data()
+        #self.display_data()
+        #thread_display = Thread(name="Avg Water Create HTML", target=self.display_data)
+        #thread_display.start()
 
     def reset_average(self):
         """
@@ -152,17 +197,99 @@ class AverageWaterThread(QThread):
         #avg_df.drop(['datetime'], axis=1, inplace=True)
 
         # Sort the data by date and time
-        avg_df = avg_df.sort_index()
+        #avg_df = avg_df.sort_index()
+        avg_df.sort_values(by=['datetime'], inplace=True)
 
         # Create a thread to plot the height
-        #self.plot_wave_height(avg_df)
+        self.plot_wave_height(avg_df)
 
         # Update the Earth Vel Plot East
-        #self.plot_earth_vel(avg_df,
-        #                    0,
-        #                    int(self.rti_config.config['Waves']['selected_bin_1']),
-        #                    int(self.rti_config.config['Waves']['selected_bin_2']),
-        #                    int(self.rti_config.config['Waves']['selected_bin_3']))
+        self.plot_earth_vel(avg_df,
+                            0,
+                            int(self.rti_config.config['Waves']['selected_bin_1']),
+                            int(self.rti_config.config['Waves']['selected_bin_2']),
+                            int(self.rti_config.config['Waves']['selected_bin_3']))
+
+    def plot_wave_height(self, avg_df):
+        """
+        Create a HTML plot of the wave height data from the
+        CSV file.
+        :param avg_df:  Dataframe of the csv file
+        :return:
+        """
+        # Sort the data for only the "XdcrDepth" data type
+        selected_avg_df = avg_df[avg_df.data_type.str.contains("XdcrDepth")]
+
+        # Remove all the columns except datetime and value
+        selected_avg_df = selected_avg_df[['datetime', 'value']]
+
+        # Set independent variables or index
+        kdims = [('datetime', 'Date and Time')]
+
+        # Set the dependent variables or measurements
+        vdims = [('value', 'Wave Height (m)')]
+
+        # Plot and select a bin
+        pressure_xdcr_height = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
+
+        # Save the plot to a file
+        hv.save(pressure_xdcr_height, self.wave_height_html_file, fmt='html')
+
+        # Refresh the web view
+        self.refresh_wave_height_web_view_sig.emit()
+
+    def plot_earth_vel(self, avg_df, beam_num, selected_bin_1, selected_bin_2, selected_bin_3):
+        """
+        Create a HTML plot of the Earth Velocity data from the
+        CSV file.
+        :param avg_df:  Dataframe of the csv file
+        :return:
+        """
+        # Sort the data for only the "EarthVel" data type
+        #selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel")) & (avg_df.bin_num == bin_num)]
+        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel"))]
+
+        # Remove all the columns except datetime and value
+        #selected_avg_df = selected_avg_df[['datetime', 'bin_num', 'beam_num', 'value']]
+
+        # Set independent variables or index
+        kdims = [('datetime', 'Date and Time'), ('bin_num', 'bin'), ('beam_num', 'beam'), 'ss_code', 'ss_config']
+
+        # Set the dependent variables or measurements
+        vdims = [('value', 'Water Velocity (m/s)')]
+
+        # Set the independent columns
+        # Create the Holoview dataset
+        ds = hv.Dataset(selected_avg_df, kdims, vdims)
+
+        # Plot and select a bin
+        #plot = ds.to(hv.Curve, 'datetime', 'value', groupby='bin_num') + hv.Table(ds)
+        #plot = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
+
+        bin_list = []
+        bin_list.append(selected_bin_1)
+        #bin_list.append(selected_bin_2)
+        #bin_list.append(selected_bin_3)
+        subset = ds.select(bin_num=bin_list, beam_num=0)
+        #plot = subset.to(hv.Curve, 'datetime', 'value').layout()
+        #plot.opts(opts.Curve(width=400, height=400, title='Earth Velocity Data'))
+
+        # Title
+        title = "Earth Velocity East - [Bin " + str(selected_bin_1) + "]"
+
+        # Create the plot options
+        plot = (subset.to(hv.Curve, 'datetime', 'value') + hv.Table(subset)).opts(
+            opts.Curve(width=400, height=400, title=title))
+
+        # Save the plot to a file
+        hv.save(plot, self.earth_vel_html_file, fmt='html')
+
+        # Save the plot to a file
+        # Include the group by
+        #hv.renderer('bokeh').save(plot, self.earth_vel_html_file, fmt='scrubber')
+
+        # Refresh the web view
+        self.refresh_earth_vel_web_view_sig.emit()
 
     def write_csv(self, awc_avg, awc_key):
         """
