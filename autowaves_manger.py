@@ -198,6 +198,10 @@ class AutoWavesManager:
         self.ens_thread_event.set()
 
     def ens_thread_run(self):
+        """"
+        Run a thread to handle the incoming ensemble data.
+        Pass the data to the Waveforce codec and average water.
+        """
 
         while self.ens_thread_alive:
 
@@ -313,7 +317,6 @@ class AutoWavesManager:
             # Run a thread to playback the file
             thread = Thread(name="Playback Autowaves Mgr Thread", target=self.playback, args=(file,))
             thread.start()
-            #thread.join()
 
     def playback(self, file_path):
         """
@@ -369,4 +372,4 @@ class AutoWavesManager:
                 self.ensemble_rcv(None, ens)
 
                 # Playback is too fast, so slow it down
-                #time.sleep(0.1)
+                #time.sleep(0.01)

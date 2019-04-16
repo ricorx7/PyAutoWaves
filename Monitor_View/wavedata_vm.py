@@ -53,10 +53,6 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         self.latLabel.setText("Latitude: " + str(mat_data['lat'][0][0]))
         self.lonLabel.setText("Longitude: " + str(mat_data['lon'][0][0]))
 
-        print(mat_data['wft'][0][0])
-        print(int(mat_data['wft'][0][0]))
-        print(mat_data['wft'][0][0]/100)
-
         st = int(mat_data['wft'][0][0])
         st += 1721059.0
         tfe = datetime.datetime.fromtimestamp(st/100).strftime('%Y-%m-%d %H:%M:%S')

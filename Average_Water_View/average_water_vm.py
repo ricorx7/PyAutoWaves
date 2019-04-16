@@ -9,7 +9,7 @@ from bokeh.transform import transform, linear_cmap
 from bokeh.palettes import Viridis3, Viridis256, Inferno256
 from bokeh.models import HoverTool
 from bokeh.models import Range1d
-import holoviews as hv
+#import holoviews as hv
 import streamz
 import streamz.dataframe
 import asyncio
@@ -203,26 +203,28 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
     def display_data(self):
 
-        # Read in the CSV data of the average data
-        avg_df = pd.read_csv(self.average_thread.csv_file_path)
+        if os.path.exists(self.average_thread.csv_file_path):
 
-        # Set the datetime column values as datetime values
-        avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
-        #avg_df = avg_df.set_index('datetime')
-        #avg_df.drop(['datetime'], axis=1, inplace=True)
+            # Read in the CSV data of the average data
+            avg_df = pd.read_csv(self.average_thread.csv_file_path)
 
-        # Sort the data by date and time
-        avg_df = avg_df.sort_index()
+            # Set the datetime column values as datetime values
+            avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
+            #avg_df = avg_df.set_index('datetime')
+            #avg_df.drop(['datetime'], axis=1, inplace=True)
 
-        # Create a thread to plot the height
-        self.plot_wave_height(avg_df)
+            # Sort the data by date and time
+            avg_df = avg_df.sort_index()
 
-        # Update the Earth Vel Plot East
-        self.plot_earth_vel(avg_df,
-                            0,
-                            int(self.rti_config.config['Waves']['selected_bin_1']),
-                            int(self.rti_config.config['Waves']['selected_bin_2']),
-                            int(self.rti_config.config['Waves']['selected_bin_3']))
+            # Create a thread to plot the height
+            self.plot_wave_height(avg_df)
+
+            # Update the Earth Vel Plot East
+            self.plot_earth_vel(avg_df,
+                                0,
+                                int(self.rti_config.config['Waves']['selected_bin_1']),
+                                int(self.rti_config.config['Waves']['selected_bin_2']),
+                                int(self.rti_config.config['Waves']['selected_bin_3']))
 
         #self.stream_plot_earth_vel(avg_df,
         #                    0,

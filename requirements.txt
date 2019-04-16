@@ -8,8 +8,8 @@ pandas
 pynmea2
 pycrc
 configparser
+pyviz_comms
 scipy
-pyviz
 holoviews
 matplotlib
 streamz

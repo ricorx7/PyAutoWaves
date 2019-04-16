@@ -126,11 +126,11 @@ class MainWindow(QtWidgets.QMainWindow):
         setupButton.triggered.connect(self.display_setup_view)
         setupMenu.addAction(setupButton)
 
-        avgWaterButton = QAction(QIcon('exit24.png'), 'Average Water', self)
-        avgWaterButton.setShortcut('Ctrl+A')
-        avgWaterButton.setStatusTip('Average the Water Column')
-        avgWaterButton.triggered.connect(self.display_avg_water_view)
-        avgMenu.addAction(avgWaterButton)
+        #avgWaterButton = QAction(QIcon('exit24.png'), 'Average Water', self)
+        #avgWaterButton.setShortcut('Ctrl+A')
+        #avgWaterButton.setStatusTip('Average the Water Column')
+        #avgWaterButton.triggered.connect(self.display_avg_water_view)
+        #avgMenu.addAction(avgWaterButton)
 
         waveHeightPlotButton = QAction(QIcon('exit24.png'), 'Water Height Plot', self)
         waveHeightPlotButton.setShortcut('Ctrl+H')

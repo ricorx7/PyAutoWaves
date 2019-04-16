@@ -138,7 +138,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
 
     def wave_file_selected(self, index):
         item = self.waveFileTreeView.selectedIndexes()[0]
-        logging.warning("Selected Index in wave data tree: " + item.model().filePath(index))
+        logging.debug("Selected Index in wave data tree: " + item.model().filePath(index))
         self.open_dialog(item.model().filePath(index))
 
     def open_dialog(self, file_path):

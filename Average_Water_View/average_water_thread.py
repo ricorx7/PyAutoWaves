@@ -63,9 +63,6 @@ class AverageWaterThread(QThread):
         # Add data to the queue
         self.ens_queue.append(ens)
 
-        # Emit a signal that an ensemble was added
-        #self.increment_ens_sig.emit(self.avg_counter)
-
         # Wakeup the thread
         self.event.set()
 
@@ -170,8 +167,8 @@ class AverageWaterThread(QThread):
 
         # Display data
         #self.display_data()
-        #thread_display = Thread(name="Avg Water Create HTML", target=self.display_data)
-        #thread_display.start()
+        thread_display = Thread(name="Avg Water Create HTML", target=self.display_data)
+        thread_display.start()
 
     def reset_average(self):
         """
@@ -193,11 +190,8 @@ class AverageWaterThread(QThread):
 
         # Set the datetime column values as datetime values
         avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
-        #avg_df = avg_df.set_index('datetime')
-        #avg_df.drop(['datetime'], axis=1, inplace=True)
 
         # Sort the data by date and time
-        #avg_df = avg_df.sort_index()
         avg_df.sort_values(by=['datetime'], inplace=True)
 
         # Create a thread to plot the height

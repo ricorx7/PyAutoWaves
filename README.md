@@ -33,11 +33,12 @@ pyuic5 dialog.ui > dialog.py
 pyuic5 -x file.ui > -o file.py
 ```
 
-# Create PredictR application
+# Create PyAutoWaves application
 OSX
 ```javascript
 pyinstaller Predictr_installer_OSX.spec
 venv\bin\pyinstaller.exe PyAutoWaves_Installer_WIN.spec
+.\venv\Scripts\pyinstaller.exe PyAutoWaves_Installer_WIN.spec
 ```
 
 Windows
