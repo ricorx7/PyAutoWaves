@@ -38,7 +38,6 @@ OSX
 ```javascript
 pyinstaller Predictr_installer_OSX.spec
 venv\bin\pyinstaller.exe PyAutoWaves_Installer_WIN.spec
-.\venv\Scripts\pyinstaller.exe PyAutoWaves_Installer_WIN.spec
 ```
 
 Windows

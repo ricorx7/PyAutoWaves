@@ -146,7 +146,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.docked_wave_height.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         self.docked_wave_height.setFeatures(
             QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
-        self.docked_wave_height.resize(1100, 400)
+        self.docked_wave_height.resize(1100, 500)
         self.docked_wave_height.setWidget(self.web_view_wave_height)
         self.docked_wave_height.setVisible(True)
         #self.addDockWidget(QtCore.Qt.AllDockWidgetAreas, self.docked_wave_height)
@@ -155,7 +155,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.docked_earth_vel_east.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         self.docked_earth_vel_east.setFeatures(
             QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
-        self.docked_earth_vel_east.resize(1100, 400)
+        self.docked_earth_vel_east.resize(1100, 500)
         self.docked_earth_vel_east.setWidget(self.web_view_earth_vel)
         self.docked_earth_vel_east.setVisible(True)
         #self.addDockWidget(QtCore.Qt.AllDockWidgetAreas, self.docked_wave_height)
@@ -171,10 +171,10 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.earth_vel_plot = hv.DynamicMap(hv.Curve, streams=[pipe])
 
     def shutdown(self):
-        #self.display_thread_alive = False
-        #self.display_eventt.set()
-        #self.display_thread.join()
-
+        """
+        Shutdown object.
+        :return:
+        """
         self.average_thread.shutdown()
 
     def add_ens(self, ens):
@@ -196,182 +196,6 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :return:
         """
         self.average_thread.reset_average()
-
-    def update_html(self):
-        update_thread = Thread(name="Avg Water VM - Update HTML", target=self.display_data)
-        update_thread.start()
-
-    def display_data(self):
-
-        if os.path.exists(self.average_thread.csv_file_path):
-
-            # Read in the CSV data of the average data
-            avg_df = pd.read_csv(self.average_thread.csv_file_path)
-
-            # Set the datetime column values as datetime values
-            avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
-            #avg_df = avg_df.set_index('datetime')
-            #avg_df.drop(['datetime'], axis=1, inplace=True)
-
-            # Sort the data by date and time
-            avg_df = avg_df.sort_index()
-
-            # Create a thread to plot the height
-            self.plot_wave_height(avg_df)
-
-            # Update the Earth Vel Plot East
-            self.plot_earth_vel(avg_df,
-                                0,
-                                int(self.rti_config.config['Waves']['selected_bin_1']),
-                                int(self.rti_config.config['Waves']['selected_bin_2']),
-                                int(self.rti_config.config['Waves']['selected_bin_3']))
-
-        #self.stream_plot_earth_vel(avg_df,
-        #                    0,
-        #                    int(self.rti_config.config['Waves']['selected_bin_1']),
-        #                    int(self.rti_config.config['Waves']['selected_bin_2']),
-        #                    int(self.rti_config.config['Waves']['selected_bin_3']))
-
-        """
-        # Update the Earth Vel Plot North
-        self.plot_earth_vel(avg_df,
-                            1,
-                            int(self.rti_config.config['Waves']['selected_bin_1']),
-                            int(self.rti_config.config['Waves']['selected_bin_2']),
-                            int(self.rti_config.config['Waves']['selected_bin_3']))
-        
-        # Update the Earth Vel Plot Vertical
-        self.plot_earth_vel(avg_df,
-                            2,
-                            int(self.rti_config.config['Waves']['selected_bin_1']),
-                            int(self.rti_config.config['Waves']['selected_bin_2']),
-                            int(self.rti_config.config['Waves']['selected_bin_3']))
-        """
-
-
-        #selected_avg_df = avg_df[avg_df.data_type.str.contains("Pressure") | avg_df.data_type.str.contains("XdcrDepth")]
-
-        # Set the dependent
-        #vdims = [('value', 'Values')]
-
-        # Set the independent columns
-        # Create the Holoview dataset
-        #ds = hv.Dataset(selected_avg_df, ['datetime', 'data_type', 'ss_code', 'ss_config', 'bin_num', 'beam_num'], vdims)
-        #print(ds)
-
-        # Plot and select a bin
-        #pressure_xdcr_height = ds.to(hv.Curve, 'datetime', 'value', ['data_type']) + hv.Table(ds)
-        #pressure_xdcr_height = ds.to(hv.Curve, 'datetime', 'value')
-
-
-        #print(curves)
-
-        # Set the options for the plot
-        #pressure_xdcr_height.opts(
-        #    opts.Curve(width=600, height=250, framewise=True, tools=['hover']))
-
-
-        # Save to HTML
-        #hv.save(pressure_xdcr_height, self.wave_height_html_file, fmt='html')
-
-        # Plot and list the bins
-        #subset = macro.select(bin_num=[1, 3, 5])
-        #curves = subset.to(hv.Curve, 'datetime', 'value').layout()
-
-
-        # Render the plot
-        #renderer = hv.renderer('bokeh')
-
-        # Pressure and Wave Height Plot
-        #renderer.save(pressure_xdcr_height, wave_height_html_file)
-        #plot = renderer.get_plot(curves).state
-
-        #save(pressure_xdcr_height, wave_height_html_file)
-        # or
-        #output_file(html_file)
-        #show(plot)
-        #show(pressure_xdcr_height)
-
-    def plot_wave_height(self, avg_df):
-        """
-        Create a HTML plot of the wave height data from the
-        CSV file.
-        :param avg_df:  Dataframe of the csv file
-        :return:
-        """
-        # Sort the data for only the "XdcrDepth" data type
-        selected_avg_df = avg_df[avg_df.data_type.str.contains("XdcrDepth")]
-
-        # Remove all the columns except datetime and value
-        selected_avg_df = selected_avg_df[['datetime', 'value']]
-
-        # Set independent variables or index
-        kdims = [('datetime', 'Date and Time')]
-
-        # Set the dependent variables or measurements
-        vdims = [('value', 'Wave Height (m)')]
-
-        # Plot and select a bin
-        pressure_xdcr_height = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
-
-        # Save the plot to a file
-        hv.save(pressure_xdcr_height, self.wave_height_html_file, fmt='html')
-
-        # Refresh the web view
-        self.refresh_wave_height_web_view_sig.emit()
-
-    def plot_earth_vel(self, avg_df, beam_num, selected_bin_1, selected_bin_2, selected_bin_3):
-        """
-        Create a HTML plot of the Earth Velocity data from the
-        CSV file.
-        :param avg_df:  Dataframe of the csv file
-        :return:
-        """
-        # Sort the data for only the "EarthVel" data type
-        #selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel")) & (avg_df.bin_num == bin_num)]
-        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel"))]
-
-        # Remove all the columns except datetime and value
-        #selected_avg_df = selected_avg_df[['datetime', 'bin_num', 'beam_num', 'value']]
-
-        # Set independent variables or index
-        kdims = [('datetime', 'Date and Time'), ('bin_num', 'bin'), 'ss_code', 'ss_config']
-
-        # Set the dependent variables or measurements
-        vdims = [('value', 'Water Velocity (m/s)')]
-
-        # Set the independent columns
-        # Create the Holoview dataset
-        ds = hv.Dataset(selected_avg_df, kdims, vdims)
-
-        # Plot and select a bin
-        #plot = ds.to(hv.Curve, 'datetime', 'value', groupby='bin_num') + hv.Table(ds)
-        #plot = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
-
-        bin_list = []
-        bin_list.append(selected_bin_1)
-        #bin_list.append(selected_bin_2)
-        #bin_list.append(selected_bin_3)
-        subset = ds.select(bin_num=bin_list, beam_num=0)
-        #plot = subset.to(hv.Curve, 'datetime', 'value').layout()
-        #plot.opts(opts.Curve(width=400, height=400, title='Earth Velocity Data'))
-
-        # Title
-        title = "Earth Velocity East - [Bin " + str(selected_bin_1) + "]"
-
-        # Create the plot options
-        plot = (subset.to(hv.Curve, 'datetime', 'value') + hv.Table(subset)).opts(
-            opts.Curve(width=400, height=400, title=title))
-
-        # Save the plot to a file
-        hv.save(plot, self.earth_vel_html_file, fmt='html')
-
-        # Save the plot to a file
-        # Include the group by
-        #hv.renderer('bokeh').save(plot, self.earth_vel_html_file, fmt='scrubber')
-
-        # Refresh the web view
-        self.refresh_earth_vel_web_view_sig.emit()
 
     def setup_bokeh_server(self, doc):
         """
