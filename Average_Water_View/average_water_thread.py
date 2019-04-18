@@ -197,9 +197,8 @@ class AverageWaterThread(QThread):
         # Create a thread to plot the height
         self.plot_wave_height(avg_df)
 
-        # Update the Earth Vel Plot East
+        # Update the Earth Vel Plot
         self.plot_earth_vel(avg_df,
-                            0,
                             int(self.rti_config.config['Waves']['selected_bin_1']),
                             int(self.rti_config.config['Waves']['selected_bin_2']),
                             int(self.rti_config.config['Waves']['selected_bin_3']))
@@ -232,7 +231,7 @@ class AverageWaterThread(QThread):
         # Refresh the web view
         self.refresh_wave_height_web_view_sig.emit()
 
-    def plot_earth_vel(self, avg_df, beam_num, selected_bin_1, selected_bin_2, selected_bin_3):
+    def get_plot_earth_vel(self, avg_df, beam_num, selected_bin, label):
         """
         Create a HTML plot of the Earth Velocity data from the
         CSV file.
@@ -247,7 +246,7 @@ class AverageWaterThread(QThread):
         #selected_avg_df = selected_avg_df[['datetime', 'bin_num', 'beam_num', 'value']]
 
         # Set independent variables or index
-        kdims = [('datetime', 'Date and Time'), ('bin_num', 'bin'), ('beam_num', 'beam'), 'ss_code', 'ss_config']
+        kdims = [('datetime', 'Date'), ('bin_num', 'bin'), ('beam_num', 'beam'), 'ss_code', 'ss_config']
 
         # Set the dependent variables or measurements
         vdims = [('value', 'Water Velocity (m/s)')]
@@ -256,27 +255,41 @@ class AverageWaterThread(QThread):
         # Create the Holoview dataset
         ds = hv.Dataset(selected_avg_df, kdims, vdims)
 
-        # Plot and select a bin
-        #plot = ds.to(hv.Curve, 'datetime', 'value', groupby='bin_num') + hv.Table(ds)
-        #plot = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
-
         bin_list = []
-        bin_list.append(selected_bin_1)
-        #bin_list.append(selected_bin_2)
-        #bin_list.append(selected_bin_3)
-        subset = ds.select(bin_num=bin_list, beam_num=0)
-        #plot = subset.to(hv.Curve, 'datetime', 'value').layout()
-        #plot.opts(opts.Curve(width=400, height=400, title='Earth Velocity Data'))
-
-        # Title
-        title = "Earth Velocity East - [Bin " + str(selected_bin_1) + "]"
+        bin_list.append(selected_bin)
+        subset = ds.select(bin_num=bin_list, beam_num=beam_num)
 
         # Create the plot options
-        plot = (subset.to(hv.Curve, 'datetime', 'value') + hv.Table(subset)).opts(
-            opts.Curve(width=400, height=400, title=title))
+        plot = hv.Curve(subset, ('datetime', 'Date'), ('value', 'Velocity (m/s)'), label=label)
+
+        return plot
+
+    def plot_earth_vel(self, avg_df, selected_bin_1, selected_bin_2, selected_bin_3):
+        """
+        Create a HTML plot of the Earth Velocity data from the
+        CSV file.
+        :param avg_df:  Dataframe of the csv file
+        :param selected_bin_1: Selected Bin 1.
+        :param selected_bin_2: Selected Bin 2.
+        :param selected_bin_3: Selected Bin 3.
+        :return:
+        """
+        # Title
+        title = "Earth Velocity East"
+
+        east_bin_1 = self.get_plot_earth_vel(avg_df, 0, selected_bin_1, 'East Bin ' + str(selected_bin_1))
+        east_bin_2 = self.get_plot_earth_vel(avg_df, 0, selected_bin_2, 'East Bin ' + str(selected_bin_2))
+        east_bin_3 = self.get_plot_earth_vel(avg_df, 0, selected_bin_3, 'East Bin ' + str(selected_bin_3))
+
+        north_bin_1 = self.get_plot_earth_vel(avg_df, 1, selected_bin_1, 'North Bin ' + str(selected_bin_1))
+        north_bin_2 = self.get_plot_earth_vel(avg_df, 1, selected_bin_2, 'North Bin ' + str(selected_bin_2))
+        north_bin_3 = self.get_plot_earth_vel(avg_df, 1, selected_bin_3, 'North Bin ' + str(selected_bin_3))
+
+        plots = (east_bin_1 * east_bin_2 * east_bin_3 * north_bin_1 * north_bin_2 * north_bin_3).relabel("Earth Velocity")
+        plots.opts(legend_position='top_left')
 
         # Save the plot to a file
-        hv.save(plot, self.earth_vel_html_file, fmt='html')
+        hv.save(plots, self.earth_vel_html_file, fmt='html')
 
         # Save the plot to a file
         # Include the group by
