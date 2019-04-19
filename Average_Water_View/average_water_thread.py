@@ -12,6 +12,7 @@ import holoviews as hv
 from holoviews import opts, dim, Palette
 hv.extension('bokeh')
 import time
+import matplotlib.pyplot as plt
 
 
 class AverageWaterThread(QThread):
@@ -195,13 +196,18 @@ class AverageWaterThread(QThread):
         avg_df.sort_values(by=['datetime'], inplace=True)
 
         # Create a thread to plot the height
-        self.plot_wave_height(avg_df)
+        #self.plot_wave_height(avg_df)
 
         # Update the Earth Vel Plot
-        self.plot_earth_vel(avg_df,
-                            int(self.rti_config.config['Waves']['selected_bin_1']),
-                            int(self.rti_config.config['Waves']['selected_bin_2']),
-                            int(self.rti_config.config['Waves']['selected_bin_3']))
+        #self.plot_earth_vel(avg_df,
+        #                    int(self.rti_config.config['Waves']['selected_bin_1']),
+        #                    int(self.rti_config.config['Waves']['selected_bin_2']),
+        #                    int(self.rti_config.config['Waves']['selected_bin_3']))
+
+        #self.plot_earth_vel_mpl(avg_df,
+        #                    int(self.rti_config.config['Waves']['selected_bin_1']),
+        #                    int(self.rti_config.config['Waves']['selected_bin_2']),
+        #                    int(self.rti_config.config['Waves']['selected_bin_3']))
 
     def plot_wave_height(self, avg_df):
         """
@@ -297,6 +303,13 @@ class AverageWaterThread(QThread):
 
         # Refresh the web view
         self.refresh_earth_vel_web_view_sig.emit()
+
+    def plot_earth_vel_mpl(self, avg_df, selected_bin_1, selected_bin_2, selected_bin_3):
+        ax = plt.gca()
+        avg_df.plot(kind="line", x='datetime', y='value', ax=ax)
+
+        #plt.show()
+        plt.savefig(self.earth_vel_html_file + ".png")
 
     def write_csv(self, awc_avg, awc_key):
         """
