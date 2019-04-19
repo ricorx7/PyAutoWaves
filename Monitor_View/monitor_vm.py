@@ -79,9 +79,10 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         :param max_count: Maximum ensembles in the wave burst
         :return:
         """
-        percentage = (ens_count / max_count) * 100
-        self.burstEnsLabel.setText(str(ens_count))
-        self.burstProgressBar.setValue(percentage)
+        if ens_count % 10 == 0 or ens_count >= max_count - 5:
+            percentage = (ens_count / max_count) * 100
+            self.burstEnsLabel.setText(str(ens_count))
+            self.burstProgressBar.setValue(percentage)
 
     @pyqtSlot()
     def reset_burst_progress(self):
@@ -103,9 +104,10 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         :param max_count: Maximum ensembles in the average.
         :return:
         """
-        percentage = (count / max_count) * 100
-        self.avgEnsLabel.setText(str(count))
-        self.avgProgressBar.setValue(percentage)
+        if count % 10 == 0 or count >= max_count-5:
+            percentage = (count / max_count) * 100
+            self.avgEnsLabel.setText(str(count))
+            self.avgProgressBar.setValue(percentage)
 
     def reset_avg_progress(self):
         """

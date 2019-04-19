@@ -37,6 +37,8 @@ class AutoWavesManager:
 
         self.adcp_codec = AdcpCodec()
 
+        self.avg_ens_count = 0
+
         # Ensemble processing thread
         self.ens_thread_alive = True
         self.ens_queue = deque()
@@ -151,6 +153,9 @@ class AutoWavesManager:
         """
         self.monitor_vm.refresh_file_tree_sig.emit()
 
+        # Clear the counter
+        self.avg_ens_count = 0
+
     def increment_avg_water_column(self, val):
         """
         Increment the average count.  The value is the
@@ -213,6 +218,12 @@ class AutoWavesManager:
                 # Get the data from the queue
                 ens = self.ens_queue.popleft()
 
+                # Add the data to the WaveForce Codec
+                self.wave_force_codec.add(ens)
+
+                # Add the data to be averaged and displayed
+                self.avg_water_vm.add_ens(ens)
+
                 # Set the ensemble count for a burst
                 # A check is done if the data includes vertical beam data or not
                 if self.wave_force_codec.VertEnsCount == 0:
@@ -222,12 +233,9 @@ class AutoWavesManager:
                     self.monitor_vm.increment_burst_value.emit(min(self.wave_force_codec.TotalEnsInBurst,
                                                                    self.wave_force_codec.VertEnsCount),
                                                                self.setup_vm.numBurstEnsSpinBox.value())
-
-                # Add the data to the WaveForce Codec
-                self.wave_force_codec.add(ens)
-
-                # Add the data to be averaged and displayed
-                self.avg_water_vm.add_ens(ens)
+                # Increment Average Water Column monitor
+                self.avg_ens_count += 1
+                self.increment_avg_water_column(self.avg_ens_count)
 
                 # if ens and ens.IsEnsembleData:
                 #    self.logger.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
@@ -312,11 +320,14 @@ class AutoWavesManager:
 
             self.logger.debug("Loading files: " + str(files))
 
+        # Run a thread to playback the file
+        thread = Thread(name="Playback Autowaves Mgr Thread", target=self.playback_thread, args=(files,))
+        thread.start()
+
+    def playback_thread(self, files):
         # Read the file
         for file in files:
-            # Run a thread to playback the file
-            thread = Thread(name="Playback Autowaves Mgr Thread", target=self.playback, args=(file,))
-            thread.start()
+            self.playback(file)
 
     def playback(self, file_path):
         """

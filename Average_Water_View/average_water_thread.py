@@ -6,6 +6,7 @@ import logging
 import csv
 import datetime
 from threading import Event, Thread
+import multiprocessing
 import os
 import pandas as pd
 import holoviews as hv
@@ -130,7 +131,7 @@ class AverageWaterThread(QThread):
                 self.awc_dict[key].add_ens(ens)
 
                 # Emit a signal that an ensemble was added
-                self.increment_ens_sig.emit(self.avg_counter)
+                #self.increment_ens_sig.emit(self.avg_counter)
 
     def gen_dict_key(self, ens):
         """
@@ -170,6 +171,8 @@ class AverageWaterThread(QThread):
         #self.display_data()
         thread_display = Thread(name="Avg Water Create HTML", target=self.display_data)
         thread_display.start()
+        #p = multiprocessing.Process(target=self.display_data, name="Avg Water Create HTML")
+        #p.start()
 
     def reset_average(self):
         """
@@ -196,13 +199,13 @@ class AverageWaterThread(QThread):
         avg_df.sort_values(by=['datetime'], inplace=True)
 
         # Create a thread to plot the height
-        #self.plot_wave_height(avg_df)
+        self.plot_wave_height(avg_df)
 
         # Update the Earth Vel Plot
-        #self.plot_earth_vel(avg_df,
-        #                    int(self.rti_config.config['Waves']['selected_bin_1']),
-        #                    int(self.rti_config.config['Waves']['selected_bin_2']),
-        #                    int(self.rti_config.config['Waves']['selected_bin_3']))
+        self.plot_earth_vel(avg_df,
+                            int(self.rti_config.config['Waves']['selected_bin_1']),
+                            int(self.rti_config.config['Waves']['selected_bin_2']),
+                            int(self.rti_config.config['Waves']['selected_bin_3']))
 
         #self.plot_earth_vel_mpl(avg_df,
         #                    int(self.rti_config.config['Waves']['selected_bin_1']),
