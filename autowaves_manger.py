@@ -215,12 +215,12 @@ class AutoWavesManager:
 
                 # Set the ensemble count for a burst
                 # A check is done if the data includes vertical beam data or not
-                if self.wave_force_codec.BufferCount == 0:
+                if self.wave_force_codec.VertEnsCount == 0:
                     self.monitor_vm.increment_burst_value.emit(self.wave_force_codec.TotalEnsInBurst,
                                                                self.setup_vm.numBurstEnsSpinBox.value())
                 else:
                     self.monitor_vm.increment_burst_value.emit(min(self.wave_force_codec.TotalEnsInBurst,
-                                                                   self.wave_force_codec.BufferCount),
+                                                                   self.wave_force_codec.VertEnsCount),
                                                                self.setup_vm.numBurstEnsSpinBox.value())
 
                 # Add the data to the WaveForce Codec

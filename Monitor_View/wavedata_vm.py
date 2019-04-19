@@ -8,6 +8,8 @@ from PyQt5.QtWidgets import QWidget, QTableWidgetItem, QMessageBox
 from Monitor_View import wavedata_view
 import scipy.io as sio
 import datetime
+from rti_python.Codecs.WaveForceCodec import WaveForceCodec
+import logging
 
 
 class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
@@ -42,20 +44,22 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
             mat_data = sio.loadmat(self.file_path)
 
             self.txtLabel.setText(str(mat_data['txt'][0]))
-        except:
+        except Exception as e:
             QMessageBox.question(self,
                                  'Error Opening MATLAB file',
                                  "Only MATLAB Waves file can be opened and displayed.\nAll other files cannot be viewed.",
                                  QMessageBox.Ok)
+
+            logging.warning("Error Openning MATLAB file. " + str(e))
+
             return
 
 
         self.latLabel.setText("Latitude: " + str(mat_data['lat'][0][0]))
         self.lonLabel.setText("Longitude: " + str(mat_data['lon'][0][0]))
 
-        st = int(mat_data['wft'][0][0])
-        st += 1721059.0
-        tfe = datetime.datetime.fromtimestamp(st/100).strftime('%Y-%m-%d %H:%M:%S')
+        tfe_dt = WaveForceCodec.matlab_to_python_datetime(float(mat_data['wft'][0][0]))
+        tfe = tfe_dt.strftime('%Y-%m-%d %H:%M:%S')
         self.timeFirstEnsembleLabel.setText("Time of First Ensemble: " + tfe)
         self.timeBetweenEnsembleLabel.setText("Time Between Ensembles (sec): " + str(round(mat_data['wdt'][0][0], 2)))
         self.pressureSensorHeightLabel.setText("Pressure Sensor Height (m): " + str(mat_data['whp'][0][0]))
