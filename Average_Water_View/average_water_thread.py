@@ -15,6 +15,7 @@ hv.extension('bokeh')
 import time
 import matplotlib.pyplot as plt
 from . import plot_data_thread, plot_earth_vel_east_thread, plot_earth_vel_north_thread
+import ntpath
 
 
 class AverageWaterThread(QThread):
@@ -22,7 +23,10 @@ class AverageWaterThread(QThread):
     increment_ens_sig = pyqtSignal(int)
     avg_taken_sig = pyqtSignal()
     refresh_wave_height_web_view_sig = pyqtSignal()
-    refresh_earth_vel_web_view_sig = pyqtSignal()
+    refresh_earth_east_vel_web_view_sig = pyqtSignal()
+    refresh_earth_north_vel_web_view_sig = pyqtSignal()
+    refresh_mag_web_view_sig = pyqtSignal()
+    refresh_dir_web_view_sig = pyqtSignal()
 
     def __init__(self, rti_config):
         QThread.__init__(self)
@@ -41,8 +45,11 @@ class AverageWaterThread(QThread):
 
         self.output_dir = self.rti_config.config['AWC']['output_dir'] + os.sep
 
-        self.wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight"
-        self.earth_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel"
+        self.wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight.html"
+        self.earth_east_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel_East.html"
+        self.earth_north_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel_North.html"
+        self.mag_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Magnitude.html"
+        self.dir_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Direction.html"
 
         # Dictionary to hold all the average water column objects
         self.awc_dict = {}
@@ -53,15 +60,50 @@ class AverageWaterThread(QThread):
         self.df_columns = ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "blank", "bin_size", "value"]
         self.awc_df = pd.DataFrame()
 
+        self.thread_wave_height_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_WAVE_HEIGHT, self.wave_height_html_file)
+        self.thread_wave_height_display.refresh_web_view_sig.connect(self.update_wave_height_plot)
+        self.thread_wave_height_display.start()
+
+        self.thread_earth_east_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_EARTH_EAST, self.earth_east_vel_html_file)
+        self.thread_earth_east_display.refresh_web_view_sig.connect(self.update_earth_east_vel_plot)
+        self.thread_earth_east_display.start()
+
+        self.thread_earth_north_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_EARTH_NORTH, self.earth_north_vel_html_file)
+        self.thread_earth_north_display.refresh_web_view_sig.connect(self.update_earth_north_vel_plot)
+        self.thread_earth_north_display.start()
+
+        self.thread_mag_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_MAG, self.mag_html_file)
+        self.thread_mag_display.refresh_web_view_sig.connect(self.update_mag_plot)
+        self.thread_mag_display.start()
+
+        self.thread_dir_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_DIR, self.dir_html_file)
+        self.thread_dir_display.refresh_web_view_sig.connect(self.update_dir_plot)
+        self.thread_dir_display.start()
+
     def shutdown(self):
         self.thread_alive = False
         self.event.set()
 
-    def update_earth_vel_plot(self):
-        self.refresh_earth_vel_web_view_sig.emit()
+        self.thread_wave_height_display.shutdown()
+        self.thread_earth_east_display.shutdown()
+        self.thread_earth_north_display.shutdown()
+        self.thread_mag_display.shutdown()
+        self.thread_dir_display.shutdown()
+
+    def update_earth_east_vel_plot(self):
+        self.refresh_earth_east_vel_web_view_sig.emit()
+
+    def update_earth_north_vel_plot(self):
+        self.refresh_earth_north_vel_web_view_sig.emit()
 
     def update_wave_height_plot(self):
         self.refresh_wave_height_web_view_sig.emit()
+
+    def update_mag_plot(self):
+        self.refresh_mag_web_view_sig.emit()
+
+    def update_dir_plot(self):
+        self.refresh_dir_web_view_sig.emit()
 
     def add_ens(self, ens):
         """
@@ -189,37 +231,85 @@ class AverageWaterThread(QThread):
         # so file list can be updated
         self.avg_taken_sig.emit()
 
-        # Read in the CSV data of the average data
-        #avg_df = pd.read_csv(self.csv_file_path)
-
-        # Set the datetime column values as datetime values
-        #avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
-
         # Sort the data by date and time
-        #avg_df.sort_values(by=['datetime'], inplace=True)
         self.awc_df.sort_values(by=['datetime'], inplace=True)
 
+        # Display the data
+        self.display_data(self.awc_df)
+
+    def display_data(self, awc_df):
+        """
+        Display the data given the dataframe.
+        This will pass all the data to the plot threads.
+        :param awc_df: Dataframe to plot.
+        :return:
+        """
         # Display data
-        #self.display_data()
-        #thread_display = Thread(name="Avg Water Create HTML", target=self.display_data)
-        #thread_display.start()
-        #p = multiprocessing.Process(target=self.display_data, name="Avg Water Create HTML")
-        #p.start()
+        # Add the data to the plot threads
+        self.thread_wave_height_display.add(self.awc_df)
+        self.thread_earth_east_display.add(self.awc_df)
+        self.thread_earth_north_display.add(self.awc_df)
+        self.thread_mag_display.add(self.awc_df)
+        self.thread_dir_display.add(self.awc_df)
 
-        thread_display = plot_data_thread.PlotDataThread(self.awc_df, self.rti_config)
-        thread_display.refresh_wave_height_web_view_sig.connect(self.update_wave_height_plot)
-        thread_display.refresh_earth_vel_web_view_sig.connect(self.update_earth_vel_plot)
-        thread_display.start()
+    def display_data_from_file(self, csv_file_path):
+        """
+        Generate plots from the CSV file selected.
+        :param csv_file_path: CSV file to generate the plots.
+        :return:
+        """
+        # Read in the CSV data of the average data
+        avg_df = pd.read_csv(csv_file_path)
 
-        #thread_plot_earth_east = plot_earth_vel_east_thread.PlotEarthVelEastThread(self.awc_df, self.rti_config)
-        #thread_plot_earth_east.refresh_wave_height_web_view_sig.connect(self.update_wave_height_plot)
-        #thread_plot_earth_east.refresh_earth_vel_web_view_sig.connect(self.update_earth_vel_plot)
-        #thread_plot_earth_east.start()
+        # Set the datetime column values as datetime values
+        avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
 
-        #thread_plot_earth_north = plot_earth_vel_north_thread.PlotEarthVelNorthThread(self.awc_df, self.rti_config)
-        #thread_plot_earth_north.refresh_wave_height_web_view_sig.connect(self.update_wave_height_plot)
-        #thread_plot_earth_north.refresh_earth_vel_web_view_sig.connect(self.update_earth_vel_plot)
-        #hread_plot_earth_north.start()
+        # Sort the data by date and time
+        avg_df.sort_values(by=['datetime'], inplace=True)
+
+        # Get the CSV file name without the extension and root dir
+        csv_file_name = self.get_file_name(csv_file_path)
+
+        wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight" + csv_file_name + ".html"
+        earth_east_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel_East" + csv_file_name + ".html"
+        earth_north_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel_North" + csv_file_name + ".html"
+        mag_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Magnitude" + csv_file_name + ".html"
+        dir_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Direction" + csv_file_name + ".html"
+
+        # Display the data
+        thread_wave_height_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_WAVE_HEIGHT, wave_height_html_file)
+        thread_wave_height_display.start()
+
+        thread_earth_east_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_EARTH_EAST, earth_east_vel_html_file)
+        thread_earth_east_display.start()
+
+        thread_earth_north_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_EARTH_NORTH, earth_north_vel_html_file)
+        thread_earth_north_display.start()
+
+        thread_mag_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_MAG, mag_html_file)
+        thread_mag_display.start()
+
+        thread_dir_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_DIR, dir_html_file)
+        thread_dir_display.start()
+
+        # Add the data to the plot threads
+        thread_wave_height_display.add(avg_df)
+        thread_earth_east_display.add(avg_df)
+        thread_earth_north_display.add(avg_df)
+        thread_mag_display.add(avg_df)
+        thread_dir_display.add(avg_df)
+
+    def get_file_name(self, path):
+        """
+        Get just the file name.
+        Then remove the file extension.
+        :param path: File path.
+        :return: File name without path or extension
+        """
+        head, tail = ntpath.split(path)
+        file_name_w_ext = tail or ntpath.basename(head)
+        return os.path.splitext(file_name_w_ext)[0]
+
 
     def reset_average(self):
         """

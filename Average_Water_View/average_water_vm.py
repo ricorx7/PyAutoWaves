@@ -74,39 +74,32 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.rti_config = rti_config
         self.rti_config.init_average_waves_config()
 
-        self.wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight"
-        self.earth_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel"
-
         self.average_thread = AverageWaterThread(self.rti_config)
         self.average_thread.setObjectName("Average Water Column Thread")
         self.average_thread.increment_ens_sig.connect(self.increment_ens)
         self.average_thread.avg_taken_sig.connect(self.avg_taken)
         self.average_thread.refresh_wave_height_web_view_sig.connect(self.refresh_wave_height_web_view)
-        self.average_thread.refresh_earth_vel_web_view_sig.connect(self.refresh_earth_vel_web_view)
+        self.average_thread.refresh_earth_east_vel_web_view_sig.connect(self.refresh_earth_east_vel_web_view)
+        self.average_thread.refresh_earth_north_vel_web_view_sig.connect(self.refresh_earth_north_vel_web_view)
+        self.average_thread.refresh_mag_web_view_sig.connect(self.refresh_mag_web_view)
+        self.average_thread.refresh_dir_web_view_sig.connect(self.refresh_dir_web_view)
         self.average_thread.start()
 
+        self.wave_height_html_file = self.average_thread.wave_height_html_file
+        self.earth_east_vel_html_file = self.average_thread.earth_east_vel_html_file
+        self.earth_north_vel_html_file = self.average_thread.earth_north_vel_html_file
+        self.mag_html_file = self.average_thread.mag_html_file
+        self.dir_html_file = self.average_thread.dir_html_file
 
         # Web Views
         self.web_view_wave_height = QWebEngineView()
-        self.web_view_earth_vel = QWebEngineView()
-
-        # Setup signal
-        #self.add_tab_sig.connect(self.add_tab)
-        #self.populate_table_sig.connect(self.populate_table)
-        #self.reset_avg_sig.connect(self.reset_average)
-        #self.refresh_wave_height_web_view_sig.connect(self.refresh_wave_height_web_view)
-        #self.refresh_earth_vel_web_view_sig.connect(self.refresh_earth_vel_web_view)
-
-        # Dictionary to hold all the average water column objects
-        #self.awc_dict = {}
-        #self.tab_dict = {}
+        self.web_view_earth_east_vel = QWebEngineView()
+        self.web_view_earth_north_vel = QWebEngineView()
+        self.web_view_mag = QWebEngineView()
+        self.web_view_dir = QWebEngineView()
 
         # Latest Average Water Column
         self.avg_counter = 0
-
-        self.earth_vel_east_stream = None
-        self.earth_vel_east_dmap = None
-        self.earth_vel_east_plot = None
 
         #self.html = None
         #self.web_view = QWebEngineView()
@@ -117,59 +110,57 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         #self.add_tab("Wave Height")
 
-        self.init_display()
-
-    #def _callable(self, data):
-    #    self.html = data
-
-    #def _loadFinished(self, result):
-    #    self.web_view.page().toHtml(self._callable)
-
-    def increment_ens(self, ens_count):
-        self.increment_ens_sig.emit(ens_count)
-
-    def avg_taken(self):
-        self.avg_taken_sig.emit()
-
-    def init_display(self):
-        #self.tableWidget.setToolTip("Average Water Column")
-        #self.horizontalLayout.addWidget(self.web_view)
-        self.tabWidget.clear()
         self.setWindowTitle("Average Water Column")
 
-        self.web_view_wave_height.load(QUrl().fromLocalFile(self.wave_height_html_file + ".html"))
-        self.add_tab_sig.emit("Wave Height", self.web_view_wave_height)
+        self.web_view_wave_height.load(QUrl().fromLocalFile(self.wave_height_html_file))
+        #self.add_tab_sig.emit("Wave Height", self.web_view_wave_height)
 
-        self.web_view_earth_vel.load(QUrl().fromLocalFile(self.earth_vel_html_file + ".html"))
-        self.add_tab_sig.emit("Earth Velocity", self.web_view_earth_vel)
+        self.web_view_earth_east_vel.load(QUrl().fromLocalFile(self.earth_east_vel_html_file))
+        #self.add_tab_sig.emit("Earth Velocity", self.web_view_earth_east_vel)
+
+        self.web_view_earth_north_vel.load(QUrl().fromLocalFile(self.earth_north_vel_html_file))
+        #self.add_tab_sig.emit("Earth Velocity", self.web_view_earth_north_vel)
+
+        self.web_view_mag.load(QUrl().fromLocalFile(self.mag_html_file))
+        self.web_view_dir.load(QUrl().fromLocalFile(self.dir_html_file))
 
         self.docked_wave_height = QtWidgets.QDockWidget("Wave Height", self)
         self.docked_wave_height.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         self.docked_wave_height.setFeatures(
             QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
-        self.docked_wave_height.resize(1100, 500)
+        self.docked_wave_height.resize(1100, 380)
         self.docked_wave_height.setWidget(self.web_view_wave_height)
         self.docked_wave_height.setVisible(True)
         #self.addDockWidget(QtCore.Qt.AllDockWidgetAreas, self.docked_wave_height)
 
         self.docked_earth_vel_east = QtWidgets.QDockWidget("Earth Velocity - East", self)
         self.docked_earth_vel_east.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
-        self.docked_earth_vel_east.setFeatures(
-            QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
-        self.docked_earth_vel_east.resize(1100, 500)
-        self.docked_earth_vel_east.setWidget(self.web_view_earth_vel)
+        self.docked_earth_vel_east.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
+        self.docked_earth_vel_east.resize(650, 340)
+        self.docked_earth_vel_east.setWidget(self.web_view_earth_east_vel)
         self.docked_earth_vel_east.setVisible(True)
         #self.addDockWidget(QtCore.Qt.AllDockWidgetAreas, self.docked_wave_height)
 
-        #self.tableWidget.setRowCount(200)
-        #self.tableWidget.setColumnCount(5)
-        #self.tableWidget.setHorizontalHeaderLabels(['Average Water Column'])
+        self.docked_earth_vel_north = QtWidgets.QDockWidget("Earth Velocity - North", self)
+        self.docked_earth_vel_north.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        self.docked_earth_vel_north.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
+        self.docked_earth_vel_north.resize(650, 340)
+        self.docked_earth_vel_north.setWidget(self.web_view_earth_north_vel)
+        self.docked_earth_vel_north.setVisible(True)
 
-        # Create Streaming plot
-        #self.earth_vel_east_source = streamz.Stream()
-        #pipe = Pipe(data=pd.DataFrame({'x': [], 'y': [], 'count': []}))
-        #self.earth_vel_east_source.sliding_window(20).map(pd.concat).sink(pipe.send)  # Connect streamz to the Pipe
-        #self.earth_vel_plot = hv.DynamicMap(hv.Curve, streams=[pipe])
+        self.docked_mag = QtWidgets.QDockWidget("Velocity Magnitude", self)
+        self.docked_mag.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        self.docked_mag.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
+        self.docked_mag.resize(650, 340)
+        self.docked_mag.setWidget(self.web_view_mag)
+        self.docked_mag.setVisible(True)
+
+        self.docked_dir = QtWidgets.QDockWidget("Water Direciton", self)
+        self.docked_dir.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        self.docked_dir.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable | QtWidgets.QDockWidget.DockWidgetClosable)
+        self.docked_dir.resize(650, 340)
+        self.docked_dir.setWidget(self.web_view_dir)
+        self.docked_dir.setVisible(True)
 
     def shutdown(self):
         """
@@ -177,6 +168,47 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :return:
         """
         self.average_thread.shutdown()
+
+    def increment_ens(self, ens_count):
+        self.increment_ens_sig.emit(ens_count)
+
+    def avg_taken(self):
+        self.avg_taken_sig.emit()
+
+    def refresh_wave_height_web_view(self):
+        """
+        Reload the web view.
+        :return:
+        """
+        self.web_view_wave_height.reload()
+
+    def refresh_earth_east_vel_web_view(self):
+        """
+        Reload the web view.
+        :return:
+        """
+        self.web_view_earth_east_vel.reload()
+
+    def refresh_earth_north_vel_web_view(self):
+        """
+        Reload the web view.
+        :return:
+        """
+        self.web_view_earth_north_vel.reload()
+
+    def refresh_mag_web_view(self):
+        """
+        Reload the web view.
+        :return:
+        """
+        self.web_view_mag.reload()
+
+    def refresh_dir_web_view(self):
+        """
+        Reload the web view.
+        :return:
+        """
+        self.web_view_dir.reload()
 
     def add_ens(self, ens):
         """
@@ -277,12 +309,6 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
             #plot_panel = pn.Row(self.earth_vel_east_plot)
             #plot_panel.show(port=0)
-
-    def refresh_wave_height_web_view(self):
-        self.web_view_wave_height.reload()
-
-    def refresh_earth_vel_web_view(self):
-        self.web_view_earth_vel.reload()
 
     def add_tab(self, key, web_view):
         """

@@ -139,10 +139,28 @@ class MainWindow(QtWidgets.QMainWindow):
         avgMenu.addAction(waveHeightPlotButton)
 
         eastVelPlotButton = QAction(QIcon('exit24.png'), 'East Velocity Plot', self)
-        eastVelPlotButton.setShortcut('Ctrl+H')
+        eastVelPlotButton.setShortcut('Ctrl+E')
         eastVelPlotButton.setStatusTip('Earth Velocity [East] Plot ')
         eastVelPlotButton.triggered.connect(self.display_east_vel_plot_view)
         avgMenu.addAction(eastVelPlotButton)
+
+        northVelPlotButton = QAction(QIcon('exit24.png'), 'North Velocity Plot', self)
+        northVelPlotButton.setShortcut('Ctrl+N')
+        northVelPlotButton.setStatusTip('Earth Velocity [North] Plot ')
+        northVelPlotButton.triggered.connect(self.display_north_vel_plot_view)
+        avgMenu.addAction(northVelPlotButton)
+
+        magVelPlotButton = QAction(QIcon('exit24.png'), 'Velocity Magnitude Plot', self)
+        magVelPlotButton.setShortcut('Ctrl+N')
+        magVelPlotButton.setStatusTip('Velocity Magnitude Plot ')
+        magVelPlotButton.triggered.connect(self.display_mag_plot_view)
+        avgMenu.addAction(magVelPlotButton)
+
+        dirVelPlotButton = QAction(QIcon('exit24.png'), 'Water Direction Plot', self)
+        dirVelPlotButton.setShortcut('Ctrl+N')
+        dirVelPlotButton.setStatusTip('Water Direction Plot ')
+        dirVelPlotButton.triggered.connect(self.display_dir_plot_view)
+        avgMenu.addAction(dirVelPlotButton)
 
         # Show the main window
         self.show()
@@ -180,6 +198,21 @@ class MainWindow(QtWidgets.QMainWindow):
     def display_east_vel_plot_view(self):
         self.AvgWater.docked_earth_vel_east.setFloating(True)
         self.AvgWater.docked_earth_vel_east.show()
+
+    @pyqtSlot()
+    def display_north_vel_plot_view(self):
+        self.AvgWater.docked_earth_vel_north.setFloating(True)
+        self.AvgWater.docked_earth_vel_north.show()
+
+    @pyqtSlot()
+    def display_mag_plot_view(self):
+        self.AvgWater.docked_mag.setFloating(True)
+        self.AvgWater.docked_mag.show()
+
+    @pyqtSlot()
+    def display_dir_plot_view(self):
+        self.AvgWater.docked_dir.setFloating(True)
+        self.AvgWater.docked_dir.show()
 
     @pyqtSlot()
     def playback(self):

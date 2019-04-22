@@ -16,13 +16,12 @@ class PlotEarthVelEastThread(QThread):
     refresh_wave_height_web_view_sig = pyqtSignal()
     refresh_earth_vel_web_view_sig = pyqtSignal()
 
-    def __init__(self, avg_df, rti_config):
+    def __init__(self, avg_df, rti_config, plot_html_name):
         QThread.__init__(self)
 
         self.rti_config = rti_config
         self.avg_df = avg_df
-        self.wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight"
-        self.earth_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel"
+        self.html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + plot_html_name
 
     def run(self):
         """
@@ -82,7 +81,7 @@ class PlotEarthVelEastThread(QThread):
         plot = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
 
         # Save the plot to a file
-        hv.save(plot, self.wave_height_html_file, fmt='html')
+        hv.save(plot, self.html_file, fmt='html')
 
         # Refresh the web view
         self.refresh_wave_height_web_view_sig.emit()
@@ -151,7 +150,7 @@ class PlotEarthVelEastThread(QThread):
         #plots_north.opts(legend_position='top_left')
 
         # Save the plot to a file
-        hv.save(plots_east, self.earth_vel_html_file + "_east", fmt='html')
+        hv.save(plots_east, self.html_file + "_east", fmt='html')
 
         # Save the plot to a file
         # Include the group by
@@ -181,7 +180,7 @@ class PlotEarthVelEastThread(QThread):
         plots.opts(legend_position='top_left')
 
         # Save the plot to a file
-        hv.save(plots, self.earth_vel_html_file + "_north", fmt='html')
+        hv.save(plots, self.html_file + "_north", fmt='html')
 
         # Save the plot to a file
         # Include the group by
