@@ -14,6 +14,7 @@ from holoviews import opts, dim, Palette
 hv.extension('bokeh')
 import time
 import matplotlib.pyplot as plt
+from . import plot_data_thread, plot_earth_vel_east_thread, plot_earth_vel_north_thread
 
 
 class AverageWaterThread(QThread):
@@ -38,18 +39,29 @@ class AverageWaterThread(QThread):
         self.csv_creation_date = datetime.datetime.now()
         self.CSV_FILE_EXT = ".csv"
 
+        self.output_dir = self.rti_config.config['AWC']['output_dir'] + os.sep
+
         self.wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight"
         self.earth_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel"
 
         # Dictionary to hold all the average water column objects
         self.awc_dict = {}
 
-        # Latest Average Water Column
+        # Latest Average Water Column count
         self.avg_counter = 0
+
+        self.df_columns = ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "blank", "bin_size", "value"]
+        self.awc_df = pd.DataFrame()
 
     def shutdown(self):
         self.thread_alive = False
         self.event.set()
+
+    def update_earth_vel_plot(self):
+        self.refresh_earth_vel_web_view_sig.emit()
+
+    def update_wave_height_plot(self):
+        self.refresh_wave_height_web_view_sig.emit()
 
     def add_ens(self, ens):
         """
@@ -157,8 +169,18 @@ class AverageWaterThread(QThread):
             # Average the data
             awc_average = self.awc_dict[awc_key].average()
 
+            csv_data, df_data = self.generate_csv_data(awc_average, awc_key)
+
             # Update CSV file
-            self.write_csv(awc_average, awc_key)
+            self.write_csv_file(csv_data)
+
+            # Update the dataframe
+            df = pd.DataFrame(df_data, columns=self.df_columns)
+            if self.awc_df.empty:
+                self.awc_df = df
+                self.awc_df['datetime'] = pd.to_datetime(self.awc_df['datetime'])
+            else:
+                self.awc_df = self.awc_df.append(df)
 
         # Reset the counter
         self.avg_counter = 0
@@ -167,12 +189,37 @@ class AverageWaterThread(QThread):
         # so file list can be updated
         self.avg_taken_sig.emit()
 
+        # Read in the CSV data of the average data
+        #avg_df = pd.read_csv(self.csv_file_path)
+
+        # Set the datetime column values as datetime values
+        #avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
+
+        # Sort the data by date and time
+        #avg_df.sort_values(by=['datetime'], inplace=True)
+        self.awc_df.sort_values(by=['datetime'], inplace=True)
+
         # Display data
         #self.display_data()
-        thread_display = Thread(name="Avg Water Create HTML", target=self.display_data)
-        thread_display.start()
+        #thread_display = Thread(name="Avg Water Create HTML", target=self.display_data)
+        #thread_display.start()
         #p = multiprocessing.Process(target=self.display_data, name="Avg Water Create HTML")
         #p.start()
+
+        thread_display = plot_data_thread.PlotDataThread(self.awc_df, self.rti_config)
+        thread_display.refresh_wave_height_web_view_sig.connect(self.update_wave_height_plot)
+        thread_display.refresh_earth_vel_web_view_sig.connect(self.update_earth_vel_plot)
+        thread_display.start()
+
+        #thread_plot_earth_east = plot_earth_vel_east_thread.PlotEarthVelEastThread(self.awc_df, self.rti_config)
+        #thread_plot_earth_east.refresh_wave_height_web_view_sig.connect(self.update_wave_height_plot)
+        #thread_plot_earth_east.refresh_earth_vel_web_view_sig.connect(self.update_earth_vel_plot)
+        #thread_plot_earth_east.start()
+
+        #thread_plot_earth_north = plot_earth_vel_north_thread.PlotEarthVelNorthThread(self.awc_df, self.rti_config)
+        #thread_plot_earth_north.refresh_wave_height_web_view_sig.connect(self.update_wave_height_plot)
+        #thread_plot_earth_north.refresh_earth_vel_web_view_sig.connect(self.update_earth_vel_plot)
+        #hread_plot_earth_north.start()
 
     def reset_average(self):
         """
@@ -187,134 +234,7 @@ class AverageWaterThread(QThread):
         for awc_key in self.awc_dict.keys():
             self.awc_dict[awc_key].reset()
 
-    def display_data(self):
-
-        # Read in the CSV data of the average data
-        avg_df = pd.read_csv(self.csv_file_path)
-
-        # Set the datetime column values as datetime values
-        avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
-
-        # Sort the data by date and time
-        avg_df.sort_values(by=['datetime'], inplace=True)
-
-        # Create a thread to plot the height
-        self.plot_wave_height(avg_df)
-
-        # Update the Earth Vel Plot
-        self.plot_earth_vel(avg_df,
-                            int(self.rti_config.config['Waves']['selected_bin_1']),
-                            int(self.rti_config.config['Waves']['selected_bin_2']),
-                            int(self.rti_config.config['Waves']['selected_bin_3']))
-
-        #self.plot_earth_vel_mpl(avg_df,
-        #                    int(self.rti_config.config['Waves']['selected_bin_1']),
-        #                    int(self.rti_config.config['Waves']['selected_bin_2']),
-        #                    int(self.rti_config.config['Waves']['selected_bin_3']))
-
-    def plot_wave_height(self, avg_df):
-        """
-        Create a HTML plot of the wave height data from the
-        CSV file.
-        :param avg_df:  Dataframe of the csv file
-        :return:
-        """
-        # Sort the data for only the "XdcrDepth" data type
-        selected_avg_df = avg_df[avg_df.data_type.str.contains("XdcrDepth")]
-
-        # Remove all the columns except datetime and value
-        selected_avg_df = selected_avg_df[['datetime', 'value']]
-
-        # Set independent variables or index
-        kdims = [('datetime', 'Date and Time')]
-
-        # Set the dependent variables or measurements
-        vdims = [('value', 'Wave Height (m)')]
-
-        # Plot and select a bin
-        pressure_xdcr_height = hv.Curve(selected_avg_df, kdims, vdims) + hv.Table(selected_avg_df)
-
-        # Save the plot to a file
-        hv.save(pressure_xdcr_height, self.wave_height_html_file, fmt='html')
-
-        # Refresh the web view
-        self.refresh_wave_height_web_view_sig.emit()
-
-    def get_plot_earth_vel(self, avg_df, beam_num, selected_bin, label):
-        """
-        Create a HTML plot of the Earth Velocity data from the
-        CSV file.
-        :param avg_df:  Dataframe of the csv file
-        :return:
-        """
-        # Sort the data for only the "EarthVel" data type
-        #selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel")) & (avg_df.bin_num == bin_num)]
-        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel"))]
-
-        # Remove all the columns except datetime and value
-        #selected_avg_df = selected_avg_df[['datetime', 'bin_num', 'beam_num', 'value']]
-
-        # Set independent variables or index
-        kdims = [('datetime', 'Date'), ('bin_num', 'bin'), ('beam_num', 'beam'), 'ss_code', 'ss_config']
-
-        # Set the dependent variables or measurements
-        vdims = [('value', 'Water Velocity (m/s)')]
-
-        # Set the independent columns
-        # Create the Holoview dataset
-        ds = hv.Dataset(selected_avg_df, kdims, vdims)
-
-        bin_list = []
-        bin_list.append(selected_bin)
-        subset = ds.select(bin_num=bin_list, beam_num=beam_num)
-
-        # Create the plot options
-        plot = hv.Curve(subset, ('datetime', 'Date'), ('value', 'Velocity (m/s)'), label=label)
-
-        return plot
-
-    def plot_earth_vel(self, avg_df, selected_bin_1, selected_bin_2, selected_bin_3):
-        """
-        Create a HTML plot of the Earth Velocity data from the
-        CSV file.
-        :param avg_df:  Dataframe of the csv file
-        :param selected_bin_1: Selected Bin 1.
-        :param selected_bin_2: Selected Bin 2.
-        :param selected_bin_3: Selected Bin 3.
-        :return:
-        """
-        # Title
-        title = "Earth Velocity East"
-
-        east_bin_1 = self.get_plot_earth_vel(avg_df, 0, selected_bin_1, 'East Bin ' + str(selected_bin_1))
-        east_bin_2 = self.get_plot_earth_vel(avg_df, 0, selected_bin_2, 'East Bin ' + str(selected_bin_2))
-        east_bin_3 = self.get_plot_earth_vel(avg_df, 0, selected_bin_3, 'East Bin ' + str(selected_bin_3))
-
-        north_bin_1 = self.get_plot_earth_vel(avg_df, 1, selected_bin_1, 'North Bin ' + str(selected_bin_1))
-        north_bin_2 = self.get_plot_earth_vel(avg_df, 1, selected_bin_2, 'North Bin ' + str(selected_bin_2))
-        north_bin_3 = self.get_plot_earth_vel(avg_df, 1, selected_bin_3, 'North Bin ' + str(selected_bin_3))
-
-        plots = (east_bin_1 * east_bin_2 * east_bin_3 * north_bin_1 * north_bin_2 * north_bin_3).relabel("Earth Velocity")
-        plots.opts(legend_position='top_left')
-
-        # Save the plot to a file
-        hv.save(plots, self.earth_vel_html_file, fmt='html')
-
-        # Save the plot to a file
-        # Include the group by
-        #hv.renderer('bokeh').save(plot, self.earth_vel_html_file, fmt='scrubber')
-
-        # Refresh the web view
-        self.refresh_earth_vel_web_view_sig.emit()
-
-    def plot_earth_vel_mpl(self, avg_df, selected_bin_1, selected_bin_2, selected_bin_3):
-        ax = plt.gca()
-        avg_df.plot(kind="line", x='datetime', y='value', ax=ax)
-
-        #plt.show()
-        plt.savefig(self.earth_vel_html_file + ".png")
-
-    def write_csv(self, awc_avg, awc_key):
+    def generate_csv_data(self, awc_avg, awc_key):
         """
         Write all the CSV data.
         :param awc_avg: Average Velocity data
@@ -322,41 +242,51 @@ class AverageWaterThread(QThread):
         :return:
         """
         csv_rows = []
+        df_datas = []
         # Earth Velocity data
         if awc_avg[AverageWaterColumn.INDEX_EARTH]:
-            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_EARTH],              # Earth Velocity data average
+            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_EARTH],              # Earth Velocity data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_EARTH_VEL,                               # Data Type CSV Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
+            csv_rows += csv_row
+            df_datas += df_data
         # Mag Data
         if awc_avg[AverageWaterColumn.INDEX_MAG]:
-            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_MAG],                # Mag data average
+            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_MAG],                # Mag data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_MAG,                                     # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
+            csv_rows += csv_row
+            df_datas += df_data
         # Dir Data
         if awc_avg[AverageWaterColumn.INDEX_DIR]:
-            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_DIR],                # Dir Data average
+            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_DIR],                # Dir Data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_DIR,                                     # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+            csv_rows += csv_row
+            df_datas += df_data
 
         # Pressure Data
         if awc_avg[AverageWaterColumn.INDEX_PRESSURE]:
-            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_PRESSURE],           # Pressure Data average
+            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_PRESSURE],           # Pressure Data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_PRESSURE,                                # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+            csv_rows += csv_row
+            df_datas += df_data
 
         # Transducer Depth Data
         if awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH]:
-            csv_rows += self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],         # Transducer Depth Data average
+            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],         # Transducer Depth Data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_XDCR_DEPTH,                              # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+            csv_rows += csv_row
+            df_datas += df_data
 
-        # Write the accumulated rows to the file
-        self.write_csv_file(csv_rows)
+        return csv_rows, df_datas
 
     def write_csv_file(self, csv_rows):
         """
@@ -387,7 +317,7 @@ class AverageWaterThread(QThread):
         Append the data to the CSV file.
 
         Ex:
-        ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "bin_depth", "value"]
+        ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "blank", "bin_size", "value"]
         2019/02/23 15:23:22.56, EARTH_VEL, 4, 1, 2, 2, 7.5, 1.245
 
         :param data: Data for all beams.
@@ -413,6 +343,7 @@ class AverageWaterThread(QThread):
         bin_num = 1
         beam_num = 0
         row_data = []
+        df_data = []
 
         # Go through each bin and add a line to the csv file
         for bin_data in data:
@@ -421,14 +352,16 @@ class AverageWaterThread(QThread):
                 for beam_data in bin_data:
                     val = beam_data
                     row_data.append([(Ensemble.gen_csv_line(dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, val))])
+                    df_data.append([dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, val])
                     beam_num += 1
             else:
                 row_data.append([(Ensemble.gen_csv_line(dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, bin_data))])
+                df_data.append([dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, bin_data])
 
             # Increment the bin number
             bin_num += 1
 
-        return row_data
+        return row_data, df_data
 
     def check_or_create_file(self):
         """

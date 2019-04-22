@@ -79,7 +79,10 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         :param max_count: Maximum ensembles in the wave burst
         :return:
         """
-        if ens_count % 10 == 0 or ens_count >= max_count - 5:
+        if max_count == 0:
+            max_count = 1
+
+        if ens_count % 10 == 0 or ens_count >= max_count - 5 or ens_count <= 5:
             percentage = (ens_count / max_count) * 100
             self.burstEnsLabel.setText(str(ens_count))
             self.burstProgressBar.setValue(percentage)
@@ -104,7 +107,10 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         :param max_count: Maximum ensembles in the average.
         :return:
         """
-        if count % 10 == 0 or count >= max_count-5:
+        if max_count == 0:
+            max_count = 1
+
+        if count % 10 == 0 or count >= max_count-5 or count <= 5:
             percentage = (count / max_count) * 100
             self.avgEnsLabel.setText(str(count))
             self.avgProgressBar.setValue(percentage)

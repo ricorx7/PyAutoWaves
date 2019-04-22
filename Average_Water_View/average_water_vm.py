@@ -78,6 +78,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.earth_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel"
 
         self.average_thread = AverageWaterThread(self.rti_config)
+        self.average_thread.setObjectName("Average Water Column Thread")
         self.average_thread.increment_ens_sig.connect(self.increment_ens)
         self.average_thread.avg_taken_sig.connect(self.avg_taken)
         self.average_thread.refresh_wave_height_web_view_sig.connect(self.refresh_wave_height_web_view)
