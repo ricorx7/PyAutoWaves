@@ -365,6 +365,10 @@ class AutoWavesManager:
 
                 data = f.read(4096)  # Read the next batch of data
 
+                # Check if we need to shutdown
+                if not self.ens_thread_alive:
+                    return
+
         # Process whatever is remaining in the buffer
         self.process_playback_ens(DELIMITER + buff)
 
