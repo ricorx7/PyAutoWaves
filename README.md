@@ -52,3 +52,8 @@ venv\Scripts\pyinstaller.exe PyAutoWaves_Installer_WIN.spec
 ```
 
 This will create a dist and build folder.  The exe in is the dist folder.
+
+### Upgrade Dependcies to Latest Version
+```term
+pip install -r requirements.txt --upgrade
+```

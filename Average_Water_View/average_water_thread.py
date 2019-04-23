@@ -135,7 +135,17 @@ class AverageWaterThread(QThread):
         for awc_key in self.awc_dict.keys():
             self.awc_dict[awc_key].reset()
 
+        # Clear the dataframe
+        self.awc_df = pd.DataFrame(columns=self.awc_df.columns)
+
     def run(self):
+        """
+        Process the thread.
+        Remove any data from the queue.
+        Then accumulate the ensemble.
+        If enough ensembles have been accumulate, average and display the data.
+        :return:
+        """
 
         while self.thread_alive:
 
@@ -309,20 +319,6 @@ class AverageWaterThread(QThread):
         head, tail = ntpath.split(path)
         file_name_w_ext = tail or ntpath.basename(head)
         return os.path.splitext(file_name_w_ext)[0]
-
-
-    def reset_average(self):
-        """
-        Reset the counters and reset all the
-        AverageWaterColumn in the dictionary.
-        :return:
-        """
-        # Reset the counter
-        self.avg_counter = 0
-
-        # Reset all the AWC in the dictionary
-        for awc_key in self.awc_dict.keys():
-            self.awc_dict[awc_key].reset()
 
     def generate_csv_data(self, awc_avg, awc_key):
         """

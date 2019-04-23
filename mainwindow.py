@@ -97,7 +97,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def main_window_init(self):
         # Set the title of the window
-        self.setWindowTitle("RoweTech Inc. - AutoWaves Monitor")
+        self.setWindowTitle("Rowe Technologies Inc. - AutoWaves Monitor v1.0")
 
         self.setWindowIcon(QtGui.QIcon(":rti.ico"))
 
