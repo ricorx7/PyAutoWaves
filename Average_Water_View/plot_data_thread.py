@@ -79,6 +79,7 @@ class PlotDataThread(QThread):
                 if not self.thread_alive:
                     return
 
+            start = time.clock()
             if not avg_df.empty:
                 # Determine the plot type
                 if self.plot_type == PlotDataThread.PLOT_TYPE_WAVE_HEIGHT:
@@ -103,6 +104,9 @@ class PlotDataThread(QThread):
                                         int(self.rti_config.config['Waves']['selected_bin_1']),
                                         int(self.rti_config.config['Waves']['selected_bin_2']),
                                         int(self.rti_config.config['Waves']['selected_bin_3']))
+            logging.warning("Plot Time [" + self.plot_type + "]: " + str(time.clock()-start))
+
+            self.thread_event.clear()
 
     def plot_wave_height(self, avg_df):
         """
@@ -129,8 +133,10 @@ class PlotDataThread(QThread):
         # Save the plot to a file
         renderer = hv.renderer('bokeh')
         bk_plot = renderer.get_plot(plot).state
+        bk_plot.sizing_mode = 'scale_both'
         output_file(self.html_file)
         save(bk_plot)
+        #renderer.save(plot, self.html_file)
 
         # Refresh the web view
         self.refresh_web_view_sig.emit()

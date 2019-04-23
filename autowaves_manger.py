@@ -240,6 +240,9 @@ class AutoWavesManager:
                 # if ens and ens.IsEnsembleData:
                 #    self.logger.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))
 
+            # Reset the event
+            self.ens_thread_event.clear()
+
     def waves_rcv(self, sender, file_name):
         """
         A waves file was generated for AutoWaves.

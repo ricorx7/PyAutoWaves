@@ -152,6 +152,9 @@ class AverageWaterThread(QThread):
             # Wait to be woken up
             self.event.wait()
 
+            # Clear automatically
+            self.event.clear()
+
             while len(self.ens_queue) > 0:
                 # Remove the ensemble from the queue
                 ens = self.ens_queue.popleft()
