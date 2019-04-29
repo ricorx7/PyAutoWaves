@@ -16,6 +16,7 @@ import autowaves_manger
 # import qdarkstyle
 # import images_qr
 from threading import Thread
+from tornado.ioloop import IOLoop
 from rti_python.Utilities.config import RtiConfig
 
 
@@ -73,13 +74,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.docked_avg_water.setVisible(False)
 
         # Start Event Loop needed for server
-        #asyncio.set_event_loop(asyncio.new_event_loop())
+        asyncio.set_event_loop(asyncio.new_event_loop())
 
         # Setting num_procs here means we can't touch the IOLoop before now, we must
         # let Server handle that. If you need to explicitly handle IOLoops then you
         # will need to use the lower level BaseServer class.
         #self.server = Server({'/': self.AvgWater.setup_bokeh_server})
-        #self.server.start()
+        apps = {'/': self.AvgWater.setup_bokeh_server}
+        self.server = Server(apps, port=5001)
+        self.server.start()
+        self.server.show('/')
 
         #thread = Thread(target=self.start_bokeh_server)
         #thread.start()
@@ -94,6 +98,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Initialize the window
         self.main_window_init()
+
+        # Outside the notebook ioloop needs to be started
+        loop = IOLoop.current()
+        #loop.start()
+        t = Thread(target=loop.start, daemon=True)
+        t.start()
 
     def main_window_init(self):
         # Set the title of the window
@@ -166,8 +176,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
 
     def start_bokeh_server(self):
-        self.server.io_loop.add_callback(self.server.show, "/")
-        self.server.io_loop.start()
+        #self.server.io_loop.add_callback(self.server.show, "/")
+        #self.server.io_loop.start()
+        # Outside the notebook ioloop needs to be started
+        loop = IOLoop.current()
+        loop.start()
 
     def openFileNamesDialog(self):
         """

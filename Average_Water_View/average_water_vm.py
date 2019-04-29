@@ -11,7 +11,7 @@ from bokeh.models import HoverTool
 from bokeh.models import Range1d
 #import holoviews as hv
 import streamz
-import streamz.dataframe
+from streamz.dataframe import DataFrames
 import asyncio
 from .average_water_thread import AverageWaterThread
 from holoviews import opts
@@ -44,6 +44,9 @@ from holoviews import opts, dim, Palette
 hv.extension('bokeh')
 import panel as pn
 pn.extension()
+from bokeh.plotting import figure, ColumnDataSource
+from collections import deque
+from bokeh.layouts import row, column, gridplot, layout, grid
 
 opts.defaults(
     opts.Bars(xrotation=45, tools=['hover']),
@@ -107,6 +110,43 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #html_path = self.wave_height_html_file + ".html"
         #print(html_path)
         #self.web_view.load(QUrl().fromLocalFile(html_path))
+
+        #self.earth_vel_east_stream = ColumnDataSource({'x': [], 'y': []})
+
+        # Initialize the dataframe
+        #columns = ['datetime', 'voltage']
+        #columns = ['voltage']
+        #self.earth_df = pd.DataFrame(columns=columns)
+        #self.earth_df['datetime'] = pd.to_datetime(self.earth_df['datetime'])
+
+        # Create a stream for the data
+        #self.earth_vel_east_stream = hv.streams.Buffer(df)
+        #stream = streamz.Stream()
+        #self.pipe = Pipe(data=self.earth_df)
+        #self.stream = streamz.dataframe.DataFrame(stream, example=self.earth_df)
+        #self.buffer = Buffer(self.stream.voltage, index=False)
+        #self.dfstream = Buffer(self.earth_df)
+
+        self.cds = ColumnDataSource(data=dict(date=[],
+                                              voltage=[],
+                                              heading=[],
+                                              wave_height=[],
+                                              earth_east_1=[],
+                                              earth_east_2=[],
+                                              earth_east_3=[],
+                                              earth_north_1=[],
+                                              earth_north_2=[],
+                                              earth_north_3=[]))
+        self.buffer_voltage = deque()
+        self.buffer_datetime = deque()
+        self.buffer_heading = deque()
+        self.buffer_wave_height = deque()
+        self.buffer_earth_east_1 = deque()
+        self.buffer_earth_east_2 = deque()
+        self.buffer_earth_east_3 = deque()
+        self.buffer_earth_north_1 = deque()
+        self.buffer_earth_north_2 = deque()
+        self.buffer_earth_north_3 = deque()
 
         #self.add_tab("Wave Height")
 
@@ -221,7 +261,9 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :return:
         """
         # Add data to the thread
-        self.average_thread.add_ens(ens)
+        #self.average_thread.add_ens(ens)
+
+        self.stream_plot_earth_vel(ens)
 
     def reset_average(self):
         """
@@ -237,8 +279,69 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :param doc:
         :return:
         """
+
+        #renderer = hv.renderer('bokeh')
+
+        #source_df = streamz.dataframe.Random(freq='5ms', interval='100ms')
+        #sdf = (source_df - 0.5).cumsum()
+        #raw_dmap = hv.DynamicMap(hv.Curve, streams=[self.buffer])
+        #raw_dmap = hv.DynamicMap(hv.Curve, streams=[self.dfstream])
+        #smooth_dmap = hv.DynamicMap(hv.Curve, streams=[Buffer(sdf.x.rolling('500ms').mean())])
+
+
+        #layout = (raw_dmap.relabel('raw') * smooth_dmap.relabel('smooth'))
+
+        #app = renderer.app(raw_dmap)
+        #doc = renderer.server_doc(raw_dmap)
+        #layout = renderer.get_plot(raw_dmap, doc).state
+        #doc.title = "Voltage Plot"
+        #doc.add_root(layout)
+
+        p = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Voltage")
+        p.x_range.follow_interval = 200
+        p.line(x='date', y='voltage', alpha=0.2, line_width=3, color='navy', source=self.cds)
+
+        p2 = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Heading")
+        p2.x_range.follow_interval = 200
+        p2.line(x='date', y='heading', line_width=2, source=self.cds)
+
+        p_range = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Wave Height")
+        p_range.x_range.follow_interval = 200
+        p_range.line(x='date', y='wave_height', line_width=2, source=self.cds)
+
+
+        legend_bin_1 = "Bin" + self.rti_config.config['Waves']['selected_bin_1']
+        legend_bin_2 = "Bin" + self.rti_config.config['Waves']['selected_bin_2']
+        legend_bin_3 = "Bin" + self.rti_config.config['Waves']['selected_bin_3']
+
+        p_earth_east = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Earth Velocity East")
+        p_earth_east.x_range.follow_interval = 200
+        p_earth_east.xaxis.axis_label = "Time"
+        p_earth_east.yaxis.axis_label = "Velocity (m/s)"
+        p_earth_east.line(x='date', y='earth_east_1', line_width=2, source=self.cds, legend=legend_bin_1, color='navy')
+        p_earth_east.line(x='date', y='earth_east_2', line_width=2, source=self.cds, legend=legend_bin_2, color='skyblue')
+        p_earth_east.line(x='date', y='earth_east_3', line_width=2, source=self.cds, legend=legend_bin_3, color='orange')
+
+        p_earth_north = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Earth Velocity North")
+        p_earth_north.x_range.follow_interval = 200
+        p_earth_north.line(x='date', y='earth_north_1', line_width=2, source=self.cds, legend=legend_bin_1, color='navy')
+        p_earth_north.line(x='date', y='earth_north_2', line_width=2, source=self.cds, legend=legend_bin_2, color='skyblue')
+        p_earth_north.line(x='date', y='earth_north_3', line_width=2, source=self.cds, legend=legend_bin_3, color='orange')
+
+        #plot_layout = grid([p_range],
+        #              gridplot([[p], [p2]], toolbar_location="left", plot_width=1000),
+        #              gridplot([[p_earth_east], [p_earth_north]], toolbar_location="left", plot_width=1000), ncols=3)
+
+        plot_layout = grid([p_range, None, p, p2, p_earth_north, p_earth_east], ncols=3)
+
+        doc.add_root(plot_layout)
+        doc.add_periodic_callback(self.update_live_plot, 50)
+        doc.title = "ADCP Dashboard"
+
+
+        """"
         # Initialize the dataframe
-        columns = ['datetime', 'data_type', 'ss_code', 'ss_config', 'bin_num', 'beam_num', 'bin_depth', 'value']
+        columns = ['datetime', 'height', 'value']
         df = pd.DataFrame(columns=columns)
         df['datetime'] = pd.to_datetime(df['datetime'])
 
@@ -252,40 +355,124 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         # Create the plot options
         self.earth_vel_east_plot = self.earth_vel_east_dmap.opts(
-            opts.Curve(width=400, height=400, title="Earth Velocity East"))
+            opts.Curve(width=400, height=400, title="Wave Height"))
 
         plot_panel = pn.Row(self.earth_vel_east_plot)
         plot_panel.show(port=0)
 
+        doc.title = "Earth Velocity Plot"
         doc.add_root(plot_panel)
         #doc.add_root(self.earth_vel_east_plot)
 
-    def stream_plot_earth_vel(self, avg_df, beam_num, selected_bin_1, selected_bin_2, selected_bin_3):
+        #renderer = hv.renderer('bokeh')
+        #doc = renderer.server_doc(plot_panel)
+        #doc.title("Bokeh Server")
+        """
+        """
+        fig = figure(title='Earth Velocity Plot!', sizing_mode='scale_width')
+        fig.line(source=self.earth_vel_east_stream, x='x', y='y')
+
+        doc.title = "Now with live updating!"
+        doc.add_root(fig)
+        """
+
+    def update_live_plot(self):
+
+        date_list = []
+        voltage_list = []
+        heading_list = []
+        wave_height_list = []
+        earth_east_1 = []
+        earth_east_2 = []
+        earth_east_3 = []
+        earth_north_1 = []
+        earth_north_2 = []
+        earth_north_3 = []
+        while self.buffer_voltage:
+            voltage_list.append(self.buffer_voltage.popleft())
+            date_list.append(self.buffer_datetime.popleft())
+        while self.buffer_heading:
+            heading_list.append(self.buffer_heading.popleft())
+        while self.buffer_wave_height:
+            wave_height_list.append(self.buffer_wave_height.popleft())
+        while self.buffer_earth_east_1:
+            earth_east_1.append(self.buffer_earth_east_1.popleft())
+        while self.buffer_earth_east_2:
+            earth_east_2.append(self.buffer_earth_east_2.popleft())
+        while self.buffer_earth_east_3:
+            earth_east_3.append(self.buffer_earth_east_3.popleft())
+        while self.buffer_earth_north_1:
+            earth_north_1.append(self.buffer_earth_north_1.popleft())
+        while self.buffer_earth_north_2:
+            earth_north_2.append(self.buffer_earth_north_2.popleft())
+        while self.buffer_earth_north_3:
+            earth_north_3.append(self.buffer_earth_north_3.popleft())
+
+        new_data = {'date': date_list,
+                    'voltage': voltage_list,
+                    'heading': heading_list,
+                    'wave_height': wave_height_list,
+                    'earth_east_1': earth_east_1,
+                    'earth_east_2': earth_east_2,
+                    'earth_east_3': earth_east_3,
+                    'earth_north_1': earth_north_1,
+                    'earth_north_2': earth_north_2,
+                    'earth_north_3': earth_north_3}
+        self.cds.stream(new_data)
+
+    def stream_plot_earth_vel(self, ens):
         """
         Create a HTML plot of the Earth Velocity data from the
         CSV file.
         :param avg_df:  Dataframe of the csv file
         :return:
         """
+        if ens and ens.IsEnsembleData and ens.IsSystemSetup and ens.IsAncillaryData:
+            #new = {'datetime': [ens.EnsembleData.datetime()],
+            #       'voltage': [ens.SystemSetup.Voltage]}
+            #new = {'date': [ens.EnsembleData.datetime()],
+            #       'voltage': [ens.SystemSetup.Voltage]}
+            #self.stream.stream(new)
+            #self.earth_df = self.earth_df.append(new, ignore_index=True)
+            #self.stream.stream.start()
+            #self.dfstream.send(self.earth_df)
+            #self.dfstream.update()
+            #self.cds.stream(new)
+            self.buffer_voltage.append(ens.SystemSetup.Voltage)
+            self.buffer_datetime.append(ens.EnsembleData.datetime())
+            self.buffer_heading.append(ens.AncillaryData.Heading)
+            self.buffer_wave_height.append(ens.AncillaryData.TransducerDepth)
+
+        bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
+        bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
+        bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+        if ens and ens.IsEarthVelocity:
+            self.buffer_earth_east_1.append(ens.EarthVelocity.Velocities[bin_1][0])
+            self.buffer_earth_east_2.append(ens.EarthVelocity.Velocities[bin_2][0])
+            self.buffer_earth_east_3.append(ens.EarthVelocity.Velocities[bin_3][0])
+            self.buffer_earth_north_1.append(ens.EarthVelocity.Velocities[bin_1][1])
+            self.buffer_earth_north_2.append(ens.EarthVelocity.Velocities[bin_2][1])
+            self.buffer_earth_north_3.append(ens.EarthVelocity.Velocities[bin_3][1])
+
         # Sort the data for only the "EarthVel" data type
         #selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel")) & (avg_df.bin_num == bin_num)]
-        selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel") & avg_df.beam_num == beam_num)]
+        #selected_avg_df = avg_df[(avg_df.data_type.str.contains("EarthVel") & avg_df.beam_num == beam_num)]
 
-        if self.earth_vel_east_stream:
+        #if self.earth_vel_east_stream:
             #self.earth_vel_east_stream.send(selected_avg_df)
-            self.earth_vel_east_stream.emit(selected_avg_df)
+        #    self.earth_vel_east_stream.emit(selected_avg_df)
 
             # Save the plot to a file
-            #hv.save(self.earth_vel_east_plot, self.earth_vel_html_file, fmt='html')
+        #    hv.save(self.earth_vel_east_plot, self.earth_vel_html_file, fmt='html')
 
         # Create the plot if it does not exist
         #if not self.earth_vel_east_stream:
         #    self.earth_vel_east_stream = hv.streams.Buffer(selected_avg_df)
         #    self.earth_vel_east_dmap = hv.DynamicMap(hv.Curve, streams=[self.earth_vel_east_stream])
 
-         #   self.earth_vel_east_plot = self.earth_vel_east_dmap.opts(
-         #       opts.Curve(width=800, height=800, title="Earth Velocity East"))
-         #   renderer = hv.renderer('bokeh')
+        #    self.earth_vel_east_plot = self.earth_vel_east_dmap.opts(
+        #        opts.Curve(width=800, height=800, title="Earth Velocity East"))
+        #    renderer = hv.renderer('bokeh')
             #renderer = renderer.instance(mode='server')
             #doc = renderer.server_doc(self.earth_vel_east_plot)
 
