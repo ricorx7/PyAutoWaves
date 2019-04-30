@@ -128,8 +128,6 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #self.dfstream = Buffer(self.earth_df)
 
         self.cds = ColumnDataSource(data=dict(date=[],
-                                              voltage=[],
-                                              heading=[],
                                               wave_height=[],
                                               earth_east_1=[],
                                               earth_east_2=[],
@@ -212,8 +210,11 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
     def increment_ens(self, ens_count):
         self.increment_ens_sig.emit(ens_count)
 
-    def avg_taken(self):
+    def avg_taken(self, avg_df):
         self.avg_taken_sig.emit()
+
+        # Update the plot
+        self.update_dashboard(avg_df)
 
     def refresh_wave_height_web_view(self):
         """
@@ -261,9 +262,9 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :return:
         """
         # Add data to the thread
-        #self.average_thread.add_ens(ens)
+        self.average_thread.add_ens(ens)
 
-        self.stream_plot_earth_vel(ens)
+        #self.stream_plot_earth_vel(ens)
 
     def reset_average(self):
         """
@@ -297,18 +298,19 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #doc.title = "Voltage Plot"
         #doc.add_root(layout)
 
-        p = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Voltage")
-        p.x_range.follow_interval = 200
-        p.line(x='date', y='voltage', alpha=0.2, line_width=3, color='navy', source=self.cds)
+        #p = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Voltage")
+        #p.x_range.follow_interval = 200
+        #p.line(x='date', y='voltage', alpha=0.2, line_width=3, color='navy', source=self.cds)
 
-        p2 = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Heading")
-        p2.x_range.follow_interval = 200
-        p2.line(x='date', y='heading', line_width=2, source=self.cds)
+        #p2 = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Heading")
+        #p2.x_range.follow_interval = 200
+        #p2.line(x='date', y='heading', line_width=2, source=self.cds)
 
         p_range = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Wave Height")
         p_range.x_range.follow_interval = 200
+        p_range.xaxis.axis_label = "Time"
+        p_range.yaxis.axis_label = "Wave Height (m)"
         p_range.line(x='date', y='wave_height', line_width=2, source=self.cds)
-
 
         legend_bin_1 = "Bin" + self.rti_config.config['Waves']['selected_bin_1']
         legend_bin_2 = "Bin" + self.rti_config.config['Waves']['selected_bin_2']
@@ -324,6 +326,8 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         p_earth_north = figure(plot_width=400, plot_height=400, x_axis_type='datetime', title="Earth Velocity North")
         p_earth_north.x_range.follow_interval = 200
+        p_earth_north.xaxis.axis_label = "Time"
+        p_earth_north.yaxis.axis_label = "Velocity (m/s)"
         p_earth_north.line(x='date', y='earth_north_1', line_width=2, source=self.cds, legend=legend_bin_1, color='navy')
         p_earth_north.line(x='date', y='earth_north_2', line_width=2, source=self.cds, legend=legend_bin_2, color='skyblue')
         p_earth_north.line(x='date', y='earth_north_3', line_width=2, source=self.cds, legend=legend_bin_3, color='orange')
@@ -332,10 +336,10 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         #              gridplot([[p], [p2]], toolbar_location="left", plot_width=1000),
         #              gridplot([[p_earth_east], [p_earth_north]], toolbar_location="left", plot_width=1000), ncols=3)
 
-        plot_layout = grid([p_range, None, p, p2, p_earth_north, p_earth_east], ncols=3)
+        plot_layout = grid([p_range, None, p_earth_north, p_earth_east], ncols=2)
 
         doc.add_root(plot_layout)
-        doc.add_periodic_callback(self.update_live_plot, 50)
+        doc.add_periodic_callback(self.update_live_plot, 500)
         doc.title = "ADCP Dashboard"
 
 
@@ -379,8 +383,6 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
     def update_live_plot(self):
 
         date_list = []
-        voltage_list = []
-        heading_list = []
         wave_height_list = []
         earth_east_1 = []
         earth_east_2 = []
@@ -388,6 +390,60 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         earth_north_1 = []
         earth_north_2 = []
         earth_north_3 = []
+        while self.buffer_datetime:
+            date_list.append(self.buffer_datetime.popleft())
+        while self.buffer_wave_height:
+            wave_height_list.append(self.buffer_wave_height.popleft())
+        while self.buffer_earth_east_1:
+            earth_east_1.append(self.buffer_earth_east_1.popleft())
+        while self.buffer_earth_east_2:
+            earth_east_2.append(self.buffer_earth_east_2.popleft())
+        while self.buffer_earth_east_3:
+            earth_east_3.append(self.buffer_earth_east_3.popleft())
+        while self.buffer_earth_north_1:
+            earth_north_1.append(self.buffer_earth_north_1.popleft())
+        while self.buffer_earth_north_2:
+            earth_north_2.append(self.buffer_earth_north_2.popleft())
+        while self.buffer_earth_north_3:
+            earth_north_3.append(self.buffer_earth_north_3.popleft())
+
+        if len(date_list) > 0 and len(wave_height_list) > 0 and len(earth_east_1) > 0 and len(earth_east_2) > 0 and len(earth_east_3) > 0 and len(earth_north_1) > 0 and len(earth_north_2) > 0 and len(earth_north_3) > 0:
+            new_data = {'date': date_list,
+                        'wave_height': wave_height_list,
+                        'earth_east_1': earth_east_1,
+                        'earth_east_2': earth_east_2,
+                        'earth_east_3': earth_east_3,
+                        'earth_north_1': earth_north_1,
+                        'earth_north_2': earth_north_2,
+                        'earth_north_3': earth_north_3}
+            self.cds.stream(new_data)
+
+    def update_dashboard(self, avg_df):
+        """
+        Dataframe columns: ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "blank", "bin_size", "value"]
+
+        :param avg_df:
+        :return:
+        """
+        #print(avg_df.tail())
+
+        # Wave Height and Datetime
+        self.get_wave_height_list(avg_df, self.buffer_wave_height, self.buffer_datetime)
+
+        # Selected bins
+        bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
+        bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
+        bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+
+        # Earth Velocity
+        self.get_earth_vel_list(avg_df, bin_1, 0, self.buffer_earth_east_1)
+        self.get_earth_vel_list(avg_df, bin_2, 0, self.buffer_earth_east_2)
+        self.get_earth_vel_list(avg_df, bin_3, 0, self.buffer_earth_east_3)
+        self.get_earth_vel_list(avg_df, bin_1, 1, self.buffer_earth_north_1)
+        self.get_earth_vel_list(avg_df, bin_2, 1, self.buffer_earth_north_2)
+        self.get_earth_vel_list(avg_df, bin_3, 1, self.buffer_earth_north_3)
+
+        """ 
         while self.buffer_voltage:
             voltage_list.append(self.buffer_voltage.popleft())
             date_list.append(self.buffer_datetime.popleft())
@@ -409,8 +465,6 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
             earth_north_3.append(self.buffer_earth_north_3.popleft())
 
         new_data = {'date': date_list,
-                    'voltage': voltage_list,
-                    'heading': heading_list,
                     'wave_height': wave_height_list,
                     'earth_east_1': earth_east_1,
                     'earth_east_2': earth_east_2,
@@ -419,6 +473,52 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
                     'earth_north_2': earth_north_2,
                     'earth_north_3': earth_north_3}
         self.cds.stream(new_data)
+        """
+
+    def get_wave_height_list(self, avg_df, buffer_wave, buffer_dt):
+        """
+        Add The wave height and datetime data to the buffer.
+        :param avg_df: Dataframe with the latest data.
+        :param buffer_wave: Wave Height Buffer.
+        :param buffer_dt: Datetime Buffer.
+        :return:
+        """
+        # Wave Height and Datetime
+        wave_height_df = avg_df[avg_df.data_type.str.contains("XdcrDepth") &
+                                ((avg_df['ss_code'] == 'A') |      # vertical beam
+                                (avg_df['ss_code'] == 'B') |
+                                (avg_df['ss_code'] == 'C'))]
+        #for index, row in wave_height_df.iterrows():
+        #    buffer_wave.append(row['value'])
+        #    buffer_dt.append(row['datetime'])
+        last_row = wave_height_df.iloc[:-1]
+        if not last_row.empty:
+            buffer_wave.append(last_row['value'].values[0])
+            buffer_dt.append(last_row['datetime'].values[0])
+
+
+    def get_earth_vel_list(self, avg_df, bin_num, beam, buffer):
+        """
+        Get the Earth Velocity data based off the bin and beam given.
+        :param avg_df: Dataframe with earth velocity data.
+        :param bin_num: Bin number to select.
+        :param beam: Beam Number to select
+        :param buffer: Buffer to add data to.
+        :return: List of all the data found in the dataframe
+        """
+
+        earth_vel_df = avg_df.loc[(avg_df.data_type.str.contains("EarthVel")) &
+                                  (avg_df['bin_num'] == bin_num) &
+                                  (avg_df['beam_num'] == beam) &
+                                  (avg_df['ss_code'] != 'A') &      # Not a vertical beam
+                                  (avg_df['ss_code'] != 'B') &
+                                  (avg_df['ss_code'] != 'C')]
+
+        #for index, row in earth_vel_df.iterrows():
+        #    buffer.append(row['value'])
+        last_row = earth_vel_df.tail(1)
+        if not last_row.empty:
+            buffer.append(last_row['value'].values[0])
 
     def stream_plot_earth_vel(self, ens):
         """
