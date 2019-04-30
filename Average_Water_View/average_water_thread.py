@@ -220,6 +220,8 @@ class AverageWaterThread(QThread):
         Average the data and display the data.
         :return:
         """
+        accum_df = pd.DataFrame([], columns=self.df_columns)
+
         for awc_key in self.awc_dict.keys():
             # Average the data
             awc_average = self.awc_dict[awc_key].average()
@@ -234,8 +236,12 @@ class AverageWaterThread(QThread):
             if self.awc_df.empty:
                 self.awc_df = df
                 self.awc_df['datetime'] = pd.to_datetime(self.awc_df['datetime'])
+
+                accum_df = df
+                accum_df['datetime'] = pd.to_datetime(accum_df['datetime'])
             else:
                 self.awc_df = self.awc_df.append(df)
+                accum_df = accum_df.append(df)
 
         # Reset the counter
         self.avg_counter = 0
@@ -245,7 +251,8 @@ class AverageWaterThread(QThread):
 
         # Emit signal that average taken
         # so file list can be updated
-        self.avg_taken_sig.emit(self.awc_df)
+        if not accum_df.empty:
+            self.avg_taken_sig.emit(accum_df)
 
         # Display the data
         #self.display_data(self.awc_df)
