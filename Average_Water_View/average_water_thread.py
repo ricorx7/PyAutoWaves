@@ -21,7 +21,7 @@ import ntpath
 class AverageWaterThread(QThread):
 
     increment_ens_sig = pyqtSignal(int)
-    avg_taken_sig = pyqtSignal()
+    avg_taken_sig = pyqtSignal(object)
     refresh_wave_height_web_view_sig = pyqtSignal()
     refresh_earth_east_vel_web_view_sig = pyqtSignal()
     refresh_earth_north_vel_web_view_sig = pyqtSignal()
@@ -240,15 +240,15 @@ class AverageWaterThread(QThread):
         # Reset the counter
         self.avg_counter = 0
 
-        # Emit signal that average taken
-        # so file list can be updated
-        self.avg_taken_sig.emit()
-
         # Sort the data by date and time
         self.awc_df.sort_values(by=['datetime'], inplace=True)
 
+        # Emit signal that average taken
+        # so file list can be updated
+        self.avg_taken_sig.emit(self.awc_df)
+
         # Display the data
-        self.display_data(self.awc_df)
+        #self.display_data(self.awc_df)
 
     def display_data(self, awc_df):
         """
