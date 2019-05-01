@@ -5,39 +5,13 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5 import QtGui, QtWidgets, QtCore
 from bokeh.plotting import figure, output_file, show, save
 from bokeh.models import LinearColorMapper, BasicTicker, PrintfTickFormatter, ColorBar
-from bokeh.transform import transform, linear_cmap
 from bokeh.palettes import Viridis3, Viridis256, Inferno256
 from bokeh.models import HoverTool
-from bokeh.models import Range1d
-#import holoviews as hv
-import streamz
-from streamz.dataframe import DataFrames
-import asyncio
 from .average_water_thread import AverageWaterThread
-from holoviews import opts
-from holoviews.streams import Pipe, Buffer
+from .plot_average_data import PlotAverageData
 import math
-import pandas as pd
-import numpy as np
-from threading import Thread
-import threading
-import csv
-import datetime
-import queue
-import collections
 from . import average_water_view
-import logging
-from obsub import event
-import os
-import time
-from rti_python.Utilities.config import RtiConfig
-from rti_python.Ensemble.Ensemble import Ensemble
 from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
-from tornado.ioloop import IOLoop
-from bokeh.server.server import Server
-# pyviz
-import numpy as np
-import scipy.stats as ss
 import pandas as pd
 import holoviews as hv
 from holoviews import opts, dim, Palette
@@ -45,9 +19,6 @@ hv.extension('bokeh')
 import panel as pn
 pn.extension()
 from bokeh.plotting import figure, ColumnDataSource
-from collections import deque
-from bokeh.layouts import row, column, gridplot, layout, grid
-
 opts.defaults(
     opts.Bars(xrotation=45, tools=['hover']),
     opts.BoxWhisker(width=800, xrotation=30, box_fill_color=Palette('Category20')),
@@ -88,6 +59,9 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.average_thread.refresh_dir_web_view_sig.connect(self.refresh_dir_web_view)
         self.average_thread.start()
 
+        # Create the plots
+        self.plot_data = PlotAverageData(rti_config)
+
         self.wave_height_html_file = self.average_thread.wave_height_html_file
         self.earth_east_vel_html_file = self.average_thread.earth_east_vel_html_file
         self.earth_north_vel_html_file = self.average_thread.earth_north_vel_html_file
@@ -105,100 +79,6 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Latest Average Water Column
         self.avg_counter = 0
 
-        #self.html = None
-        #self.web_view = QWebEngineView()
-        #html_path = os.path.split(os.path.abspath(__file__))[0] + os.sep + ".." + os.sep + self.HTML_FILE_NAME
-        #html_path = self.wave_height_html_file + ".html"
-        #print(html_path)
-        #self.web_view.load(QUrl().fromLocalFile(html_path))
-
-        #self.earth_vel_east_stream = ColumnDataSource({'x': [], 'y': []})
-
-        # Initialize the dataframe
-        #columns = ['datetime', 'voltage']
-        #columns = ['voltage']
-        #self.earth_df = pd.DataFrame(columns=columns)
-        #self.earth_df['datetime'] = pd.to_datetime(self.earth_df['datetime'])
-
-        # Create a stream for the data
-        #self.earth_vel_east_stream = hv.streams.Buffer(df)
-        #stream = streamz.Stream()
-        #self.pipe = Pipe(data=self.earth_df)
-        #self.stream = streamz.dataframe.DataFrame(stream, example=self.earth_df)
-        #self.buffer = Buffer(self.stream.voltage, index=False)
-        #self.dfstream = Buffer(self.earth_df)
-
-        self.cds = ColumnDataSource(data=dict(date=[],
-                                              wave_height=[],
-                                              earth_east_1=[],
-                                              earth_east_2=[],
-                                              earth_east_3=[],
-                                              earth_north_1=[],
-                                              earth_north_2=[],
-                                              earth_north_3=[]))
-
-        # Specify the selection tools to be made available
-        select_tools = ['box_select', 'lasso_select', 'poly_select', 'tap', 'reset']
-
-        # Format the tooltip
-        tooltips_wave_height = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
-            ('Height (m)', '@wave_height'),
-        ], formatters={'date': 'datetime'})
-
-        # Format the tooltip
-        tooltips_vel_east = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
-            ('Velocity (m/s) Bin 1', '@earth_east_1'),
-            ('Velocity (m/s) Bin 2', '@earth_east_2'),
-            ('Velocity (m/s) Bin 3', '@earth_east_3'),
-        ], formatters={'date': 'datetime'})
-
-        # Format the tooltip
-        tooltips_vel_north = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
-            ('Velocity (m/s) Bin 1', '@earth_north_1'),
-            ('Velocity (m/s) Bin 2', '@earth_north_2'),
-            ('Velocity (m/s) Bin 3', '@earth_north_3'),
-        ], formatters={'date': 'datetime'})
-
-        self.plot_range = figure(x_axis_type='datetime', title="Wave Height")
-        self.plot_range.x_range.follow_interval = 200
-        self.plot_range.xaxis.axis_label = "Time"
-        self.plot_range.yaxis.axis_label = "Wave Height (m)"
-        self.plot_range.add_tools(tooltips_wave_height)
-        self.line_wave_height = self.plot_range.line(x='date', y='wave_height', line_width=2, source=self.cds, name="wave_height")
-
-        legend_bin_1 = "Bin" + self.rti_config.config['Waves']['selected_bin_1']
-        legend_bin_2 = "Bin" + self.rti_config.config['Waves']['selected_bin_2']
-        legend_bin_3 = "Bin" + self.rti_config.config['Waves']['selected_bin_3']
-
-        self.plot_earth_east = figure(x_axis_type='datetime', title="Earth Velocity East")
-        self.plot_earth_east.x_range.follow_interval = 200
-        self.plot_earth_east.xaxis.axis_label = "Time"
-        self.plot_earth_east.yaxis.axis_label = "Velocity (m/s)"
-        self.plot_earth_east.add_tools(tooltips_vel_east)
-        self.line_east_1 = self.plot_earth_east.line(x='date', y='earth_east_1', line_width=2, source=self.cds, legend=legend_bin_1, color='navy', name="east_1")
-        self.line_east_2 = self.plot_earth_east.line(x='date', y='earth_east_2', line_width=2, source=self.cds, legend=legend_bin_2, color='skyblue', name="east_2")
-        self.line_east_3 = self.plot_earth_east.line(x='date', y='earth_east_3', line_width=2, source=self.cds, legend=legend_bin_3, color='orange', name="east_3")
-
-        self.plot_earth_north = figure(x_axis_type='datetime', title="Earth Velocity North")
-        self.plot_earth_north.x_range.follow_interval = 200
-        self.plot_earth_north.xaxis.axis_label = "Time"
-        self.plot_earth_north.yaxis.axis_label = "Velocity (m/s)"
-        self.plot_earth_north.add_tools(tooltips_vel_north)
-        self.line_north_1 = self.plot_earth_north.line(x='date', y='earth_north_1', line_width=2, source=self.cds, legend=legend_bin_1, color='navy', name="north_1")
-        self.line_north_2 = self.plot_earth_north.line(x='date', y='earth_north_2', line_width=2, source=self.cds, legend=legend_bin_2, color='skyblue', name="north_2")
-        self.line_north_3 = self.plot_earth_north.line(x='date', y='earth_north_3', line_width=2, source=self.cds, legend=legend_bin_3, color='orange', name="north_3")
-
-        self.buffer_datetime = deque()
-        self.buffer_wave_height = deque()
-        self.buffer_earth_east_1 = deque()
-        self.buffer_earth_east_2 = deque()
-        self.buffer_earth_east_3 = deque()
-        self.buffer_earth_north_1 = deque()
-        self.buffer_earth_north_2 = deque()
-        self.buffer_earth_north_3 = deque()
 
         #self.add_tab("Wave Height")
 
@@ -268,7 +148,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.avg_taken_sig.emit()
 
         # Update the plot
-        self.update_dashboard(avg_df)
+        self.plot_data.update_dashboard(avg_df)
 
     def refresh_wave_height_web_view(self):
         """
@@ -332,235 +212,8 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
     def reset_plot(self):
         self.create_bokeh_plots()
 
-    def create_bokeh_plots(self):
-        """
-        Create the bokeh plot.
-        :return:
-        """
-        self.cds = ColumnDataSource(data=dict(date=[],
-                                              wave_height=[],
-                                              earth_east_1=[],
-                                              earth_east_2=[],
-                                              earth_east_3=[],
-                                              earth_north_1=[],
-                                              earth_north_2=[],
-                                              earth_north_3=[]))
-
-        # Specify the selection tools to be made available
-        select_tools = ['box_select', 'lasso_select', 'poly_select', 'tap', 'reset']
-
-        # Format the tooltip
-        tooltips_wave_height = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
-            ('Height (m)', '@wave_height'),
-        ], formatters={'date': 'datetime'})
-
-        # Format the tooltip
-        tooltips_vel_east = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
-            ('Velocity (m/s) Bin 1', '@earth_east_1'),
-            ('Velocity (m/s) Bin 2', '@earth_east_2'),
-            ('Velocity (m/s) Bin 3', '@earth_east_3'),
-        ], formatters={'date': 'datetime'})
-
-        # Format the tooltip
-        tooltips_vel_north = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
-            ('Velocity (m/s) Bin 1', '@earth_north_1'),
-            ('Velocity (m/s) Bin 2', '@earth_north_2'),
-            ('Velocity (m/s) Bin 3', '@earth_north_3'),
-        ], formatters={'date': 'datetime'})
-
-        self.plot_range = figure(x_axis_type='datetime', title="Wave Height")
-        self.plot_range.x_range.follow_interval = 200
-        self.plot_range.xaxis.axis_label = "Time"
-        self.plot_range.yaxis.axis_label = "Wave Height (m)"
-        self.plot_range.add_tools(tooltips_wave_height)
-        self.line_wave_height = self.plot_range.line(x='date', y='wave_height', line_width=2, source=self.cds, name="wave_height")
-
-        legend_bin_1 = "Bin" + self.rti_config.config['Waves']['selected_bin_1']
-        legend_bin_2 = "Bin" + self.rti_config.config['Waves']['selected_bin_2']
-        legend_bin_3 = "Bin" + self.rti_config.config['Waves']['selected_bin_3']
-
-        self.plot_earth_east = figure(x_axis_type='datetime', title="Earth Velocity East")
-        self.plot_earth_east.x_range.follow_interval = 200
-        self.plot_earth_east.xaxis.axis_label = "Time"
-        self.plot_earth_east.yaxis.axis_label = "Velocity (m/s)"
-        self.plot_earth_east.add_tools(tooltips_vel_east)
-        self.line_east_1 = self.plot_earth_east.line(x='date', y='earth_east_1', line_width=2, source=self.cds, legend=legend_bin_1, color='navy', name="east_1")
-        self.line_east_2 = self.plot_earth_east.line(x='date', y='earth_east_2', line_width=2, source=self.cds, legend=legend_bin_2, color='skyblue', name="east_2")
-        self.line_east_3 = self.plot_earth_east.line(x='date', y='earth_east_3', line_width=2, source=self.cds, legend=legend_bin_3, color='orange', name="east_3")
-
-        self.plot_earth_north = figure(x_axis_type='datetime', title="Earth Velocity North")
-        self.plot_earth_north.x_range.follow_interval = 200
-        self.plot_earth_north.xaxis.axis_label = "Time"
-        self.plot_earth_north.yaxis.axis_label = "Velocity (m/s)"
-        self.plot_earth_north.add_tools(tooltips_vel_north)
-        self.line_north_1 = self.plot_earth_north.line(x='date', y='earth_north_1', line_width=2, source=self.cds, legend=legend_bin_1, color='navy', name="north_1")
-        self.line_north_2 = self.plot_earth_north.line(x='date', y='earth_north_2', line_width=2, source=self.cds, legend=legend_bin_2, color='skyblue', name="north_2")
-        self.line_north_3 = self.plot_earth_north.line(x='date', y='earth_north_3', line_width=2, source=self.cds, legend=legend_bin_3, color='orange', name="north_3")
-
     def setup_bokeh_server(self, doc):
-        """
-        Setup the bokeh server in the mainwindow.py.  The server
-        must be started on the main thread.
-        :param doc:
-        :return:
-        """
-        self.create_bokeh_plots()
-
-        plot_layout = layout([
-            [self.plot_range],
-            [self.plot_earth_east, self.plot_earth_north],
-        ], sizing_mode='stretch_both')
-
-        #plot_layout = grid([self.plot_range, None, self.plot_earth_east, self.plot_earth_north], ncols=2)
-
-        doc.add_root(plot_layout)
-        doc.add_periodic_callback(self.update_live_plot, 1000)
-        doc.title = "ADCP Dashboard"
-
-    def update_live_plot(self):
-
-        if len(self.buffer_datetime) > 0 and len(self.buffer_wave_height) > 0 and len(self.buffer_earth_east_1) > 0 and len(self.buffer_earth_east_2) > 0 and len(
-                self.buffer_earth_east_3) > 0 and len(self.buffer_earth_north_1) > 0 and len(self.buffer_earth_north_2) > 0 and len(self.buffer_earth_north_3) > 0:
-
-            date_list = []
-            wave_height_list = []
-            earth_east_1 = []
-            earth_east_2 = []
-            earth_east_3 = []
-            earth_north_1 = []
-            earth_north_2 = []
-            earth_north_3 = []
-            while self.buffer_datetime:
-                date_list.append(self.buffer_datetime.popleft())
-            while self.buffer_wave_height:
-                wave_height_list.append(self.buffer_wave_height.popleft())
-            while self.buffer_earth_east_1:
-                earth_east_1.append(self.buffer_earth_east_1.popleft())
-            while self.buffer_earth_east_2:
-                earth_east_2.append(self.buffer_earth_east_2.popleft())
-            while self.buffer_earth_east_3:
-                earth_east_3.append(self.buffer_earth_east_3.popleft())
-            while self.buffer_earth_north_1:
-                earth_north_1.append(self.buffer_earth_north_1.popleft())
-            while self.buffer_earth_north_2:
-                earth_north_2.append(self.buffer_earth_north_2.popleft())
-            while self.buffer_earth_north_3:
-                earth_north_3.append(self.buffer_earth_north_3.popleft())
-
-            new_data = {'date': date_list,
-                        'wave_height': wave_height_list,
-                        'earth_east_1': earth_east_1,
-                        'earth_east_2': earth_east_2,
-                        'earth_east_3': earth_east_3,
-                        'earth_north_1': earth_north_1,
-                        'earth_north_2': earth_north_2,
-                        'earth_north_3': earth_north_3}
-            self.cds.stream(new_data)
-
-    def update_dashboard(self, avg_df):
-        """
-        Dataframe columns: ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "blank", "bin_size", "value"]
-
-        :param avg_df:
-        :return:
-        """
-        #print(avg_df.tail())
-
-        # Wave Height and Datetime
-        self.get_wave_height_list(avg_df, self.buffer_wave_height, self.buffer_datetime)
-
-        # Selected bins
-        bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
-        bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
-        bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
-
-        # Earth Velocity
-        self.get_earth_vel_list(avg_df, bin_1, 0, self.buffer_earth_east_1)
-        self.get_earth_vel_list(avg_df, bin_2, 0, self.buffer_earth_east_2)
-        self.get_earth_vel_list(avg_df, bin_3, 0, self.buffer_earth_east_3)
-        self.get_earth_vel_list(avg_df, bin_1, 1, self.buffer_earth_north_1)
-        self.get_earth_vel_list(avg_df, bin_2, 1, self.buffer_earth_north_2)
-        self.get_earth_vel_list(avg_df, bin_3, 1, self.buffer_earth_north_3)
-
-        """ 
-        while self.buffer_voltage:
-            voltage_list.append(self.buffer_voltage.popleft())
-            date_list.append(self.buffer_datetime.popleft())
-        while self.buffer_heading:
-            heading_list.append(self.buffer_heading.popleft())
-        while self.buffer_wave_height:
-            wave_height_list.append(self.buffer_wave_height.popleft())
-        while self.buffer_earth_east_1:
-            earth_east_1.append(self.buffer_earth_east_1.popleft())
-        while self.buffer_earth_east_2:
-            earth_east_2.append(self.buffer_earth_east_2.popleft())
-        while self.buffer_earth_east_3:
-            earth_east_3.append(self.buffer_earth_east_3.popleft())
-        while self.buffer_earth_north_1:
-            earth_north_1.append(self.buffer_earth_north_1.popleft())
-        while self.buffer_earth_north_2:
-            earth_north_2.append(self.buffer_earth_north_2.popleft())
-        while self.buffer_earth_north_3:
-            earth_north_3.append(self.buffer_earth_north_3.popleft())
-
-        new_data = {'date': date_list,
-                    'wave_height': wave_height_list,
-                    'earth_east_1': earth_east_1,
-                    'earth_east_2': earth_east_2,
-                    'earth_east_3': earth_east_3,
-                    'earth_north_1': earth_north_1,
-                    'earth_north_2': earth_north_2,
-                    'earth_north_3': earth_north_3}
-        self.cds.stream(new_data)
-        """
-
-    def get_wave_height_list(self, avg_df, buffer_wave, buffer_dt):
-        """
-        Add The wave height and datetime data to the buffer.
-        :param avg_df: Dataframe with the latest data.
-        :param buffer_wave: Wave Height Buffer.
-        :param buffer_dt: Datetime Buffer.
-        :return:
-        """
-        # Wave Height and Datetime
-        wave_height_df = avg_df[avg_df.data_type.str.contains("XdcrDepth") &
-                                ((avg_df['ss_code'] == 'A') |      # vertical beam
-                                (avg_df['ss_code'] == 'B') |
-                                (avg_df['ss_code'] == 'C'))]
-        #for index, row in wave_height_df.iterrows():
-        #    buffer_wave.append(row['value'])
-        #    buffer_dt.append(row['datetime'])
-        last_row = wave_height_df.tail(1)
-        if not last_row.empty:
-            buffer_wave.append(last_row['value'].values[0])
-            buffer_dt.append(last_row['datetime'].values[0])
-
-
-    def get_earth_vel_list(self, avg_df, bin_num, beam, buffer):
-        """
-        Get the Earth Velocity data based off the bin and beam given.
-        :param avg_df: Dataframe with earth velocity data.
-        :param bin_num: Bin number to select.
-        :param beam: Beam Number to select
-        :param buffer: Buffer to add data to.
-        :return: List of all the data found in the dataframe
-        """
-
-        earth_vel_df = avg_df.loc[(avg_df.data_type.str.contains("EarthVel")) &
-                                  (avg_df['bin_num'] == bin_num) &
-                                  (avg_df['beam_num'] == beam) &
-                                  (avg_df['ss_code'] != 'A') &      # Not a vertical beam
-                                  (avg_df['ss_code'] != 'B') &
-                                  (avg_df['ss_code'] != 'C')]
-
-        #for index, row in earth_vel_df.iterrows():
-        #    buffer.append(row['value'])
-        last_row = earth_vel_df.tail(1)
-        if not last_row.empty:
-            buffer.append(last_row['value'].values[0])
+        self.plot_data.setup_bokeh_server(doc)
 
     def stream_plot_earth_vel(self, ens):
         """
