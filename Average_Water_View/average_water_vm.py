@@ -9,6 +9,7 @@ from bokeh.palettes import Viridis3, Viridis256, Inferno256
 from bokeh.models import HoverTool
 from .average_water_thread import AverageWaterThread
 from .plot_average_data import PlotAverageData
+from .plot_hv_average_data import PlotHvAverageData
 import math
 from . import average_water_view
 from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
@@ -61,6 +62,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         # Create the plots
         self.plot_data = PlotAverageData(rti_config)
+        #self.plot_data = PlotHvAverageData(rti_config)
 
         self.wave_height_html_file = self.average_thread.wave_height_html_file
         self.earth_east_vel_html_file = self.average_thread.earth_east_vel_html_file

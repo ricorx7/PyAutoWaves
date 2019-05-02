@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QMessageBox
+from PyQt5.QtWidgets import QWidget, QMessageBox, QShortcut
 from PyQt5.QtCore import QThread, pyqtSlot, QObject, pyqtSignal
 from . import terminal_view
 import rti_python.Comm.adcp_serial_port as adcp_serial
@@ -74,6 +74,9 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         Initialize the display.
         :return:
         """
+        self.recordPushButton.setStyleSheet("background: #893624")
+        self.sendCmdPushButton.setShortcut("Return")
+
         # Set the serial port list and baud list
         self.update_serial_list()
         self.serialPortComboBox.setToolTip("If no serial ports are list, make sure it is available and click the scan button to update the serial port list.")
