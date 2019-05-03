@@ -342,6 +342,8 @@ class AutoWavesManager:
         # RTB ensemble delimiter
         DELIMITER = b'\x80' * 16
 
+        BLOCK_SIZE = 4096
+
         # Create a buffer
         buff = bytes()
 
@@ -355,7 +357,7 @@ class AutoWavesManager:
             # for chunk in iter(lambda: f.read(4096), b''):
             #    self.adcp_codec.add(chunk)
 
-            data = f.read(4096)  # Read in data
+            data = f.read(BLOCK_SIZE)  # Read in data
 
             while data:                                                 # Verify data was found
                 buff += data                                            # Accumulate the buffer
@@ -366,7 +368,7 @@ class AutoWavesManager:
                     for chunk in chunks:                                # Take out the ens data
                         self.process_playback_ens(DELIMITER + chunk)    # Process the binary ensemble data
 
-                data = f.read(4096)  # Read the next batch of data
+                data = f.read(BLOCK_SIZE)  # Read the next batch of data
 
                 # Check if we need to shutdown
                 if not self.ens_thread_alive:
