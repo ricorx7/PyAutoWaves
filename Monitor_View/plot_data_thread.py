@@ -10,6 +10,7 @@ import logging
 from threading import Event
 from collections import deque
 from bokeh.io import save, output_file
+import ntpath
 
 
 class PlotDataThread(QThread):
@@ -312,3 +313,61 @@ class PlotDataThread(QThread):
 
         # plt.show()
         plt.savefig(self.earth_vel_html_file + ".png")
+
+    @staticmethod
+    def plot_data_from_file(csv_file_path, rti_config):
+        """
+        Generate plots from the CSV file selected.
+        :param csv_file_path: CSV file to generate the plots.
+        :param rti_config: RTI Config to get the settings.
+        :return:
+        """
+        if os.path.exists(csv_file_path):
+            # Read in the CSV data of the average data
+            avg_df = pd.read_csv(csv_file_path)
+
+            # Set the datetime column values as datetime values
+            avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
+
+            # Sort the data by date and time
+            avg_df.sort_values(by=['datetime'], inplace=True)
+
+            # Get the CSV file name without the extension and root dir
+            head, tail = ntpath.split(csv_file_path)
+            file_name_w_ext = tail or ntpath.basename(head)
+            csv_file_name = os.path.splitext(file_name_w_ext)[0]
+
+            wave_height_html_file = rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight_" + csv_file_name + ".html"
+            earth_east_vel_html_file = rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel_East_" + csv_file_name + ".html"
+            earth_north_vel_html_file = rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel_North_" + csv_file_name + ".html"
+            mag_html_file = rti_config.config['AWC']['output_dir'] + os.sep + "Magnitude_" + csv_file_name + ".html"
+            dir_html_file = rti_config.config['AWC']['output_dir'] + os.sep + "Direction_" + csv_file_name + ".html"
+
+            # Display the data
+            thread_wave_height_display = PlotDataThread(rti_config, PlotDataThread.PLOT_TYPE_WAVE_HEIGHT, wave_height_html_file)
+            thread_wave_height_display.start()
+
+            thread_earth_east_display = PlotDataThread(rti_config, PlotDataThread.PLOT_TYPE_EARTH_EAST, earth_east_vel_html_file)
+            thread_earth_east_display.start()
+
+            thread_earth_north_display = PlotDataThread(rti_config, PlotDataThread.PLOT_TYPE_EARTH_NORTH, earth_north_vel_html_file)
+            thread_earth_north_display.start()
+
+            thread_mag_display = PlotDataThread(rti_config, PlotDataThread.PLOT_TYPE_MAG, mag_html_file)
+            thread_mag_display.start()
+
+            thread_dir_display = PlotDataThread(rti_config, PlotDataThread.PLOT_TYPE_DIR, dir_html_file)
+            thread_dir_display.start()
+
+            # Add the data to the plot threads
+            thread_wave_height_display.add(avg_df)
+            thread_earth_east_display.add(avg_df)
+            thread_earth_north_display.add(avg_df)
+            thread_mag_display.add(avg_df)
+            thread_dir_display.add(avg_df)
+
+            #hread_wave_height_display.shutdown()
+            #thread_earth_east_display.shutdown()
+            #thread_earth_north_display.shutdown()
+            #thread_mag_display.shutdown()
+            #thread_dir_display.shutdown()

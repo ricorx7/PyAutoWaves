@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QFileSystemModel
+from PyQt5.QtWidgets import QWidget, QFileSystemModel, QMessageBox
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QModelIndex
 from PyQt5 import QtGui, QtWidgets, QtCore
 from . import monitor_view
@@ -6,6 +6,8 @@ from . import wavedata_vm
 import logging
 import os
 from rti_python.Utilities.config import RtiConfig
+import pathlib
+from . import plot_data_thread
 
 
 class MonitorVM(monitor_view.Ui_Monitor, QWidget):
@@ -36,7 +38,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         self.increment_burst_value.connect(self.increment_burst_progress)       # Connect signal and slot
         self.increment_avg_value.connect(self.increment_avg_progress)           # Connect signal and slot
         self.set_file_path_sig.connect(self.set_file_tree_path)                 # Signal when output folder path changed
-        self.waveFileTreeView.doubleClicked.connect(self.wave_file_selected)    # Connect when tree view item double clicked
+        self.waveFileTreeView.doubleClicked.connect(self.file_selected)    # Connect when tree view item double clicked
         self.refresh_file_tree_sig.connect(self.refresh_file_tree)
 
         self.init_display()
@@ -144,12 +146,24 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
     def set_file_tree_path(self, folder_path):
         self.waveFileTreeView.setRootIndex(self.file_system_model.setRootPath(folder_path))
 
-    def wave_file_selected(self, index):
+    def file_selected(self, index):
         item = self.waveFileTreeView.selectedIndexes()[0]
         logging.debug("Selected Index in wave data tree: " + item.model().filePath(index))
-        self.open_dialog(item.model().filePath(index))
 
-    def open_dialog(self, file_path):
+        # Get file extension of file selected
+        extension = pathlib.Path(item.model().filePath(index)).suffix
+
+        if extension == ".mat":
+            self.open_waves_dialog(item.model().filePath(index))
+        elif extension == ".csv":
+            self.plot_csv(item.model().filePath(index))
+        else:
+            QMessageBox.question(self,
+                                 'Error Opening file',
+                                 "Only MATLAB Waves file and CSV files can be opened and displayed.\nAll other files cannot be viewed.",
+                                 QMessageBox.Ok)
+
+    def open_waves_dialog(self, file_path):
         wave_data_dialog = wavedata_vm.WaveDataVM(self.parent, file_path)
         docked_wave_data_dialog = QtWidgets.QDockWidget("Waves Data: " + file_path, self)
         docked_wave_data_dialog.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
@@ -161,3 +175,7 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
         docked_wave_data_dialog.setFloating(True)
         docked_wave_data_dialog.resize(400, 300)
 
+    def plot_csv(self, csv_file):
+        logging.debug("Plotting CSV file: " + csv_file)
+        plot_data_thread.PlotDataThread.plot_data_from_file(csv_file, self.rti_config)
+        logging.debug("Plotting CSV file complete")

@@ -14,7 +14,7 @@ from holoviews import opts, dim, Palette
 hv.extension('bokeh')
 import time
 import matplotlib.pyplot as plt
-from . import plot_data_thread, plot_earth_vel_east_thread, plot_earth_vel_north_thread
+#from . import plot_data_thread, plot_earth_vel_east_thread, plot_earth_vel_north_thread
 import ntpath
 
 
@@ -58,37 +58,13 @@ class AverageWaterThread(QThread):
         self.avg_counter = 0
 
         self.df_columns = ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "blank", "bin_size", "value"]
-        self.awc_df = pd.DataFrame()
-
-        self.thread_wave_height_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_WAVE_HEIGHT, self.wave_height_html_file)
-        self.thread_wave_height_display.refresh_web_view_sig.connect(self.update_wave_height_plot)
-        self.thread_wave_height_display.start()
-
-        self.thread_earth_east_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_EARTH_EAST, self.earth_east_vel_html_file)
-        self.thread_earth_east_display.refresh_web_view_sig.connect(self.update_earth_east_vel_plot)
-        self.thread_earth_east_display.start()
-
-        self.thread_earth_north_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_EARTH_NORTH, self.earth_north_vel_html_file)
-        self.thread_earth_north_display.refresh_web_view_sig.connect(self.update_earth_north_vel_plot)
-        self.thread_earth_north_display.start()
-
-        self.thread_mag_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_MAG, self.mag_html_file)
-        self.thread_mag_display.refresh_web_view_sig.connect(self.update_mag_plot)
-        self.thread_mag_display.start()
-
-        self.thread_dir_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_DIR, self.dir_html_file)
-        self.thread_dir_display.refresh_web_view_sig.connect(self.update_dir_plot)
-        self.thread_dir_display.start()
+        #self.awc_df = pd.DataFrame()
 
     def shutdown(self):
         self.thread_alive = False
         self.event.set()
 
-        self.thread_wave_height_display.shutdown()
-        self.thread_earth_east_display.shutdown()
-        self.thread_earth_north_display.shutdown()
-        self.thread_mag_display.shutdown()
-        self.thread_dir_display.shutdown()
+
 
     def update_earth_east_vel_plot(self):
         self.refresh_earth_east_vel_web_view_sig.emit()
@@ -136,7 +112,7 @@ class AverageWaterThread(QThread):
             self.awc_dict[awc_key].reset()
 
         # Clear the dataframe
-        self.awc_df = pd.DataFrame(columns=self.awc_df.columns)
+        #self.awc_df = pd.DataFrame(columns=self.awc_df.columns)
 
     def run(self):
         """
@@ -226,6 +202,7 @@ class AverageWaterThread(QThread):
             # Average the data
             awc_average = self.awc_dict[awc_key].average()
 
+            # Generate the CSV date for the file
             csv_data, df_data = self.generate_csv_data(awc_average, awc_key)
 
             # Update CSV file
@@ -233,21 +210,25 @@ class AverageWaterThread(QThread):
 
             # Update the dataframe
             df = pd.DataFrame(df_data, columns=self.df_columns)
-            if self.awc_df.empty:
-                self.awc_df = df
-                self.awc_df['datetime'] = pd.to_datetime(self.awc_df['datetime'])
+            if accum_df.empty:
+                #self.awc_df = df
+                #self.awc_df['datetime'] = pd.to_datetime(self.awc_df['datetime'])
 
                 accum_df = df
                 accum_df['datetime'] = pd.to_datetime(accum_df['datetime'])
             else:
-                self.awc_df = self.awc_df.append(df)
+                #self.awc_df = self.awc_df.append(df)
                 accum_df = accum_df.append(df)
+
+        # Create the plot from the CSV file
+        # The CSV file is complete
+        #self.display_data_from_file(self.csv_file_path)
 
         # Reset the counter
         self.avg_counter = 0
 
         # Sort the data by date and time
-        self.awc_df.sort_values(by=['datetime'], inplace=True)
+        accum_df.sort_values(by=['datetime'], inplace=True)
 
         # Emit signal that average taken
         # so file list can be updated
@@ -271,53 +252,6 @@ class AverageWaterThread(QThread):
         self.thread_earth_north_display.add(self.awc_df)
         self.thread_mag_display.add(self.awc_df)
         self.thread_dir_display.add(self.awc_df)
-
-    def display_data_from_file(self, csv_file_path):
-        """
-        Generate plots from the CSV file selected.
-        :param csv_file_path: CSV file to generate the plots.
-        :return:
-        """
-        # Read in the CSV data of the average data
-        avg_df = pd.read_csv(csv_file_path)
-
-        # Set the datetime column values as datetime values
-        avg_df['datetime'] = pd.to_datetime(avg_df['datetime'])
-
-        # Sort the data by date and time
-        avg_df.sort_values(by=['datetime'], inplace=True)
-
-        # Get the CSV file name without the extension and root dir
-        csv_file_name = self.get_file_name(csv_file_path)
-
-        wave_height_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "WaveHeight" + csv_file_name + ".html"
-        earth_east_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel_East" + csv_file_name + ".html"
-        earth_north_vel_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "EarthVel_North" + csv_file_name + ".html"
-        mag_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Magnitude" + csv_file_name + ".html"
-        dir_html_file = self.rti_config.config['AWC']['output_dir'] + os.sep + "Direction" + csv_file_name + ".html"
-
-        # Display the data
-        thread_wave_height_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_WAVE_HEIGHT, wave_height_html_file)
-        thread_wave_height_display.start()
-
-        thread_earth_east_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_EARTH_EAST, earth_east_vel_html_file)
-        thread_earth_east_display.start()
-
-        thread_earth_north_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_EARTH_NORTH, earth_north_vel_html_file)
-        thread_earth_north_display.start()
-
-        thread_mag_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_MAG, mag_html_file)
-        thread_mag_display.start()
-
-        thread_dir_display = plot_data_thread.PlotDataThread(self.rti_config, plot_data_thread.PlotDataThread.PLOT_TYPE_DIR, dir_html_file)
-        thread_dir_display.start()
-
-        # Add the data to the plot threads
-        thread_wave_height_display.add(avg_df)
-        thread_earth_east_display.add(avg_df)
-        thread_earth_north_display.add(avg_df)
-        thread_mag_display.add(avg_df)
-        thread_dir_display.add(avg_df)
 
     def get_file_name(self, path):
         """
@@ -476,6 +410,11 @@ class AverageWaterThread(QThread):
         /path/to/A00002.csv
         :return:
         """
+        # Flag if a new file was created
+        # If a new file is created, then the average file should create the plots
+        new_file_flag = False
+        csv_index_prev_file = self.csv_file_index
+
         # Get the max file size in bytes
         max_file_size = int(self.rti_config.config['AWC']['max_file_size']) * 1048576
 
@@ -483,10 +422,12 @@ class AverageWaterThread(QThread):
         # Create a new file if hour exceeds the limit
         csv_max_hours = float(self.rti_config.config['AWC']['csv_max_hours'])
         csv_dt = datetime.timedelta(hours=csv_max_hours)
-        #if csv_max_hours < 1:
-        #    csv_dt = datetime.timedelta(minutes=(csv_max_hours * 60))
 
         if datetime.datetime.now() > self.csv_creation_date + csv_dt:
+            # Flag that a new file is being created
+            new_file_flag = True
+            csv_index_prev_file = self.csv_file_index
+
             # Create a new file
             self.csv_file_index += 1
 
@@ -495,10 +436,14 @@ class AverageWaterThread(QThread):
 
         # Look if the file exist, if it does, make sure it is less than max file size
         while os.path.isfile(file_path) and os.path.getsize(file_path) >= max_file_size:
+            new_file_flag = True
+            csv_index_prev_file = self.csv_file_index
+
+            # Create new file path
             self.csv_file_index += 1
             file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + "A" + str(self.csv_file_index).zfill(5) + self.CSV_FILE_EXT
 
-        # If the file des not exist, create it
+        # If the file does not exist, create it
         if not os.path.exists(file_path):
             header = ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "bin_depth", "value"]
 
@@ -509,5 +454,11 @@ class AverageWaterThread(QThread):
 
                 # Set the creation time
                 self.csv_creation_date = datetime.datetime.now()
+
+        # Create the plots from the old
+        #if new_file_flag:
+        #    old_file_path = self.rti_config.config['AWC']['output_dir'] + os.sep + "A" + str(csv_index_prev_file).zfill(5) + self.CSV_FILE_EXT
+        #    thread_plots_csv = Thread(target=self.display_data_from_file, args=[old_file_path, ])
+        #    thread_plots_csv.start()
 
         return file_path

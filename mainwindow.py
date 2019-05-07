@@ -115,7 +115,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         mainMenu = self.menuBar()
         fileMenu = mainMenu.addMenu('File')
-        avgMenu = mainMenu.addMenu('Average Water')
+        #avgMenu = mainMenu.addMenu('Average Water')
         setupMenu = mainMenu.addMenu('Setup')
 
         playbackButton = QAction(QIcon('exit24.png'), 'Playback', self)
@@ -146,31 +146,31 @@ class MainWindow(QtWidgets.QMainWindow):
         waveHeightPlotButton.setShortcut('Ctrl+H')
         waveHeightPlotButton.setStatusTip('Average Water Height Plot')
         waveHeightPlotButton.triggered.connect(self.display_wave_height_plot_view)
-        avgMenu.addAction(waveHeightPlotButton)
+        #avgMenu.addAction(waveHeightPlotButton)
 
         eastVelPlotButton = QAction(QIcon('exit24.png'), 'East Velocity Plot', self)
         eastVelPlotButton.setShortcut('Ctrl+E')
         eastVelPlotButton.setStatusTip('Earth Velocity [East] Plot ')
         eastVelPlotButton.triggered.connect(self.display_east_vel_plot_view)
-        avgMenu.addAction(eastVelPlotButton)
+        #avgMenu.addAction(eastVelPlotButton)
 
         northVelPlotButton = QAction(QIcon('exit24.png'), 'North Velocity Plot', self)
         northVelPlotButton.setShortcut('Ctrl+N')
         northVelPlotButton.setStatusTip('Earth Velocity [North] Plot ')
         northVelPlotButton.triggered.connect(self.display_north_vel_plot_view)
-        avgMenu.addAction(northVelPlotButton)
+        #avgMenu.addAction(northVelPlotButton)
 
         magVelPlotButton = QAction(QIcon('exit24.png'), 'Velocity Magnitude Plot', self)
         magVelPlotButton.setShortcut('Ctrl+N')
         magVelPlotButton.setStatusTip('Velocity Magnitude Plot ')
         magVelPlotButton.triggered.connect(self.display_mag_plot_view)
-        avgMenu.addAction(magVelPlotButton)
+        #avgMenu.addAction(magVelPlotButton)
 
         dirVelPlotButton = QAction(QIcon('exit24.png'), 'Water Direction Plot', self)
         dirVelPlotButton.setShortcut('Ctrl+N')
         dirVelPlotButton.setStatusTip('Water Direction Plot ')
         dirVelPlotButton.triggered.connect(self.display_dir_plot_view)
-        avgMenu.addAction(dirVelPlotButton)
+        #avgMenu.addAction(dirVelPlotButton)
 
         # Show the main window
         self.show()
