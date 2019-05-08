@@ -7,7 +7,7 @@ import logging
 import os
 from rti_python.Utilities.config import RtiConfig
 import pathlib
-from . import plot_data_thread
+from . import plot_altair_data_thread
 
 
 class MonitorVM(monitor_view.Ui_Monitor, QWidget):
@@ -177,5 +177,5 @@ class MonitorVM(monitor_view.Ui_Monitor, QWidget):
 
     def plot_csv(self, csv_file):
         logging.debug("Plotting CSV file: " + csv_file)
-        plot_data_thread.PlotDataThread.plot_data_from_file(csv_file, self.rti_config)
+        plot_altair_data_thread.PlotDataThread.plot_data_from_file(csv_file, self.rti_config)
         logging.debug("Plotting CSV file complete")
