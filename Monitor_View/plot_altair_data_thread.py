@@ -117,7 +117,8 @@ class PlotDataThread(QThread):
 
         plot = alt.Chart(selected_avg_df).mark_line().encode(
             alt.X('datetime:T', title='Date'),
-            alt.Y('value:Q', title='Height (m)')
+            alt.Y('value:Q', title='Height (m)'),
+            tooltip=['datetime:T', 'value:Q']
         ).properties(title="Wave Height",
                      width=800,
                      height=600).interactive()
@@ -146,7 +147,8 @@ class PlotDataThread(QThread):
         plot = alt.Chart(selected_avg_df).mark_line().encode(
             alt.X('datetime:T', title='Date'),
             alt.Y('value:Q', title='Velocity (m/s)'),
-            color='bin_num:N'
+            color='bin_num:N',
+            tooltip=['datetime:T', 'value:Q']
         ).properties(title="Earth Velocity East",
                      width=800,
                      height=600).interactive()
@@ -175,7 +177,8 @@ class PlotDataThread(QThread):
         plot = alt.Chart(selected_avg_df).mark_line().encode(
             alt.X('datetime:T', title='Date'),
             alt.Y('value:Q', title='Velocity (m/s)'),
-            color='bin_num:N'
+            color='bin_num:N',
+            tooltip=['datetime:T', 'value:Q', 'bin_num:N']
         ).properties(title="Earth Velocity North",
                      width=800,
                      height=600).interactive()
@@ -204,7 +207,8 @@ class PlotDataThread(QThread):
         plot = alt.Chart(selected_avg_df).mark_line().encode(
             alt.X('datetime:T', title='Date'),
             alt.Y('value:Q', title='Velocity (m/s)'),
-            color='bin_num:N'
+            color='bin_num:N',
+            tooltip=['datetime:T', 'value:Q', 'bin_num:N']
         ).properties(title="Water Velocity Magnitude",
                      width=800,
                      height=600).interactive()
@@ -233,7 +237,8 @@ class PlotDataThread(QThread):
         plot = alt.Chart(selected_avg_df).mark_line().encode(
             alt.X('datetime:T', title='Date'),
             alt.Y('value:Q', title='Direction (degrees)'),
-            color='bin_num:N'
+            color='bin_num:N',
+            tooltip=['datetime:T', 'value:Q', 'bin_num:N']
         ).properties(title="Water Direction",
                      width=800,
                      height=600).interactive()
