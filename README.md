@@ -34,6 +34,12 @@ pyuic5 -x file.ui > -o file.py
 ```
 
 # Create PyAutoWaves application
+
+Add the following line to venv\Lib\site-packages\PyInstaller\hooks\hook-jsonschema.py
+```bash
+datas += copy_metadata('jsonschema')
+```
+
 OSX
 ```javascript
 pyinstaller Predictr_installer_OSX.spec
