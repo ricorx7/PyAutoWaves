@@ -37,6 +37,7 @@ pyuic5 -x file.ui > -o file.py
 
 Add the following line to venv\Lib\site-packages\PyInstaller\hooks\hook-jsonschema.py
 ```bash
+import ..., copy_metadata
 datas += copy_metadata('jsonschema')
 ```
 
