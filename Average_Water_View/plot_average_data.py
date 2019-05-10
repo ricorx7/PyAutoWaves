@@ -16,6 +16,10 @@ from bokeh.layouts import row, column, gridplot, layout, grid
 
 
 class PlotAverageData:
+    """
+    The data will be averaged and saved to a CSV file.  This
+    will also plot the averaged data live to a web browser.
+    """
 
     def __init__(self, rti_config):
 
@@ -302,7 +306,6 @@ class PlotAverageData:
         self.get_dir_list(avg_df, bin_1, self.buffer_dir_1)
         self.get_dir_list(avg_df, bin_2, self.buffer_dir_2)
         self.get_dir_list(avg_df, bin_3, self.buffer_dir_3)
-
 
     def get_wave_height_list(self, avg_df, buffer_wave, buffer_dt):
         """

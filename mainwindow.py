@@ -12,6 +12,8 @@ import rti_python.Utilities.logger as RtiLogging
 RtiLogging.RtiLogger.setup_custom_logger(log_level=logging.WARNING)
 import asyncio
 from bokeh.server.server import Server
+from bokeh.application import Application
+from bokeh.application.handlers import FunctionHandler
 import autowaves_manger
 # import qdarkstyle
 # import images_qr
@@ -35,6 +37,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rti_config.init_average_waves_config()
         self.rti_config.init_terminal_config()
         self.rti_config.init_waves_config()
+        self.rti_config.init_plot_server_config()
+
+        self.bokeh_app = None
 
         # Initialize Monitor
         self.Monitor = MonitorVM(self, self.rti_config)
@@ -74,14 +79,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.docked_avg_water.setVisible(False)
 
         # Start Event Loop needed for server
-        asyncio.set_event_loop(asyncio.new_event_loop())
+        #asyncio.set_event_loop(asyncio.new_event_loop())
 
         # Setting num_procs here means we can't touch the IOLoop before now, we must
         # let Server handle that. If you need to explicitly handle IOLoops then you
         # will need to use the lower level BaseServer class.
         #self.server = Server({'/': self.AvgWater.setup_bokeh_server})
-        apps = {'/': self.AvgWater.setup_bokeh_server}
-        self.server = Server(apps, port=5001)
+        #apps = {'/': self.AvgWater.setup_bokeh_server}
+        #handler = FunctionHandler(self.AvgWater.setup_bokeh_server)
+        #app = Application(handler)
+        apps = {'/': self.get_bokeh_app()}
+
+        bokeh_port = int(self.rti_config.config['PLOT']['PORT'])
+        bokeh_ip = self.rti_config.config['PLOT']['IP']
+        websocket_allow = bokeh_ip + ":" + str(bokeh_port)
+        self.server = Server(apps, port=bokeh_port, address=bokeh_ip, allow_websocket_origin=[websocket_allow])
         self.server.start()
         self.server.show('/')
 
@@ -105,9 +117,20 @@ class MainWindow(QtWidgets.QMainWindow):
         t = Thread(target=loop.start, daemon=True)
         t.start()
 
+    def get_bokeh_app(self):
+        """
+        Generate a single instance of the bokeh app.
+        :return: Bokeh app created.
+        """
+        if self.bokeh_app is None:
+            handler = FunctionHandler(self.AvgWater.setup_bokeh_server)
+            self.bokeh_app = Application(handler)
+
+        return self.bokeh_app
+
     def main_window_init(self):
         # Set the title of the window
-        self.setWindowTitle("Rowe Technologies Inc. - AutoWaves Monitor v1.3")
+        self.setWindowTitle("Rowe Technologies Inc. - AutoWaves Monitor v1.4")
 
         self.setWindowIcon(QtGui.QIcon(":rti.ico"))
 
