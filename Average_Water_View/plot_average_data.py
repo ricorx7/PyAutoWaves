@@ -194,8 +194,12 @@ class PlotAverageData:
 
         #plot_layout = grid([self.plot_range, None, self.plot_earth_east, self.plot_earth_north], ncols=2)
 
+        callback_rate = 2500
+        if int(self.rti_config.config['PLOT']['RATE']) > 1000:
+            callback_rate = int(self.rti_config.config['PLOT']['RATE'])
+
         doc.add_root(plot_layout)
-        doc.add_periodic_callback(self.update_live_plot, 2500)
+        doc.add_periodic_callback(self.update_live_plot, callback_rate)
         doc.title = "ADCP Dashboard"
 
     def update_live_plot(self):
