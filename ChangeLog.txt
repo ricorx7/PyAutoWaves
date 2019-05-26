@@ -1,5 +1,9 @@
 PyAutoWaves ChangeLog
 
+PyAutoWaves 1.5
+ - Fix live plotting by making it a thread
+ - Added option in Config to turn off live plotting
+
 PyAutoWaves 1.4
  - Allow the user to open multiple web browsers to view the live data.
  - Allow the user to view the live data from other computers.

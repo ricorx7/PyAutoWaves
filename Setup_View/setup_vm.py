@@ -103,7 +103,7 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.isVerticalDataCheckBox.stateChanged.connect(self.update_settings)
 
         self.numAvgEnsSpinBox.setValue(int(self.rti_config.config['AWC']['num_ensembles']))
-        self.numAvgEnsSpinBox.setToolTip("Set the number of ensembles to average together.")
+        self.numAvgEnsSpinBox.setToolTip("Set the number of ensembles to average together.  It is suggested you stay above 100 ensembles or 2.5 seconds per average.")
         self.numAvgEnsSpinBox.valueChanged.connect(self.update_settings)
 
         self.avgFileTimeDoubleSpinBox.setValue(float(self.rti_config.config['AWC']['csv_max_hours']))

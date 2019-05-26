@@ -95,7 +95,10 @@ class MainWindow(QtWidgets.QMainWindow):
         websocket_allow = bokeh_ip + ":" + str(bokeh_port)
         self.server = Server(apps, port=bokeh_port, address=bokeh_ip, allow_websocket_origin=[websocket_allow])
         self.server.start()
-        self.server.show('/')
+
+        # Only display the webpage if enabled
+        if self.rti_config.config.getboolean('PLOT', 'LIVE'):
+            self.server.show('/')
 
         #thread = Thread(target=self.start_bokeh_server)
         #thread.start()
@@ -130,7 +133,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def main_window_init(self):
         # Set the title of the window
-        self.setWindowTitle("Rowe Technologies Inc. - AutoWaves Monitor v1.4")
+        self.setWindowTitle("Rowe Technologies Inc. - AutoWaves Monitor v1.5")
 
         self.setWindowIcon(QtGui.QIcon(":rti.ico"))
 

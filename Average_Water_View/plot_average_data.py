@@ -13,6 +13,7 @@ pn.extension()
 from bokeh.plotting import figure, ColumnDataSource
 from collections import deque
 from bokeh.layouts import row, column, gridplot, layout, grid
+import time
 
 
 class PlotAverageData:
@@ -194,7 +195,7 @@ class PlotAverageData:
         #plot_layout = grid([self.plot_range, None, self.plot_earth_east, self.plot_earth_north], ncols=2)
 
         doc.add_root(plot_layout)
-        doc.add_periodic_callback(self.update_live_plot, 500)
+        doc.add_periodic_callback(self.update_live_plot, 2500)
         doc.title = "ADCP Dashboard"
 
     def update_live_plot(self):
@@ -286,7 +287,9 @@ class PlotAverageData:
         """
 
         # Wave Height and Datetime
+        #w_s = time.process_time()
         self.get_wave_height_list(avg_df, self.buffer_wave_height, self.buffer_datetime)
+        #print("Wave : " + str(time.process_time() - w_s))
 
         # Selected bins
         bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
@@ -294,18 +297,42 @@ class PlotAverageData:
         bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
 
         # Earth Velocity
+        #e1_s = time.process_time()
         self.get_earth_vel_list(avg_df, bin_1, 0, self.buffer_earth_east_1)
+        #print("Earth East 1: " + str(time.process_time() - e1_s))
+        #e2_s = time.process_time()
         self.get_earth_vel_list(avg_df, bin_2, 0, self.buffer_earth_east_2)
+        #print("Earth East 2: " + str(time.process_time() - e2_s))
+        #e3_s = time.process_time()
         self.get_earth_vel_list(avg_df, bin_3, 0, self.buffer_earth_east_3)
+        #print("Earth East 3: " + str(time.process_time() - e3_s))
+        #en1_s = time.process_time()
         self.get_earth_vel_list(avg_df, bin_1, 1, self.buffer_earth_north_1)
+        #print("Earth North 1: " + str(time.process_time() - en1_s))
+        #en2_s = time.process_time()
         self.get_earth_vel_list(avg_df, bin_2, 1, self.buffer_earth_north_2)
+        #print("Earth North 2: " + str(time.process_time() - en2_s))
+        #en3_s = time.process_time()
         self.get_earth_vel_list(avg_df, bin_3, 1, self.buffer_earth_north_3)
+        #print("Earth North 3: " + str(time.process_time() - en3_s))
+        #mag1_s = time.process_time()
         self.get_mag_list(avg_df, bin_1, self.buffer_mag_1)
+        #print("Mag 1: " + str(time.process_time() - mag1_s))
+        #mag2_s = time.process_time()
         self.get_mag_list(avg_df, bin_2, self.buffer_mag_2)
+        #print("Mag 2: " + str(time.process_time() - mag2_s))
+        #mag3_s = time.process_time()
         self.get_mag_list(avg_df, bin_3, self.buffer_mag_3)
+        #print("Mag 3: " + str(time.process_time() - mag3_s))
+        #dir1_s = time.process_time()
         self.get_dir_list(avg_df, bin_1, self.buffer_dir_1)
+        #print("Dir 1: " + str(time.process_time() - dir1_s))
+        #dir2_s = time.process_time()
         self.get_dir_list(avg_df, bin_2, self.buffer_dir_2)
+        #print("Dir 2: " + str(time.process_time() - dir2_s))
+        #dir3_s = time.process_time()
         self.get_dir_list(avg_df, bin_3, self.buffer_dir_3)
+        #print("Dir 3: " + str(time.process_time() - dir3_s))
 
     def get_wave_height_list(self, avg_df, buffer_wave, buffer_dt):
         """

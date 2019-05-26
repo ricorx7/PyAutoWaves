@@ -64,6 +64,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Create the plots
         #self.plot_data = PlotAverageData(rti_config)
         self.plot_data = BokehPlotManager(rti_config)
+        self.plot_data.start()
         #self.plot_data = PlotHvAverageData(rti_config)
 
         self.wave_height_html_file = self.average_thread.wave_height_html_file
@@ -144,6 +145,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         :return:
         """
         self.average_thread.shutdown()
+        self.plot_data.shutdown()
 
     def increment_ens(self, ens_count):
         self.increment_ens_sig.emit(ens_count)
@@ -152,7 +154,8 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.avg_taken_sig.emit()
 
         # Update the plot
-        self.plot_data.update_dashboard(avg_df)
+        if self.rti_config.config.getboolean('PLOT', 'LIVE'):
+            self.plot_data.update_dashboard(avg_df)
 
     def refresh_wave_height_web_view(self):
         """
