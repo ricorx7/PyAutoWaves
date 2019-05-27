@@ -3,6 +3,7 @@ PyAutoWaves ChangeLog
 PyAutoWaves 1.5
  - Fix live plotting by making it a thread
  - Added option in Config to turn off live plotting
+ - Added a context lock to plot_average_data.
 
 PyAutoWaves 1.4
  - Allow the user to open multiple web browsers to view the live data.

@@ -14,6 +14,7 @@ from bokeh.plotting import figure, ColumnDataSource
 from collections import deque
 from bokeh.layouts import row, column, gridplot, layout, grid
 import time
+from threading import Lock
 
 
 class PlotAverageData:
@@ -55,6 +56,7 @@ class PlotAverageData:
         self.buffer_dir_1 = deque()
         self.buffer_dir_2 = deque()
         self.buffer_dir_3 = deque()
+        self.thread_lock = Lock()
 
     def create_bokeh_plots(self):
         """
@@ -216,69 +218,75 @@ class PlotAverageData:
         :return:
         """
 
-        # Verify that a least one complete dataset has been received
-        if len(self.buffer_datetime) > 0 and len(self.buffer_wave_height) > 0 and len(self.buffer_earth_east_1) > 0 and len(self.buffer_earth_east_2) > 0 and len(self.buffer_earth_east_3) > 0 and len(self.buffer_earth_north_1) > 0 and len(self.buffer_earth_north_2) > 0 and len(self.buffer_earth_north_3) > 0 and len(self.buffer_mag_1) > 0 and len(self.buffer_mag_2) > 0 and len(self.buffer_mag_3) > 0 and len(self.buffer_dir_1) > 0 and len(self.buffer_dir_2) > 0 and len(self.buffer_dir_3) > 0:
+        # Lock the thread so not updating the data while
+        # trying to update the display
+        t = time.process_time()
+        with self.thread_lock:
 
-            date_list = []
-            wave_height_list = []
-            earth_east_1 = []
-            earth_east_2 = []
-            earth_east_3 = []
-            earth_north_1 = []
-            earth_north_2 = []
-            earth_north_3 = []
-            mag_1 = []
-            mag_2 = []
-            mag_3 = []
-            dir_1 = []
-            dir_2 = []
-            dir_3 = []
+            # Verify that a least one complete dataset has been received
+            if len(self.buffer_datetime) > 0 and len(self.buffer_wave_height) > 0 and len(self.buffer_earth_east_1) > 0 and len(self.buffer_earth_east_2) > 0 and len(self.buffer_earth_east_3) > 0 and len(self.buffer_earth_north_1) > 0 and len(self.buffer_earth_north_2) > 0 and len(self.buffer_earth_north_3) > 0 and len(self.buffer_mag_1) > 0 and len(self.buffer_mag_2) > 0 and len(self.buffer_mag_3) > 0 and len(self.buffer_dir_1) > 0 and len(self.buffer_dir_2) > 0 and len(self.buffer_dir_3) > 0:
 
-            while self.buffer_datetime:
-                date_list.append(self.buffer_datetime.popleft())
-            while self.buffer_wave_height:
-                wave_height_list.append(self.buffer_wave_height.popleft())
-            while self.buffer_earth_east_1:
-                earth_east_1.append(self.buffer_earth_east_1.popleft())
-            while self.buffer_earth_east_2:
-                earth_east_2.append(self.buffer_earth_east_2.popleft())
-            while self.buffer_earth_east_3:
-                earth_east_3.append(self.buffer_earth_east_3.popleft())
-            while self.buffer_earth_north_1:
-                earth_north_1.append(self.buffer_earth_north_1.popleft())
-            while self.buffer_earth_north_2:
-                earth_north_2.append(self.buffer_earth_north_2.popleft())
-            while self.buffer_earth_north_3:
-                earth_north_3.append(self.buffer_earth_north_3.popleft())
-            while self.buffer_mag_1:
-                mag_1.append(self.buffer_mag_1.popleft())
-            while self.buffer_mag_2:
-                mag_2.append(self.buffer_mag_2.popleft())
-            while self.buffer_mag_3:
-                mag_3.append(self.buffer_mag_3.popleft())
-            while self.buffer_dir_1:
-                dir_1.append(self.buffer_dir_1.popleft())
-            while self.buffer_dir_2:
-                dir_2.append(self.buffer_dir_2.popleft())
-            while self.buffer_dir_3:
-                dir_3.append(self.buffer_dir_3.popleft())
+                date_list = []
+                wave_height_list = []
+                earth_east_1 = []
+                earth_east_2 = []
+                earth_east_3 = []
+                earth_north_1 = []
+                earth_north_2 = []
+                earth_north_3 = []
+                mag_1 = []
+                mag_2 = []
+                mag_3 = []
+                dir_1 = []
+                dir_2 = []
+                dir_3 = []
 
-            new_data = {'date': date_list,
-                        'wave_height': wave_height_list,
-                        'earth_east_1': earth_east_1,
-                        'earth_east_2': earth_east_2,
-                        'earth_east_3': earth_east_3,
-                        'earth_north_1': earth_north_1,
-                        'earth_north_2': earth_north_2,
-                        'earth_north_3': earth_north_3,
-                        'mag_1': mag_1,
-                        'mag_2': mag_2,
-                        'mag_3': mag_3,
-                        'dir_1': dir_1,
-                        'dir_2': dir_2,
-                        'dir_3': dir_3}
+                while self.buffer_datetime:
+                    date_list.append(self.buffer_datetime.popleft())
+                while self.buffer_wave_height:
+                    wave_height_list.append(self.buffer_wave_height.popleft())
+                while self.buffer_earth_east_1:
+                    earth_east_1.append(self.buffer_earth_east_1.popleft())
+                while self.buffer_earth_east_2:
+                    earth_east_2.append(self.buffer_earth_east_2.popleft())
+                while self.buffer_earth_east_3:
+                    earth_east_3.append(self.buffer_earth_east_3.popleft())
+                while self.buffer_earth_north_1:
+                    earth_north_1.append(self.buffer_earth_north_1.popleft())
+                while self.buffer_earth_north_2:
+                    earth_north_2.append(self.buffer_earth_north_2.popleft())
+                while self.buffer_earth_north_3:
+                    earth_north_3.append(self.buffer_earth_north_3.popleft())
+                while self.buffer_mag_1:
+                    mag_1.append(self.buffer_mag_1.popleft())
+                while self.buffer_mag_2:
+                    mag_2.append(self.buffer_mag_2.popleft())
+                while self.buffer_mag_3:
+                    mag_3.append(self.buffer_mag_3.popleft())
+                while self.buffer_dir_1:
+                    dir_1.append(self.buffer_dir_1.popleft())
+                while self.buffer_dir_2:
+                    dir_2.append(self.buffer_dir_2.popleft())
+                while self.buffer_dir_3:
+                    dir_3.append(self.buffer_dir_3.popleft())
 
-            self.cds.stream(new_data)
+                new_data = {'date': date_list,
+                            'wave_height': wave_height_list,
+                            'earth_east_1': earth_east_1,
+                            'earth_east_2': earth_east_2,
+                            'earth_east_3': earth_east_3,
+                            'earth_north_1': earth_north_1,
+                            'earth_north_2': earth_north_2,
+                            'earth_north_3': earth_north_3,
+                            'mag_1': mag_1,
+                            'mag_2': mag_2,
+                            'mag_3': mag_3,
+                            'dir_1': dir_1,
+                            'dir_2': dir_2,
+                            'dir_3': dir_3}
+
+                self.cds.stream(new_data)
+        print("Update Plot: " + str(time.process_time() - t))
 
     def update_dashboard(self, avg_df):
         """
@@ -290,53 +298,34 @@ class PlotAverageData:
         :return:
         """
 
-        # Wave Height and Datetime
-        #w_s = time.process_time()
-        self.get_wave_height_list(avg_df, self.buffer_wave_height, self.buffer_datetime)
-        #print("Wave : " + str(time.process_time() - w_s))
+        # Lock the thread while trying to update the data
+        # while trying to update the display
+        t = time.process_time()
+        with self.thread_lock:
 
-        # Selected bins
-        bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
-        bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
-        bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+            # Wave Height and Datetime
+            self.get_wave_height_list(avg_df, self.buffer_wave_height, self.buffer_datetime)
 
-        # Earth Velocity
-        #e1_s = time.process_time()
-        self.get_earth_vel_list(avg_df, bin_1, 0, self.buffer_earth_east_1)
-        #print("Earth East 1: " + str(time.process_time() - e1_s))
-        #e2_s = time.process_time()
-        self.get_earth_vel_list(avg_df, bin_2, 0, self.buffer_earth_east_2)
-        #print("Earth East 2: " + str(time.process_time() - e2_s))
-        #e3_s = time.process_time()
-        self.get_earth_vel_list(avg_df, bin_3, 0, self.buffer_earth_east_3)
-        #print("Earth East 3: " + str(time.process_time() - e3_s))
-        #en1_s = time.process_time()
-        self.get_earth_vel_list(avg_df, bin_1, 1, self.buffer_earth_north_1)
-        #print("Earth North 1: " + str(time.process_time() - en1_s))
-        #en2_s = time.process_time()
-        self.get_earth_vel_list(avg_df, bin_2, 1, self.buffer_earth_north_2)
-        #print("Earth North 2: " + str(time.process_time() - en2_s))
-        #en3_s = time.process_time()
-        self.get_earth_vel_list(avg_df, bin_3, 1, self.buffer_earth_north_3)
-        #print("Earth North 3: " + str(time.process_time() - en3_s))
-        #mag1_s = time.process_time()
-        self.get_mag_list(avg_df, bin_1, self.buffer_mag_1)
-        #print("Mag 1: " + str(time.process_time() - mag1_s))
-        #mag2_s = time.process_time()
-        self.get_mag_list(avg_df, bin_2, self.buffer_mag_2)
-        #print("Mag 2: " + str(time.process_time() - mag2_s))
-        #mag3_s = time.process_time()
-        self.get_mag_list(avg_df, bin_3, self.buffer_mag_3)
-        #print("Mag 3: " + str(time.process_time() - mag3_s))
-        #dir1_s = time.process_time()
-        self.get_dir_list(avg_df, bin_1, self.buffer_dir_1)
-        #print("Dir 1: " + str(time.process_time() - dir1_s))
-        #dir2_s = time.process_time()
-        self.get_dir_list(avg_df, bin_2, self.buffer_dir_2)
-        #print("Dir 2: " + str(time.process_time() - dir2_s))
-        #dir3_s = time.process_time()
-        self.get_dir_list(avg_df, bin_3, self.buffer_dir_3)
-        #print("Dir 3: " + str(time.process_time() - dir3_s))
+            # Selected bins
+            bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
+            bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
+            bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+
+            # Earth Velocity
+            self.get_earth_vel_list(avg_df, bin_1, 0, self.buffer_earth_east_1)
+            self.get_earth_vel_list(avg_df, bin_2, 0, self.buffer_earth_east_2)
+            self.get_earth_vel_list(avg_df, bin_3, 0, self.buffer_earth_east_3)
+            self.get_earth_vel_list(avg_df, bin_1, 1, self.buffer_earth_north_1)
+            self.get_earth_vel_list(avg_df, bin_2, 1, self.buffer_earth_north_2)
+            self.get_earth_vel_list(avg_df, bin_3, 1, self.buffer_earth_north_3)
+            self.get_mag_list(avg_df, bin_1, self.buffer_mag_1)
+            self.get_mag_list(avg_df, bin_2, self.buffer_mag_2)
+            self.get_mag_list(avg_df, bin_3, self.buffer_mag_3)
+            self.get_dir_list(avg_df, bin_1, self.buffer_dir_1)
+            self.get_dir_list(avg_df, bin_2, self.buffer_dir_2)
+            self.get_dir_list(avg_df, bin_3, self.buffer_dir_3)
+
+        print("Update Dashboard: " + str(time.process_time() - t))
 
     def get_wave_height_list(self, avg_df, buffer_wave, buffer_dt):
         """
