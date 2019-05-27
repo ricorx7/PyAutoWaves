@@ -220,7 +220,7 @@ class PlotAverageData:
 
         # Lock the thread so not updating the data while
         # trying to update the display
-        t = time.process_time()
+        #t = time.process_time()
         with self.thread_lock:
 
             # Verify that a least one complete dataset has been received
@@ -286,7 +286,7 @@ class PlotAverageData:
                             'dir_3': dir_3}
 
                 self.cds.stream(new_data)
-        print("Update Plot: " + str(time.process_time() - t))
+        #print("Update Plot: " + str(time.process_time() - t))
 
     def update_dashboard(self, avg_df):
         """
@@ -300,7 +300,7 @@ class PlotAverageData:
 
         # Lock the thread while trying to update the data
         # while trying to update the display
-        t = time.process_time()
+        #t = time.process_time()
         with self.thread_lock:
 
             # Wave Height and Datetime
@@ -325,7 +325,7 @@ class PlotAverageData:
             self.get_dir_list(avg_df, bin_2, self.buffer_dir_2)
             self.get_dir_list(avg_df, bin_3, self.buffer_dir_3)
 
-        print("Update Dashboard: " + str(time.process_time() - t))
+        #print("Update Dashboard: " + str(time.process_time() - t))
 
     def get_wave_height_list(self, avg_df, buffer_wave, buffer_dt):
         """
