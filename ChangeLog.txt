@@ -1,5 +1,10 @@
 PyAutoWaves ChangeLog
 
+PyAutoWaves 1.6
+ - Set a max buffer size in the plot_average_data to prevent memory leaks
+ - Added option for buffer size in config for plot_average_data
+ - Check for index error in WaveEnsemble
+
 PyAutoWaves 1.5
  - Fix live plotting by making it a thread
  - Added option in Config to turn off live plotting
