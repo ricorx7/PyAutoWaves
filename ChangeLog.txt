@@ -1,5 +1,8 @@
 PyAutoWaves ChangeLog
 
+PyAutoWaves 1.7
+ - Do not average data if settings set to average 1 ensemble.
+
 PyAutoWaves 1.6
  - Set a max buffer size in the plot_average_data to prevent memory leaks
  - Added option for buffer size in config for plot_average_data

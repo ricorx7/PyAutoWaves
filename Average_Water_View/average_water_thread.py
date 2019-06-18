@@ -135,12 +135,17 @@ class AverageWaterThread(QThread):
                 # Remove the ensemble from the queue
                 ens = self.ens_queue.popleft()
 
-                # Accumulate the water column data
-                self.accumulate_ens(ens)
+                # Check if we need to average
+                if int(self.rti_config.config['AWC']['num_ensembles']) > 1:
+                    # Accumulate the water column data
+                    self.accumulate_ens(ens)
 
-                # Check if it is time to average data
-                if self.avg_counter >= int(self.rti_config.config['AWC']['num_ensembles']):
-                    self.average_and_display()
+                    # Check if it is time to average data
+                    if self.avg_counter >= int(self.rti_config.config['AWC']['num_ensembles']):
+                        self.average_and_display()
+                else:
+                    # Not averaging the data, so just write to CSV and display data
+                    self.no_average_and_display(ens)
 
     def accumulate_ens(self, ens):
         """
@@ -190,6 +195,29 @@ class AverageWaterThread(QThread):
             return str(str(ss_code) + "_" + str(ss_config))
         else:
             return None
+
+    def no_average_and_display(self, ens):
+        """
+        We need to still display the data and write the CSV file, but we are
+        not averaging.  The settings is set to 1 for the number of ensembles
+        to average.
+        :param ens: Ensemble to process.
+        :return:
+        """
+        if ens:
+            # Generate the CSV date for the file
+            csv_data, df_data = self.generate_csv_data_no_avg(ens)
+
+            # Update CSV file
+            self.write_csv_file(csv_data)
+
+            # Create dataframe
+            df = pd.DataFrame(df_data, columns=self.df_columns)
+            df['datetime'] = pd.to_datetime(df['datetime'])
+
+            # Emit signal that average taken
+            # so file list can be updated
+            self.avg_taken_sig.emit(df)
 
     def average_and_display(self):
         """
@@ -315,6 +343,47 @@ class AverageWaterThread(QThread):
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
             csv_rows += csv_row
             df_datas += df_data
+
+        return csv_rows, df_datas
+
+    def generate_csv_data_no_avg(self, ens):
+        """
+        Generate the CSV and Dataframe data from the ensemble.
+        This is only called if the user is not averaging the data.
+        :param ens: Ensemble data
+        :return:
+        """
+        csv_rows = []
+        df_datas = []
+
+        dt = datetime.datetime.now()
+        ss_code = 0
+        ss_config = 0
+        blank = 0.0
+        bin_size = 0.0
+
+        if ens.IsEnsembleData:
+            dt = ens.EnsembleData.datetime()
+            ss_code = ens.EnsembleData.SysFirmwareSubsystemCode
+            ss_config = ens.EnsembleData.SubsystemConfig
+
+        if ens.IsAncillaryData:
+            blank = ens.AncillaryData.FirstBinRange
+            bin_size = ens.AncillaryData.BinSize
+            pressure = ens.AncillaryData.Pressure
+            xdcr_depth = ens.AncillaryData.TransducerDepth
+
+            # Pressure
+            csv_rows.append([Ensemble.gen_csv_line(dt, Ensemble.CSV_PRESSURE, ss_code, ss_config, 0, 0, blank, bin_size, pressure)])
+            df_datas.append([dt, Ensemble.CSV_PRESSURE, ss_code, ss_config, 0, 0, blank, bin_size, pressure])
+
+            # Transducer Depth
+            csv_rows.append([Ensemble.gen_csv_line(dt, Ensemble.CSV_XDCR_DEPTH, ss_code, ss_config, 0, 0, blank, bin_size, xdcr_depth)])
+            df_datas.append([dt, Ensemble.CSV_XDCR_DEPTH, ss_code, ss_config, 0, 0, blank, bin_size, xdcr_depth])
+
+        if ens.IsEarthVelocity:
+            csv_rows += (ens.EarthVelocity.encode_csv(dt, ss_code, ss_config, blank, bin_size))
+            df_datas += (ens.EarthVelocity.encode_df(dt, ss_code, ss_config, blank, bin_size))
 
         return csv_rows, df_datas
 
