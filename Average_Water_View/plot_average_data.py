@@ -90,18 +90,18 @@ class PlotAverageData:
                                               dir_3=[]))
 
         # Specify the selection tools to be made available
-        select_tools = ['box_select', 'lasso_select', 'poly_select', 'tap', 'reset']
+        select_tools = ['box_select', 'lasso_select', 'poly_select', 'tap', 'reset', 'previewsave', 'pan', 'wheel_zoom', 'box_zoom', 'hover']
 
         # Format the tooltip
         tooltips_wave_height = HoverTool(tooltips=[
-            ('Date-Time', '@DateTime{%F}'),
+            ('Date-Time', '@date{%F %H:%M:%S}'),
             ('Pressure Height (m)', '@wave_height'),
             ('Range Tracking Height (m)', '@range_track'),
-        ], formatters={'DateTime': 'datetime'})
+        ], formatters={'date': 'datetime'})
 
         # Format the tooltip
         tooltips_vel_east = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
+            ('Time', '@date{%F %T}'),
             ('Velocity (m/s) Bin 1', '@earth_east_1'),
             ('Velocity (m/s) Bin 2', '@earth_east_2'),
             ('Velocity (m/s) Bin 3', '@earth_east_3'),
@@ -109,7 +109,7 @@ class PlotAverageData:
 
         # Format the tooltip
         tooltips_vel_north = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
+            ('Time', '@date{%F %T}'),
             ('Velocity (m/s) Bin 1', '@earth_north_1'),
             ('Velocity (m/s) Bin 2', '@earth_north_2'),
             ('Velocity (m/s) Bin 3', '@earth_north_3'),
@@ -117,7 +117,7 @@ class PlotAverageData:
 
         # Format the tooltip
         tooltips_mag = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
+            ('Time', '@date{%F %T}'),
             ('Velocity (m/s) Bin 1', '@mag_1'),
             ('Velocity (m/s) Bin 2', '@mag_2'),
             ('Velocity (m/s) Bin 3', '@mag_3'),
@@ -125,7 +125,7 @@ class PlotAverageData:
 
         # Format the tooltip
         tooltips_dir = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
+            ('Time', '@date{%F %T}'),
             ('Velocity (deg) Bin 1', '@dir_1'),
             ('Velocity (deg) Bin 2', '@dir_2'),
             ('Velocity (deg) Bin 3', '@dir_3'),
