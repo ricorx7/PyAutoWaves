@@ -14,7 +14,7 @@ from bokeh.plotting import figure, ColumnDataSource
 from collections import deque
 from bokeh.layouts import row, column, gridplot, layout, grid
 import time
-from threading import Lock
+from threading import Lock, Thread
 
 
 class PlotAverageData:
@@ -44,6 +44,7 @@ class PlotAverageData:
 
         self.buffer_datetime = deque(maxlen=int(self.rti_config.config['PLOT']['BUFF_SIZE']))
         self.buffer_wave_height = deque(maxlen=int(self.rti_config.config['PLOT']['BUFF_SIZE']))
+        self.buffer_range_track = deque(maxlen=int(self.rti_config.config['PLOT']['BUFF_SIZE']))
         self.buffer_earth_east_1 = deque(maxlen=int(self.rti_config.config['PLOT']['BUFF_SIZE']))
         self.buffer_earth_east_2 = deque(maxlen=int(self.rti_config.config['PLOT']['BUFF_SIZE']))
         self.buffer_earth_east_3 = deque(maxlen=int(self.rti_config.config['PLOT']['BUFF_SIZE']))
@@ -56,7 +57,13 @@ class PlotAverageData:
         self.buffer_dir_1 = deque(maxlen=int(self.rti_config.config['PLOT']['BUFF_SIZE']))
         self.buffer_dir_2 = deque(maxlen=int(self.rti_config.config['PLOT']['BUFF_SIZE']))
         self.buffer_dir_3 = deque(maxlen=int(self.rti_config.config['PLOT']['BUFF_SIZE']))
+        self.buffer_dash_df = deque(maxlen=int(self.rti_config.config['Waves']['ENS_IN_BURST'])*2)
+        self.buffer_dash_ens = deque(maxlen=int(self.rti_config.config['Waves']['ENS_IN_BURST']) * 2)
         self.thread_lock = Lock()
+        self.csv_file_path = ""
+
+    def set_csv_file_path(self, file_path):
+        self.csv_file_path = file_path
 
     def create_bokeh_plots(self):
         """
@@ -68,6 +75,7 @@ class PlotAverageData:
         """
         self.cds = ColumnDataSource(data=dict(date=[],
                                               wave_height=[],
+                                              range_track=[],
                                               earth_east_1=[],
                                               earth_east_2=[],
                                               earth_east_3=[],
@@ -86,9 +94,10 @@ class PlotAverageData:
 
         # Format the tooltip
         tooltips_wave_height = HoverTool(tooltips=[
-            ('Time', '@date{%F}'),
-            ('Height (m)', '@wave_height'),
-        ], formatters={'date': 'datetime'})
+            ('Date-Time', '@DateTime{%F}'),
+            ('Pressure Height (m)', '@wave_height'),
+            ('Range Tracking Height (m)', '@range_track'),
+        ], formatters={'DateTime': 'datetime'})
 
         # Format the tooltip
         tooltips_vel_east = HoverTool(tooltips=[
@@ -129,7 +138,8 @@ class PlotAverageData:
         self.plot_range.xaxis.axis_label = "Time"
         self.plot_range.yaxis.axis_label = "Wave Height (m)"
         self.plot_range.add_tools(tooltips_wave_height)
-        self.line_wave_height = self.plot_range.line(x='date', y='wave_height', line_width=2, source=self.cds, name="wave_height")
+        self.line_wave_height = self.plot_range.line(x='date', y='wave_height', line_width=2, legend="Pressure", source=self.cds, color='navy', name="wave_height")
+        self.line_range_track = self.plot_range.line(x='date', y='range_track', line_width=2, legend="Range Track", source=self.cds, color='orange', name="range track")
 
         legend_bin_1 = "Bin" + self.rti_config.config['Waves']['selected_bin_1']
         legend_bin_2 = "Bin" + self.rti_config.config['Waves']['selected_bin_2']
@@ -201,10 +211,10 @@ class PlotAverageData:
             callback_rate = int(self.rti_config.config['PLOT']['RATE'])
 
         doc.add_root(plot_layout)
-        doc.add_periodic_callback(self.update_live_plot, callback_rate)
+        doc.add_periodic_callback(self.update_live_plot_ens, callback_rate)
         doc.title = "ADCP Dashboard"
 
-    def update_live_plot(self):
+    def update_live_plot_df(self):
         """
         Update the plot with live data.
         This will be called by the bokeh callback.
@@ -220,8 +230,19 @@ class PlotAverageData:
 
         # Lock the thread so not updating the data while
         # trying to update the display
-        #t = time.process_time()
+        t = time.process_time()
         with self.thread_lock:
+
+            # Load all the data from the buffer
+            # Each dataframe takes about 2 second to process
+            # Limit the number of df to process to ensure there is
+            # enough time to display before the next plot update
+            if self.buffer_dash_df:
+                for x in range(min(round(len(self.buffer_dash_df)/3), 50)):
+                    if self.buffer_dash_df:
+                        self.process_dashboard_buffer(self.buffer_dash_df.popleft())
+
+            print("Ens Buff Size: " + str(len(self.buffer_dash_df)))
 
             # Verify that a least one complete dataset has been received
             if len(self.buffer_datetime) > 0 and len(self.buffer_wave_height) > 0 and len(self.buffer_earth_east_1) > 0 and len(self.buffer_earth_east_2) > 0 and len(self.buffer_earth_east_3) > 0 and len(self.buffer_earth_north_1) > 0 and len(self.buffer_earth_north_2) > 0 and len(self.buffer_earth_north_3) > 0 and len(self.buffer_mag_1) > 0 and len(self.buffer_mag_2) > 0 and len(self.buffer_mag_3) > 0 and len(self.buffer_dir_1) > 0 and len(self.buffer_dir_2) > 0 and len(self.buffer_dir_3) > 0:
@@ -286,9 +307,248 @@ class PlotAverageData:
                             'dir_3': dir_3}
 
                 self.cds.stream(new_data)
-        #print("Update Plot: " + str(time.process_time() - t))
+        print("Update Plot: " + str(time.process_time() - t))
+
+    def update_live_plot_from_csv(self):
+        """
+        Update the plot with live data.
+        This will be called by the bokeh callback.
+
+        Take all the data from the buffers and populate
+        the ColumnDataSource.  All the lists in the ColumnDataSource
+        must have the same size.
+
+        Call Stream to update the plot.  This will append the latest data
+        to the plot.
+        :return:
+        """
+
+        # Lock the thread so not updating the data while
+        # trying to update the display
+        t = time.process_time()
+        with self.thread_lock:
+
+            date_list = []
+            wave_height_list = []
+            earth_east_1 = []
+            earth_east_2 = []
+            earth_east_3 = []
+            earth_north_1 = []
+            earth_north_2 = []
+            earth_north_3 = []
+            mag_1 = []
+            mag_2 = []
+            mag_3 = []
+            dir_1 = []
+            dir_2 = []
+            dir_3 = []
+
+            # Verify file path is not empty
+            if self.csv_file_path != "":
+
+                # Get the data from the CSV file as a dataframe
+                avg_df = pd.read_csv(self.csv_file_path)
+
+                if len(avg_df) > 0:
+
+                    # Wave Height and Datetime
+                    self.get_wave_height_list(avg_df, wave_height_list, date_list)
+
+                    # Selected bins
+                    bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
+                    bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
+                    bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+
+                    #  Update buffers
+                    self.get_earth_vel_list(avg_df, bin_1, 0, earth_east_1)
+                    self.get_earth_vel_list(avg_df, bin_2, 0, earth_east_2)
+                    self.get_earth_vel_list(avg_df, bin_3, 0, earth_east_3)
+                    self.get_earth_vel_list(avg_df, bin_1, 1, earth_north_1)
+                    self.get_earth_vel_list(avg_df, bin_2, 1, earth_north_2)
+                    self.get_earth_vel_list(avg_df, bin_3, 1, earth_north_3)
+                    self.get_mag_list(avg_df, bin_1, mag_1)
+                    self.get_mag_list(avg_df, bin_2, mag_2)
+                    self.get_mag_list(avg_df, bin_3, mag_3)
+                    self.get_dir_list(avg_df, bin_1, dir_1)
+                    self.get_dir_list(avg_df, bin_2, dir_2)
+                    self.get_dir_list(avg_df, bin_3, dir_3)
+
+                    print("ee1 " + str(len(earth_east_1)))
+                    print("ee2 " + str(len(earth_east_2)))
+                    print("ee3 " + str(len(earth_east_3)))
+                    print("en1 " + str(len(earth_north_1)))
+                    print("en2 " + str(len(earth_north_2)))
+                    print("en3 " + str(len(earth_north_3)))
+                    print("mag1 " + str(len(mag_1)))
+                    print("mag2 " + str(len(mag_2)))
+                    print("mag3 " + str(len(mag_3)))
+                    print("dir1 " + str(len(dir_1)))
+                    print("dir2 " + str(len(dir_2)))
+                    print("dir3 " + str(len(dir_3)))
+
+                    if len(date_list) > 0 and len(wave_height_list) > 0 and len(earth_east_1) > 0 and len(earth_east_2) > 0 and len(earth_east_3) > 0 and len(earth_north_1) > 0 and len(earth_north_2) > 0 and len(earth_north_3) > 0 and len(mag_1) > 0 and len(mag_2) > 0 and len(mag_3) > 0 and len(dir_1) > 0 and len(dir_2) > 0 and len(dir_3) > 0:
+
+                        new_data = {'date': date_list,
+                                    'wave_height': wave_height_list,
+                                    'earth_east_1': earth_east_1,
+                                    'earth_east_2': earth_east_2,
+                                    'earth_east_3': earth_east_3,
+                                    'earth_north_1': earth_north_1,
+                                    'earth_north_2': earth_north_2,
+                                    'earth_north_3': earth_north_3,
+                                    'mag_1': mag_1,
+                                    'mag_2': mag_2,
+                                    'mag_3': mag_3,
+                                    'dir_1': dir_1,
+                                    'dir_2': dir_2,
+                                    'dir_3': dir_3}
+
+                        self.cds.stream(new_data)
+        print("Update Plot from CSV: " + str(time.process_time() - t))
+
+    def update_live_plot_ens(self):
+        """
+        Update the plot with live data.
+        This will be called by the bokeh callback.
+
+        Take all the data from the buffers and populate
+        the ColumnDataSource.  All the lists in the ColumnDataSource
+        must have the same size.
+
+        Call Stream to update the plot.  This will append the latest data
+        to the plot.
+        :return:
+        """
+
+        # Lock the thread so not updating the data while
+        # trying to update the display
+        t = time.process_time()
+        with self.thread_lock:
+
+            # Verify that a least one complete dataset has been received
+            if len(self.buffer_datetime) > 0 and len(self.buffer_wave_height) > 0 and len(self.buffer_range_track) > 0 and len(self.buffer_earth_east_1) > 0 and len(self.buffer_earth_east_2) > 0 and len(self.buffer_earth_east_3) > 0 and len(self.buffer_earth_north_1) > 0 and len(self.buffer_earth_north_2) > 0 and len(self.buffer_earth_north_3) > 0 and len(self.buffer_mag_1) > 0 and len(self.buffer_mag_2) > 0 and len(self.buffer_mag_3) > 0 and len(self.buffer_dir_1) > 0 and len(self.buffer_dir_2) > 0 and len(self.buffer_dir_3) > 0:
+
+                date_list = []
+                wave_height_list = []
+                range_track_list = []
+                earth_east_1 = []
+                earth_east_2 = []
+                earth_east_3 = []
+                earth_north_1 = []
+                earth_north_2 = []
+                earth_north_3 = []
+                mag_1 = []
+                mag_2 = []
+                mag_3 = []
+                dir_1 = []
+                dir_2 = []
+                dir_3 = []
+
+                while self.buffer_datetime:
+                    date_list.append(self.buffer_datetime.popleft())
+                while self.buffer_wave_height:
+                    wave_height_list.append(self.buffer_wave_height.popleft())
+                while self.buffer_range_track:
+                    range_track_list.append(self.buffer_range_track.popleft())
+                while self.buffer_earth_east_1:
+                    earth_east_1.append(self.buffer_earth_east_1.popleft())
+                while self.buffer_earth_east_2:
+                    earth_east_2.append(self.buffer_earth_east_2.popleft())
+                while self.buffer_earth_east_3:
+                    earth_east_3.append(self.buffer_earth_east_3.popleft())
+                while self.buffer_earth_north_1:
+                    earth_north_1.append(self.buffer_earth_north_1.popleft())
+                while self.buffer_earth_north_2:
+                    earth_north_2.append(self.buffer_earth_north_2.popleft())
+                while self.buffer_earth_north_3:
+                    earth_north_3.append(self.buffer_earth_north_3.popleft())
+                while self.buffer_mag_1:
+                    mag_1.append(self.buffer_mag_1.popleft())
+                while self.buffer_mag_2:
+                    mag_2.append(self.buffer_mag_2.popleft())
+                while self.buffer_mag_3:
+                    mag_3.append(self.buffer_mag_3.popleft())
+                while self.buffer_dir_1:
+                    dir_1.append(self.buffer_dir_1.popleft())
+                while self.buffer_dir_2:
+                    dir_2.append(self.buffer_dir_2.popleft())
+                while self.buffer_dir_3:
+                    dir_3.append(self.buffer_dir_3.popleft())
+
+                new_data = {'date': date_list,
+                            'wave_height': wave_height_list,
+                            'range_track': range_track_list,
+                            'earth_east_1': earth_east_1,
+                            'earth_east_2': earth_east_2,
+                            'earth_east_3': earth_east_3,
+                            'earth_north_1': earth_north_1,
+                            'earth_north_2': earth_north_2,
+                            'earth_north_3': earth_north_3,
+                            'mag_1': mag_1,
+                            'mag_2': mag_2,
+                            'mag_3': mag_3,
+                            'dir_1': dir_1,
+                            'dir_2': dir_2,
+                            'dir_3': dir_3}
+
+                self.cds.stream(new_data)
+        print("Update Plot: " + str(time.process_time() - t))
 
     def update_dashboard(self, avg_df):
+        """
+        Buffer up the df.  They will be processed when the
+        display update callback function is called.
+        :param avg_df:
+        :return:
+        """
+        # Buffer up the data
+        self.buffer_dash_df.append(avg_df)
+
+    def process_ens_group(self, fourbeam_ens, vert_ens):
+        """
+        Add the Ensemble group to the plot buffers.
+        This will take a 4 beam ensemble and a vertical beam ensemble
+        and extract the data.  It will then add the data to buffers so
+        they can be plotted.
+        :param fourbeam_ens: 4 or 3 Beam ensemble.
+        :param vert_ens:  Vertical ensemble.
+        :return:
+        """
+        #t = time.process_time()
+        with self.thread_lock:
+
+            # Selected bins
+            bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
+            bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
+            bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+
+            # Vertical beam data
+            if vert_ens:
+                if vert_ens.IsAncillaryData:
+                    self.buffer_wave_height.append(vert_ens.AncillaryData.TransducerDepth)  # Xdcr Depth
+                if vert_ens.IsEnsembleData:
+                    self.buffer_datetime.append(vert_ens.EnsembleData.datetime())           # Datetime
+                if vert_ens.IsRangeTracking:
+                    self.buffer_range_track.append(vert_ens.RangeTracking.avg_range())      # Range Tracking
+
+            # 4 Beam data
+            if fourbeam_ens:
+                if fourbeam_ens.IsEarthVelocity:
+                    self.buffer_earth_east_1.append(fourbeam_ens.EarthVelocity.Velocities[bin_1][0])   # East Bin 1
+                    self.buffer_earth_east_2.append(fourbeam_ens.EarthVelocity.Velocities[bin_2][0])   # East Bin 1
+                    self.buffer_earth_east_3.append(fourbeam_ens.EarthVelocity.Velocities[bin_3][0])   # East Bin 1
+                    self.buffer_earth_north_1.append(fourbeam_ens.EarthVelocity.Velocities[bin_1][1])  # North Bin 1
+                    self.buffer_earth_north_2.append(fourbeam_ens.EarthVelocity.Velocities[bin_2][1])  # North Bin 2
+                    self.buffer_earth_north_3.append(fourbeam_ens.EarthVelocity.Velocities[bin_3][1])  # North Bin 3
+                    self.buffer_mag_1.append(fourbeam_ens.EarthVelocity.Magnitude[bin_1])   # Mag 1
+                    self.buffer_mag_2.append(fourbeam_ens.EarthVelocity.Magnitude[bin_2])   # Mag 2
+                    self.buffer_mag_3.append(fourbeam_ens.EarthVelocity.Magnitude[bin_3])   # Mag 3
+                    self.buffer_dir_1.append(fourbeam_ens.EarthVelocity.Direction[bin_1])   # Dir 1
+                    self.buffer_dir_2.append(fourbeam_ens.EarthVelocity.Direction[bin_2])   # Dir 2
+                    self.buffer_dir_3.append(fourbeam_ens.EarthVelocity.Direction[bin_3])   # Dir 3
+        #print("Process ENS: " + str(time.process_time() - t))
+
+    def process_dashboard_buffer(self, avg_df):
         """
         Update the dashboard plots.
         This will remove the data from the buffer and add it to the column data source for the plot.
@@ -300,32 +560,31 @@ class PlotAverageData:
 
         # Lock the thread while trying to update the data
         # while trying to update the display
-        #t = time.process_time()
-        with self.thread_lock:
+        t = time.process_time()
+        #with self.thread_lock:
+        # Wave Height and Datetime
+        self.get_wave_height_list(avg_df, self.buffer_wave_height, self.buffer_datetime)
 
-            # Wave Height and Datetime
-            self.get_wave_height_list(avg_df, self.buffer_wave_height, self.buffer_datetime)
+        # Selected bins
+        bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
+        bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
+        bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
 
-            # Selected bins
-            bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
-            bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
-            bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+        #  Update buffers
+        self.get_earth_vel_list(avg_df, bin_1, 0, self.buffer_earth_east_1)
+        self.get_earth_vel_list(avg_df, bin_2, 0, self.buffer_earth_east_2)
+        self.get_earth_vel_list(avg_df, bin_3, 0, self.buffer_earth_east_3)
+        self.get_earth_vel_list(avg_df, bin_1, 1, self.buffer_earth_north_1)
+        self.get_earth_vel_list(avg_df, bin_2, 1, self.buffer_earth_north_2)
+        self.get_earth_vel_list(avg_df, bin_3, 1, self.buffer_earth_north_3)
+        self.get_mag_list(avg_df, bin_1, self.buffer_mag_1)
+        self.get_mag_list(avg_df, bin_2, self.buffer_mag_2)
+        self.get_mag_list(avg_df, bin_3, self.buffer_mag_3)
+        self.get_dir_list(avg_df, bin_1, self.buffer_dir_1)
+        self.get_dir_list(avg_df, bin_2, self.buffer_dir_2)
+        self.get_dir_list(avg_df, bin_3, self.buffer_dir_3)
 
-            # Earth Velocity
-            self.get_earth_vel_list(avg_df, bin_1, 0, self.buffer_earth_east_1)
-            self.get_earth_vel_list(avg_df, bin_2, 0, self.buffer_earth_east_2)
-            self.get_earth_vel_list(avg_df, bin_3, 0, self.buffer_earth_east_3)
-            self.get_earth_vel_list(avg_df, bin_1, 1, self.buffer_earth_north_1)
-            self.get_earth_vel_list(avg_df, bin_2, 1, self.buffer_earth_north_2)
-            self.get_earth_vel_list(avg_df, bin_3, 1, self.buffer_earth_north_3)
-            self.get_mag_list(avg_df, bin_1, self.buffer_mag_1)
-            self.get_mag_list(avg_df, bin_2, self.buffer_mag_2)
-            self.get_mag_list(avg_df, bin_3, self.buffer_mag_3)
-            self.get_dir_list(avg_df, bin_1, self.buffer_dir_1)
-            self.get_dir_list(avg_df, bin_2, self.buffer_dir_2)
-            self.get_dir_list(avg_df, bin_3, self.buffer_dir_3)
-
-        #print("Update Dashboard: " + str(time.process_time() - t))
+        print("Update Dashboard: " + str(time.process_time() - t) + " " + str(avg_df.shape))
 
     def get_wave_height_list(self, avg_df, buffer_wave, buffer_dt):
         """
@@ -336,14 +595,19 @@ class PlotAverageData:
         :return:
         """
         # Wave Height and Datetime
-        wave_height_df = avg_df[avg_df.data_type.str.contains("XdcrDepth") &
-                                ((avg_df['ss_code'] == 'A') |      # vertical beam
-                                (avg_df['ss_code'] == 'B') |
-                                (avg_df['ss_code'] == 'C'))]
+        # & avg_df.ss_code.isin(vert_filter_list)]
+        #wave_height_df = avg_df[(avg_df.data_type.str.contains("XdcrDepth"))]
+        wave_height_df = avg_df[(avg_df.data_type.str.contains("XdcrDepth")) &
+                       ((avg_df.ss_code.str.contains("A")) |
+                        (avg_df.ss_code.str.contains("B")) |
+                        (avg_df.ss_code.str.contains("C")))]
+
         last_row = wave_height_df.tail(1)
         if not last_row.empty:
             buffer_wave.append(last_row['value'].values[0])
             buffer_dt.append(last_row['datetime'].values[0])
+        #buffer_wave.extend(wave_height_df['value'].tolist())
+        #buffer_dt.extend(wave_height_df['datetime'].tolist())
 
     def get_earth_vel_list(self, avg_df, bin_num, beam, buffer):
         """
@@ -362,9 +626,11 @@ class PlotAverageData:
                                   (avg_df['ss_code'] != 'B') &
                                   (avg_df['ss_code'] != 'C')]
 
+
         last_row = earth_vel_df.tail(1)
         if not last_row.empty:
             buffer.append(last_row['value'].values[0])
+        #buffer.extend(earth_vel_df['value'].tolist())
 
     def get_mag_list(self, avg_df, bin_num, buffer):
         """
@@ -384,6 +650,7 @@ class PlotAverageData:
         last_row = mag_df.tail(1)
         if not last_row.empty:
             buffer.append(last_row['value'].values[0])
+        #buffer.extend(mag_df['value'].tolist())
 
     def get_dir_list(self, avg_df, bin_num, buffer):
         """
@@ -394,7 +661,7 @@ class PlotAverageData:
         :return: List of all the data found in the dataframe
         """
 
-        dir_df = avg_df.loc[(avg_df.data_type.str.contains("Direction")) &
+        dir_df = avg_df[(avg_df.data_type.str.contains("Direction")) &
                                   (avg_df['bin_num'] == bin_num) &
                                   (avg_df['ss_code'] != 'A') &      # Not a vertical beam
                                   (avg_df['ss_code'] != 'B') &
@@ -403,3 +670,4 @@ class PlotAverageData:
         last_row = dir_df.tail(1)
         if not last_row.empty:
             buffer.append(last_row['value'].values[0])
+        #buffer.extend(dir_df['value'].tolist())

@@ -173,29 +173,6 @@ class AutoWavesManager:
         :param ens: Ensemble object
         :return:
         """
-        """
-        # Check if the data was a 4 beam or vertical beam data
-        # Emit only on vertical beam data, because it is assumed
-        # the data comes as a pair (4beam and vertical beam)
-        # If the flag is set false, the count all the data
-        if self.rti_config.config.getboolean('Waves', '4b_vert_pair'):
-            if ens.IsEnsembleData and ens.EnsembleData.NumBeams == 1:
-                # Emit signal that an ensemble was received
-                self.monitor_vm.increment_burst_value.emit(max(self.wave_force_codec.TotalEnsInBurst, self.wave_force_codec.BufferCount),
-                                                           self.setup_vm.numBurstEnsSpinBox.value())
-        else:
-            # Set the ensemble count for a burst
-            self.monitor_vm.increment_burst_value.emit(max(self.wave_force_codec.TotalEnsInBurst, self.wave_force_codec.BufferCount),
-                                                       self.setup_vm.numBurstEnsSpinBox.value())
-        
-                # If you find a vertical beam, set the right parameter in the config
-                if ens.IsEnsembleData and ens.EnsembleData.NumBeams == 1:
-                if not self.rti_config.config.getboolean("Waves", "4b_vert_pair"):
-                    self.rti_config.config["Waves"]["4b_vert_pair"] = str("True")
-                    self.rti_config.write()
-        
-        """
-
         # Add the data to the queue
         self.ens_queue.append(ens)
 

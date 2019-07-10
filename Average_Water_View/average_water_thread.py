@@ -22,16 +22,13 @@ class AverageWaterThread(QThread):
 
     increment_ens_sig = pyqtSignal(int)
     avg_taken_sig = pyqtSignal(object)
-    refresh_wave_height_web_view_sig = pyqtSignal()
-    refresh_earth_east_vel_web_view_sig = pyqtSignal()
-    refresh_earth_north_vel_web_view_sig = pyqtSignal()
-    refresh_mag_web_view_sig = pyqtSignal()
-    refresh_dir_web_view_sig = pyqtSignal()
+    update_dash_from_csv_sig = pyqtSignal(str)
 
-    def __init__(self, rti_config):
+    def __init__(self, rti_config, parent):
         QThread.__init__(self)
 
         self.rti_config = rti_config
+        self.parent = parent
         self.thread_alive = True
         self.event = Event()
         self.mutex = QMutex()
@@ -58,28 +55,10 @@ class AverageWaterThread(QThread):
         self.avg_counter = 0
 
         self.df_columns = ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "blank", "bin_size", "value"]
-        #self.awc_df = pd.DataFrame()
 
     def shutdown(self):
         self.thread_alive = False
         self.event.set()
-
-
-
-    def update_earth_east_vel_plot(self):
-        self.refresh_earth_east_vel_web_view_sig.emit()
-
-    def update_earth_north_vel_plot(self):
-        self.refresh_earth_north_vel_web_view_sig.emit()
-
-    def update_wave_height_plot(self):
-        self.refresh_wave_height_web_view_sig.emit()
-
-    def update_mag_plot(self):
-        self.refresh_mag_web_view_sig.emit()
-
-    def update_dir_plot(self):
-        self.refresh_dir_web_view_sig.emit()
 
     def add_ens(self, ens):
         """
@@ -96,7 +75,8 @@ class AverageWaterThread(QThread):
         self.ens_queue.append(ens)
 
         # Wakeup the thread
-        self.event.set()
+        if not self.event.is_set():
+            self.event.set()
 
     def reset_average(self):
         """
@@ -111,9 +91,6 @@ class AverageWaterThread(QThread):
         for awc_key in self.awc_dict.keys():
             self.awc_dict[awc_key].reset()
 
-        # Clear the dataframe
-        #self.awc_df = pd.DataFrame(columns=self.awc_df.columns)
-
     def run(self):
         """
         Process the thread.
@@ -127,9 +104,6 @@ class AverageWaterThread(QThread):
 
             # Wait to be woken up
             self.event.wait()
-
-            # Clear automatically
-            self.event.clear()
 
             while len(self.ens_queue) > 0:
                 # Remove the ensemble from the queue
@@ -146,6 +120,9 @@ class AverageWaterThread(QThread):
                 else:
                     # Not averaging the data, so just write to CSV and display data
                     self.no_average_and_display(ens)
+
+            # Clear event
+            self.event.clear()
 
     def accumulate_ens(self, ens):
         """
@@ -212,12 +189,22 @@ class AverageWaterThread(QThread):
             self.write_csv_file(csv_data)
 
             # Create dataframe
-            df = pd.DataFrame(df_data, columns=self.df_columns)
-            df['datetime'] = pd.to_datetime(df['datetime'])
+            #df = pd.DataFrame(df_data, columns=self.df_columns)
+            #df['datetime'] = pd.to_datetime(df['datetime'])
 
             # Emit signal that average taken
             # so file list can be updated
-            self.avg_taken_sig.emit(df)
+            # and the live dashboard can be updated
+            # in the VM
+            #self.avg_taken_sig.emit(df)
+            #self.parent.avg_taken(df)
+
+            # Set the latest CSV file path
+            # Used to update the dashboard plots
+            #self.parent.set_latest_csv_file(self.csv_file_path)
+
+            # Send the ensemble to be plotted
+            self.parent.plot_ens(ens)
 
     def average_and_display(self):
         """
@@ -239,13 +226,9 @@ class AverageWaterThread(QThread):
             # Update the dataframe
             df = pd.DataFrame(df_data, columns=self.df_columns)
             if accum_df.empty:
-                #self.awc_df = df
-                #self.awc_df['datetime'] = pd.to_datetime(self.awc_df['datetime'])
-
                 accum_df = df
                 accum_df['datetime'] = pd.to_datetime(accum_df['datetime'])
             else:
-                #self.awc_df = self.awc_df.append(df)
                 accum_df = accum_df.append(df)
 
         # Create the plot from the CSV file
@@ -261,25 +244,8 @@ class AverageWaterThread(QThread):
         # Emit signal that average taken
         # so file list can be updated
         if not accum_df.empty:
-            self.avg_taken_sig.emit(accum_df)
-
-        # Display the data
-        #self.display_data(self.awc_df)
-
-    def display_data(self, awc_df):
-        """
-        Display the data given the dataframe.
-        This will pass all the data to the plot threads.
-        :param awc_df: Dataframe to plot.
-        :return:
-        """
-        # Display data
-        # Add the data to the plot threads
-        self.thread_wave_height_display.add(self.awc_df)
-        self.thread_earth_east_display.add(self.awc_df)
-        self.thread_earth_north_display.add(self.awc_df)
-        self.thread_mag_display.add(self.awc_df)
-        self.thread_dir_display.add(self.awc_df)
+            #self.avg_taken_sig.emit(accum_df)
+            self.parent.avg_taken(accum_df)
 
     def get_file_name(self, path):
         """
