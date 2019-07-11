@@ -211,7 +211,15 @@ class PlotAverageData:
             callback_rate = int(self.rti_config.config['PLOT']['RATE'])
 
         doc.add_root(plot_layout)
-        doc.add_periodic_callback(self.update_live_plot_ens, callback_rate)
+
+        # Determine which callback function to used based off averaging is turned on or off
+        # If averaging is turned on, use the df buffered data
+        # If averaging is turned off, use the ens buffered data
+        if int(self.rti_config.config['AWC']['num_ensembles']) > 1:
+            doc.add_periodic_callback(self.update_live_plot_df, callback_rate)
+        else:
+            doc.add_periodic_callback(self.update_live_plot_ens, callback_rate)
+
         doc.title = "ADCP Dashboard"
 
     def update_live_plot_df(self):
@@ -237,10 +245,9 @@ class PlotAverageData:
             # Each dataframe takes about 2 second to process
             # Limit the number of df to process to ensure there is
             # enough time to display before the next plot update
-            if self.buffer_dash_df:
-                for x in range(min(round(len(self.buffer_dash_df)/3), 50)):
-                    if self.buffer_dash_df:
-                        self.process_dashboard_buffer(self.buffer_dash_df.popleft())
+            for x in range(min(round(len(self.buffer_dash_df)), 50)):
+                if self.buffer_dash_df:
+                    self.process_dashboard_buffer(self.buffer_dash_df.popleft())
 
             print("Ens Buff Size: " + str(len(self.buffer_dash_df)))
 
@@ -249,6 +256,7 @@ class PlotAverageData:
 
                 date_list = []
                 wave_height_list = []
+                range_track_list = []
                 earth_east_1 = []
                 earth_east_2 = []
                 earth_east_3 = []
@@ -266,6 +274,8 @@ class PlotAverageData:
                     date_list.append(self.buffer_datetime.popleft())
                 while self.buffer_wave_height:
                     wave_height_list.append(self.buffer_wave_height.popleft())
+                while self.buffer_range_track:
+                    range_track_list.append(self.buffer_range_track.popleft())
                 while self.buffer_earth_east_1:
                     earth_east_1.append(self.buffer_earth_east_1.popleft())
                 while self.buffer_earth_east_2:
@@ -293,6 +303,7 @@ class PlotAverageData:
 
                 new_data = {'date': date_list,
                             'wave_height': wave_height_list,
+                            'range_track': range_track_list,
                             'earth_east_1': earth_east_1,
                             'earth_east_2': earth_east_2,
                             'earth_east_3': earth_east_3,
@@ -501,8 +512,9 @@ class PlotAverageData:
         :param avg_df:
         :return:
         """
-        # Buffer up the data
-        self.buffer_dash_df.append(avg_df)
+        with self.thread_lock:
+            # Buffer up the data
+            self.buffer_dash_df.append(avg_df)
 
     def process_ens_group(self, fourbeam_ens, vert_ens):
         """
@@ -561,9 +573,12 @@ class PlotAverageData:
         # Lock the thread while trying to update the data
         # while trying to update the display
         t = time.process_time()
-        #with self.thread_lock:
+
         # Wave Height and Datetime
         self.get_wave_height_list(avg_df, self.buffer_wave_height, self.buffer_datetime)
+
+        # Range Tracking
+        self.get_range_track_list(avg_df, self.buffer_range_track)
 
         # Selected bins
         bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
@@ -596,7 +611,6 @@ class PlotAverageData:
         """
         # Wave Height and Datetime
         # & avg_df.ss_code.isin(vert_filter_list)]
-        #wave_height_df = avg_df[(avg_df.data_type.str.contains("XdcrDepth"))]
         wave_height_df = avg_df[(avg_df.data_type.str.contains("XdcrDepth")) &
                        ((avg_df.ss_code.str.contains("A")) |
                         (avg_df.ss_code.str.contains("B")) |
@@ -606,8 +620,25 @@ class PlotAverageData:
         if not last_row.empty:
             buffer_wave.append(last_row['value'].values[0])
             buffer_dt.append(last_row['datetime'].values[0])
-        #buffer_wave.extend(wave_height_df['value'].tolist())
-        #buffer_dt.extend(wave_height_df['datetime'].tolist())
+
+    def get_range_track_list(self, avg_df, buffer_range_track,):
+        """
+        Add The vertical beam range tracking data to the buffer.
+        :param avg_df: Dataframe with the latest data.
+        :param buffer_range_track: Wave Height Buffer.
+        :return:
+        """
+        # Wave Height and Datetime
+        # & avg_df.ss_code.isin(vert_filter_list)]
+        range_track_df = avg_df[(avg_df.data_type.str.contains("RT_Range")) &
+                       ((avg_df.ss_code.str.contains("A")) |
+                        (avg_df.ss_code.str.contains("B")) |
+                        (avg_df.ss_code.str.contains("C"))) &
+                        (avg_df.bin_num == 0)]
+
+        last_row = range_track_df.tail(1)
+        if not last_row.empty:
+            buffer_range_track.append(last_row['value'].values[0])
 
     def get_earth_vel_list(self, avg_df, bin_num, beam, buffer):
         """
@@ -626,11 +657,9 @@ class PlotAverageData:
                                   (avg_df['ss_code'] != 'B') &
                                   (avg_df['ss_code'] != 'C')]
 
-
         last_row = earth_vel_df.tail(1)
         if not last_row.empty:
             buffer.append(last_row['value'].values[0])
-        #buffer.extend(earth_vel_df['value'].tolist())
 
     def get_mag_list(self, avg_df, bin_num, buffer):
         """
@@ -650,7 +679,6 @@ class PlotAverageData:
         last_row = mag_df.tail(1)
         if not last_row.empty:
             buffer.append(last_row['value'].values[0])
-        #buffer.extend(mag_df['value'].tolist())
 
     def get_dir_list(self, avg_df, bin_num, buffer):
         """
@@ -670,4 +698,3 @@ class PlotAverageData:
         last_row = dir_df.tail(1)
         if not last_row.empty:
             buffer.append(last_row['value'].values[0])
-        #buffer.extend(dir_df['value'].tolist())

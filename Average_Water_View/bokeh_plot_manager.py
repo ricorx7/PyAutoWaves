@@ -121,54 +121,62 @@ class BokehPlotManager(QThread):
             # Wait to be woken up
             self.event.wait()
 
-            # Processed all queued data
-            while len(self.ens_queue) > 0:
+            # Process any data in the df buffer
+            # This buffer is only used if averaging is done
+            if len(self.data_queue) > 0:
+                self.process_df_buffer()
 
-                # Remove the dataframe from the queue
-                ens = self.ens_queue.popleft()
-
-                if ens:
-                    if ens.IsEnsembleData:
-                        # Check if a 3 or 4 Beam ensemble
-                        if ens.EnsembleData.NumBeams >= 3:
-                            self.last_4beam_ens = ens
-                        # Check if it is a vertical beam ensemble
-                        # If vertical beam, then process the data
-                        elif ens.EnsembleData.NumBeams == 1:
-                            # If a 4 Beam has been found, then group them into a list
-                            if self.last_4beam_ens:
-                                # Pass the data to the plot to be processed
-                                for app in self.bokeh_app_list:
-                                    app.process_ens_group(fourbeam_ens=self.last_4beam_ens, vert_ens=ens)
+            # Process any data in the ensemble buffer
+            # This buffer is only used if no averaging is done
+            if len(self.ens_queue) > 0:
+                self.process_ens_buff()
 
             # Clear automatically
             self.event.clear()
 
-    def run_df(self):
+    def process_ens_buff(self):
         """
-        Running thread.  This will check if the queue has any data.
+        Process the ensemble buffer.  If no averaging is done,
+        then ensembles will be passed here.  Process all the ensembles
+        in the buffer.
+        :return:
+        """
+
+        # Processed all queued data
+        while len(self.ens_queue) > 0:
+
+            # Remove the dataframe from the queue
+            ens = self.ens_queue.popleft()
+
+            if ens:
+                if ens.IsEnsembleData:
+                    # Check if a 3 or 4 Beam ensemble
+                    if ens.EnsembleData.NumBeams >= 3:
+                        self.last_4beam_ens = ens
+                    # Check if it is a vertical beam ensemble
+                    # If vertical beam, then process the data
+                    elif ens.EnsembleData.NumBeams == 1:
+                        # If a 4 Beam has been found, then group them into a list
+                        if self.last_4beam_ens:
+                            # Pass the data to the plot to be processed
+                            for app in self.bokeh_app_list:
+                                app.process_ens_group(fourbeam_ens=self.last_4beam_ens, vert_ens=ens)
+
+    def process_df_buffer(self):
+        """
+        This will check if the df queue has any data.
         Then pop the data out of the and add the data to the display.
         Update all the created dashboards in the list.
         :return:
         """
+        start_loop = time.process_time()
+        while len(self.data_queue) > 0:
 
-        while self.thread_alive:
+            # Remove the dataframe from the queue
+            avg_df = self.data_queue.popleft()
 
-            # Wait to be woken up
-            self.event.wait()
+            for app in self.bokeh_app_list:
+                app.update_dashboard(avg_df)
 
-            #start_loop = time.process_time()
-            while len(self.data_queue) > 0:
+        print("Process DF buffer: " + str(time.process_time() - start_loop))
 
-                # Remove the dataframe from the queue
-                avg_df = self.data_queue.popleft()
-
-                #start_dash = time.process_time()
-                for app in self.bokeh_app_list:
-                    app.update_dashboard(avg_df)
-                #print("Dash loop: " + str(time.process_time() - start_dash))
-
-            #print("Main loop: " + str(time.process_time() - start_loop))
-
-            # Clear automatically
-            self.event.clear()

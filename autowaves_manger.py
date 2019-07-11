@@ -211,8 +211,9 @@ class AutoWavesManager:
                                                                    self.wave_force_codec.VertEnsCount),
                                                                self.setup_vm.numBurstEnsSpinBox.value())
                 # Increment Average Water Column monitor
-                self.avg_ens_count += 1
-                self.increment_avg_water_column(self.avg_ens_count)
+                if int(self.rti_config.config['AWC']['num_ensembles']) > 1:
+                    self.avg_ens_count += 1
+                    self.increment_avg_water_column(self.avg_ens_count)
 
                 # if ens and ens.IsEnsembleData:
                 #    self.logger.debug("ENS Received: " + str(ens.EnsembleData.EnsembleNumber))

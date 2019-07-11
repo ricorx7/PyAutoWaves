@@ -188,21 +188,6 @@ class AverageWaterThread(QThread):
             # Update CSV file
             self.write_csv_file(csv_data)
 
-            # Create dataframe
-            #df = pd.DataFrame(df_data, columns=self.df_columns)
-            #df['datetime'] = pd.to_datetime(df['datetime'])
-
-            # Emit signal that average taken
-            # so file list can be updated
-            # and the live dashboard can be updated
-            # in the VM
-            #self.avg_taken_sig.emit(df)
-            #self.parent.avg_taken(df)
-
-            # Set the latest CSV file path
-            # Used to update the dashboard plots
-            #self.parent.set_latest_csv_file(self.csv_file_path)
-
             # Send the ensemble to be plotted
             self.parent.plot_ens(ens)
 
@@ -231,10 +216,6 @@ class AverageWaterThread(QThread):
             else:
                 accum_df = accum_df.append(df)
 
-        # Create the plot from the CSV file
-        # The CSV file is complete
-        #self.display_data_from_file(self.csv_file_path)
-
         # Reset the counter
         self.avg_counter = 0
 
@@ -244,7 +225,6 @@ class AverageWaterThread(QThread):
         # Emit signal that average taken
         # so file list can be updated
         if not accum_df.empty:
-            #self.avg_taken_sig.emit(accum_df)
             self.parent.avg_taken(accum_df)
 
     def get_file_name(self, path):
@@ -307,6 +287,15 @@ class AverageWaterThread(QThread):
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_XDCR_DEPTH,                              # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+
+        # Transducer Depth Data
+        if awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH]:
+            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],
+                                                 # Transducer Depth Data average
+                                                 awc_key,  # Key for subsystem code and config
+                                                 Ensemble.CSV_XDCR_DEPTH,  # Data Type Title
+                                                 awc_avg[
+                                                     AverageWaterColumn.INDEX_LAST_TIME])  # Last  time in average
             csv_rows += csv_row
             df_datas += df_data
 
