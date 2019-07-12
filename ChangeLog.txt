@@ -2,6 +2,9 @@ PyAutoWaves ChangeLog
 
 PyAutoWaves 1.7
  - Do not average data if settings set to average 1 ensemble.
+ - Optimize the no average displaying plots.
+ - Filter the data plotted
+ - Handle SeaSeven
 
 PyAutoWaves 1.6
  - Set a max buffer size in the plot_average_data to prevent memory leaks
