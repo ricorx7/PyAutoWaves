@@ -64,3 +64,10 @@ This will create a dist and build folder.  The exe in is the dist folder.
 ```term
 pip install -r requirements.txt --upgrade
 ```
+
+
+# Create Virtualenv in Windows
+```python
+python -m venv myvenv
+myvenv\Scripts\activate.bat
+```

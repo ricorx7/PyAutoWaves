@@ -15,6 +15,7 @@ from collections import deque
 from bokeh.layouts import row, column, gridplot, layout, grid
 import time
 from threading import Lock, Thread
+from rti_python.Ensemble import Ensemble
 
 
 class PlotAverageData:
@@ -175,7 +176,7 @@ class PlotAverageData:
         self.plot_dir = figure(x_axis_type='datetime', title="Water Direction")
         self.plot_dir.x_range.follow_interval = max_display
         self.plot_dir.xaxis.axis_label = "Time"
-        self.plot_dir.yaxis.axis_label = "Velocity (m/s)"
+        self.plot_dir.yaxis.axis_label = "Direction (degrees)"
         self.plot_dir.add_tools(tooltips_dir)
         self.line_dir_1 = self.plot_dir.line(x='date', y='dir_1', line_width=2, source=self.cds,
                                                      legend=legend_bin_1, color='navy', name="dir_1")
@@ -546,18 +547,78 @@ class PlotAverageData:
             # 4 Beam data
             if fourbeam_ens:
                 if fourbeam_ens.IsEarthVelocity:
-                    self.buffer_earth_east_1.append(fourbeam_ens.EarthVelocity.Velocities[bin_1][0])   # East Bin 1
-                    self.buffer_earth_east_2.append(fourbeam_ens.EarthVelocity.Velocities[bin_2][0])   # East Bin 1
-                    self.buffer_earth_east_3.append(fourbeam_ens.EarthVelocity.Velocities[bin_3][0])   # East Bin 1
-                    self.buffer_earth_north_1.append(fourbeam_ens.EarthVelocity.Velocities[bin_1][1])  # North Bin 1
-                    self.buffer_earth_north_2.append(fourbeam_ens.EarthVelocity.Velocities[bin_2][1])  # North Bin 2
-                    self.buffer_earth_north_3.append(fourbeam_ens.EarthVelocity.Velocities[bin_3][1])  # North Bin 3
-                    self.buffer_mag_1.append(fourbeam_ens.EarthVelocity.Magnitude[bin_1])   # Mag 1
-                    self.buffer_mag_2.append(fourbeam_ens.EarthVelocity.Magnitude[bin_2])   # Mag 2
-                    self.buffer_mag_3.append(fourbeam_ens.EarthVelocity.Magnitude[bin_3])   # Mag 3
-                    self.buffer_dir_1.append(fourbeam_ens.EarthVelocity.Direction[bin_1])   # Dir 1
-                    self.buffer_dir_2.append(fourbeam_ens.EarthVelocity.Direction[bin_2])   # Dir 2
-                    self.buffer_dir_3.append(fourbeam_ens.EarthVelocity.Direction[bin_3])   # Dir 3
+                    # East Bin 1
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Velocities[bin_1][0]):
+                        self.buffer_earth_east_1.append(fourbeam_ens.EarthVelocity.Velocities[bin_1][0])
+                    else:
+                        self.buffer_earth_east_1.append(0.0)
+
+                    # East Bin 2
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Velocities[bin_2][0]):
+                        self.buffer_earth_east_2.append(fourbeam_ens.EarthVelocity.Velocities[bin_2][0])
+                    else:
+                        self.buffer_earth_east_2.append(0.0)
+
+                    # East Bin 3
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Velocities[bin_3][0]):
+                        self.buffer_earth_east_3.append(fourbeam_ens.EarthVelocity.Velocities[bin_3][0])
+                    else:
+                        self.buffer_earth_east_3.append(0.0)
+
+                    # North Bin 1
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Velocities[bin_1][1]):
+                        self.buffer_earth_north_1.append(fourbeam_ens.EarthVelocity.Velocities[bin_1][1])
+                    else:
+                        self.buffer_earth_north_1.append(0.0)
+
+                    # North Bin 2
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Velocities[bin_2][1]):
+                        self.buffer_earth_north_2.append(fourbeam_ens.EarthVelocity.Velocities[bin_2][1])
+                    else:
+                        self.buffer_earth_north_2.append(0.0)
+
+                    # North Bin 3
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Velocities[bin_3][1]):
+                        self.buffer_earth_north_3.append(fourbeam_ens.EarthVelocity.Velocities[bin_3][1])
+                    else:
+                        self.buffer_earth_north_3.append(0.0)
+
+                    # Mag 1
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Magnitude[bin_1]):
+                        self.buffer_mag_1.append(fourbeam_ens.EarthVelocity.Magnitude[bin_1])
+                    else:
+                        self.buffer_mag_1.append(0.0)
+
+                    # Mag 2
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Magnitude[bin_2]):
+                        self.buffer_mag_2.append(fourbeam_ens.EarthVelocity.Magnitude[bin_2])
+                    else:
+                        self.buffer_mag_2.append(0.0)
+
+                    # Mag 3
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Magnitude[bin_3]):
+                        self.buffer_mag_3.append(fourbeam_ens.EarthVelocity.Magnitude[bin_3])
+                    else:
+                        self.buffer_mag_3.append(0.0)
+
+                    # Dir 1
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Direction[bin_1]):
+                        self.buffer_dir_1.append(fourbeam_ens.EarthVelocity.Direction[bin_1])
+                    else:
+                        self.buffer_dir_1.append(0.0)
+
+                    # Dir 2
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Direction[bin_2]):
+                        self.buffer_dir_2.append(fourbeam_ens.EarthVelocity.Direction[bin_2])
+                    else:
+                        self.buffer_dir_2.append(0.0)
+
+                    # Dir 3
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Direction[bin_3]):
+                        self.buffer_dir_3.append(fourbeam_ens.EarthVelocity.Direction[bin_3])
+                    else:
+                        self.buffer_dir_3.append(0.0)
+
         #print("Process ENS: " + str(time.process_time() - t))
 
     def process_dashboard_buffer(self, avg_df):
