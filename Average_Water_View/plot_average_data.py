@@ -695,7 +695,7 @@ class PlotAverageData:
                        ((avg_df.ss_code.str.contains("A")) |
                         (avg_df.ss_code.str.contains("B")) |
                         (avg_df.ss_code.str.contains("C"))) &
-                        (avg_df.bin_num == 0)]
+                        (avg_df.beam_num == 0)]
 
         last_row = range_track_df.tail(1)
         if not last_row.empty:

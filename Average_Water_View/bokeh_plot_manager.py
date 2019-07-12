@@ -169,7 +169,7 @@ class BokehPlotManager(QThread):
         Update all the created dashboards in the list.
         :return:
         """
-        start_loop = time.process_time()
+        #start_loop = time.process_time()
         while len(self.data_queue) > 0:
 
             # Remove the dataframe from the queue
@@ -178,5 +178,5 @@ class BokehPlotManager(QThread):
             for app in self.bokeh_app_list:
                 app.update_dashboard(avg_df)
 
-        print("Process DF buffer: " + str(time.process_time() - start_loop))
+        #print("Process DF buffer: " + str(time.process_time() - start_loop))
 

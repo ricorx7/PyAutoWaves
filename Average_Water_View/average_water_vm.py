@@ -95,7 +95,8 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         """
 
         # Update the progress bar
-        #self.avg_taken_sig.emit()
+        if int(self.rti_config.config['AWC']['num_ensembles']) > 1:
+            self.avg_taken_sig.emit()
 
         # Update the plot
         if self.rti_config.config.getboolean('PLOT', 'LIVE'):
@@ -111,7 +112,6 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         # Update the plot
         if self.rti_config.config.getboolean('PLOT', 'LIVE'):
             self.plot_data.plot_ens(ens)
-
 
     def add_ens(self, ens):
         """

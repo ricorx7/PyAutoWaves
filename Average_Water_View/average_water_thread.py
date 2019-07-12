@@ -283,19 +283,19 @@ class AverageWaterThread(QThread):
 
         # Transducer Depth Data
         if awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH]:
-            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],         # Transducer Depth Data average
+            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],  # Transducer Depth Data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_XDCR_DEPTH,                              # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
+            csv_rows += csv_row
+            df_datas += df_data
 
         # Transducer Depth Data
-        if awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH]:
-            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],
-                                                 # Transducer Depth Data average
-                                                 awc_key,  # Key for subsystem code and config
-                                                 Ensemble.CSV_XDCR_DEPTH,  # Data Type Title
-                                                 awc_avg[
-                                                     AverageWaterColumn.INDEX_LAST_TIME])  # Last  time in average
+        if awc_avg[AverageWaterColumn.INDEX_RANGE_TRACK]:
+            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_RANGE_TRACK], # Transducer Depth Data average
+                                                 awc_key,                                       # Key for subsystem code and config
+                                                 Ensemble.CSV_RT_RANGE,                         # Data Type Title
+                                                 awc_avg[AverageWaterColumn.INDEX_LAST_TIME])   # Last  time in average
             csv_rows += csv_row
             df_datas += df_data
 
