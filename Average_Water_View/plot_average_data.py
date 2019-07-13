@@ -16,6 +16,7 @@ from bokeh.layouts import row, column, gridplot, layout, grid
 import time
 from threading import Lock, Thread
 from rti_python.Ensemble import Ensemble
+from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
 
 
 class PlotAverageData:
@@ -61,10 +62,10 @@ class PlotAverageData:
         self.buffer_dash_df = deque(maxlen=int(self.rti_config.config['Waves']['ENS_IN_BURST'])*2)
         self.buffer_dash_ens = deque(maxlen=int(self.rti_config.config['Waves']['ENS_IN_BURST']) * 2)
         self.thread_lock = Lock()
-        self.csv_file_path = ""
 
-    def set_csv_file_path(self, file_path):
-        self.csv_file_path = file_path
+        self.max_points = 4096
+        if int(self.rti_config.config['PLOT']['MAX_POINTS']) > 0:
+            self.max_points = int(self.rti_config.config['PLOT']['MAX_POINTS'])
 
     def create_bokeh_plots(self):
         """
@@ -213,17 +214,12 @@ class PlotAverageData:
 
         doc.add_root(plot_layout)
 
-        # Determine which callback function to used based off averaging is turned on or off
-        # If averaging is turned on, use the df buffered data
-        # If averaging is turned off, use the ens buffered data
-        if int(self.rti_config.config['AWC']['num_ensembles']) > 1:
-            doc.add_periodic_callback(self.update_live_plot_df, callback_rate)
-        else:
-            doc.add_periodic_callback(self.update_live_plot_ens, callback_rate)
+        # Callback toupdate the plot
+        doc.add_periodic_callback(self.update_live_plot, callback_rate)
 
         doc.title = "ADCP Dashboard"
 
-    def update_live_plot_df(self):
+    def update_live_plot(self):
         """
         Update the plot with live data.
         This will be called by the bokeh callback.
@@ -239,202 +235,7 @@ class PlotAverageData:
 
         # Lock the thread so not updating the data while
         # trying to update the display
-        t = time.process_time()
-        with self.thread_lock:
-
-            # Load all the data from the buffer
-            # Each dataframe takes about 2 second to process
-            # Limit the number of df to process to ensure there is
-            # enough time to display before the next plot update
-            for x in range(min(round(len(self.buffer_dash_df)), 50)):
-                if self.buffer_dash_df:
-                    self.process_dashboard_buffer(self.buffer_dash_df.popleft())
-
-            print("Ens Buff Size: " + str(len(self.buffer_dash_df)))
-
-            # Verify that a least one complete dataset has been received
-            if len(self.buffer_datetime) > 0 and len(self.buffer_wave_height) > 0 and len(self.buffer_earth_east_1) > 0 and len(self.buffer_earth_east_2) > 0 and len(self.buffer_earth_east_3) > 0 and len(self.buffer_earth_north_1) > 0 and len(self.buffer_earth_north_2) > 0 and len(self.buffer_earth_north_3) > 0 and len(self.buffer_mag_1) > 0 and len(self.buffer_mag_2) > 0 and len(self.buffer_mag_3) > 0 and len(self.buffer_dir_1) > 0 and len(self.buffer_dir_2) > 0 and len(self.buffer_dir_3) > 0:
-
-                date_list = []
-                wave_height_list = []
-                range_track_list = []
-                earth_east_1 = []
-                earth_east_2 = []
-                earth_east_3 = []
-                earth_north_1 = []
-                earth_north_2 = []
-                earth_north_3 = []
-                mag_1 = []
-                mag_2 = []
-                mag_3 = []
-                dir_1 = []
-                dir_2 = []
-                dir_3 = []
-
-                while self.buffer_datetime:
-                    date_list.append(self.buffer_datetime.popleft())
-                while self.buffer_wave_height:
-                    wave_height_list.append(self.buffer_wave_height.popleft())
-                while self.buffer_range_track:
-                    range_track_list.append(self.buffer_range_track.popleft())
-                while self.buffer_earth_east_1:
-                    earth_east_1.append(self.buffer_earth_east_1.popleft())
-                while self.buffer_earth_east_2:
-                    earth_east_2.append(self.buffer_earth_east_2.popleft())
-                while self.buffer_earth_east_3:
-                    earth_east_3.append(self.buffer_earth_east_3.popleft())
-                while self.buffer_earth_north_1:
-                    earth_north_1.append(self.buffer_earth_north_1.popleft())
-                while self.buffer_earth_north_2:
-                    earth_north_2.append(self.buffer_earth_north_2.popleft())
-                while self.buffer_earth_north_3:
-                    earth_north_3.append(self.buffer_earth_north_3.popleft())
-                while self.buffer_mag_1:
-                    mag_1.append(self.buffer_mag_1.popleft())
-                while self.buffer_mag_2:
-                    mag_2.append(self.buffer_mag_2.popleft())
-                while self.buffer_mag_3:
-                    mag_3.append(self.buffer_mag_3.popleft())
-                while self.buffer_dir_1:
-                    dir_1.append(self.buffer_dir_1.popleft())
-                while self.buffer_dir_2:
-                    dir_2.append(self.buffer_dir_2.popleft())
-                while self.buffer_dir_3:
-                    dir_3.append(self.buffer_dir_3.popleft())
-
-                new_data = {'date': date_list,
-                            'wave_height': wave_height_list,
-                            'range_track': range_track_list,
-                            'earth_east_1': earth_east_1,
-                            'earth_east_2': earth_east_2,
-                            'earth_east_3': earth_east_3,
-                            'earth_north_1': earth_north_1,
-                            'earth_north_2': earth_north_2,
-                            'earth_north_3': earth_north_3,
-                            'mag_1': mag_1,
-                            'mag_2': mag_2,
-                            'mag_3': mag_3,
-                            'dir_1': dir_1,
-                            'dir_2': dir_2,
-                            'dir_3': dir_3}
-
-                self.cds.stream(new_data)
-        print("Update Plot: " + str(time.process_time() - t))
-
-    def update_live_plot_from_csv(self):
-        """
-        Update the plot with live data.
-        This will be called by the bokeh callback.
-
-        Take all the data from the buffers and populate
-        the ColumnDataSource.  All the lists in the ColumnDataSource
-        must have the same size.
-
-        Call Stream to update the plot.  This will append the latest data
-        to the plot.
-        :return:
-        """
-
-        # Lock the thread so not updating the data while
-        # trying to update the display
-        t = time.process_time()
-        with self.thread_lock:
-
-            date_list = []
-            wave_height_list = []
-            earth_east_1 = []
-            earth_east_2 = []
-            earth_east_3 = []
-            earth_north_1 = []
-            earth_north_2 = []
-            earth_north_3 = []
-            mag_1 = []
-            mag_2 = []
-            mag_3 = []
-            dir_1 = []
-            dir_2 = []
-            dir_3 = []
-
-            # Verify file path is not empty
-            if self.csv_file_path != "":
-
-                # Get the data from the CSV file as a dataframe
-                avg_df = pd.read_csv(self.csv_file_path)
-
-                if len(avg_df) > 0:
-
-                    # Wave Height and Datetime
-                    self.get_wave_height_list(avg_df, wave_height_list, date_list)
-
-                    # Selected bins
-                    bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
-                    bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
-                    bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
-
-                    #  Update buffers
-                    self.get_earth_vel_list(avg_df, bin_1, 0, earth_east_1)
-                    self.get_earth_vel_list(avg_df, bin_2, 0, earth_east_2)
-                    self.get_earth_vel_list(avg_df, bin_3, 0, earth_east_3)
-                    self.get_earth_vel_list(avg_df, bin_1, 1, earth_north_1)
-                    self.get_earth_vel_list(avg_df, bin_2, 1, earth_north_2)
-                    self.get_earth_vel_list(avg_df, bin_3, 1, earth_north_3)
-                    self.get_mag_list(avg_df, bin_1, mag_1)
-                    self.get_mag_list(avg_df, bin_2, mag_2)
-                    self.get_mag_list(avg_df, bin_3, mag_3)
-                    self.get_dir_list(avg_df, bin_1, dir_1)
-                    self.get_dir_list(avg_df, bin_2, dir_2)
-                    self.get_dir_list(avg_df, bin_3, dir_3)
-
-                    print("ee1 " + str(len(earth_east_1)))
-                    print("ee2 " + str(len(earth_east_2)))
-                    print("ee3 " + str(len(earth_east_3)))
-                    print("en1 " + str(len(earth_north_1)))
-                    print("en2 " + str(len(earth_north_2)))
-                    print("en3 " + str(len(earth_north_3)))
-                    print("mag1 " + str(len(mag_1)))
-                    print("mag2 " + str(len(mag_2)))
-                    print("mag3 " + str(len(mag_3)))
-                    print("dir1 " + str(len(dir_1)))
-                    print("dir2 " + str(len(dir_2)))
-                    print("dir3 " + str(len(dir_3)))
-
-                    if len(date_list) > 0 and len(wave_height_list) > 0 and len(earth_east_1) > 0 and len(earth_east_2) > 0 and len(earth_east_3) > 0 and len(earth_north_1) > 0 and len(earth_north_2) > 0 and len(earth_north_3) > 0 and len(mag_1) > 0 and len(mag_2) > 0 and len(mag_3) > 0 and len(dir_1) > 0 and len(dir_2) > 0 and len(dir_3) > 0:
-
-                        new_data = {'date': date_list,
-                                    'wave_height': wave_height_list,
-                                    'earth_east_1': earth_east_1,
-                                    'earth_east_2': earth_east_2,
-                                    'earth_east_3': earth_east_3,
-                                    'earth_north_1': earth_north_1,
-                                    'earth_north_2': earth_north_2,
-                                    'earth_north_3': earth_north_3,
-                                    'mag_1': mag_1,
-                                    'mag_2': mag_2,
-                                    'mag_3': mag_3,
-                                    'dir_1': dir_1,
-                                    'dir_2': dir_2,
-                                    'dir_3': dir_3}
-
-                        self.cds.stream(new_data)
-        print("Update Plot from CSV: " + str(time.process_time() - t))
-
-    def update_live_plot_ens(self):
-        """
-        Update the plot with live data.
-        This will be called by the bokeh callback.
-
-        Take all the data from the buffers and populate
-        the ColumnDataSource.  All the lists in the ColumnDataSource
-        must have the same size.
-
-        Call Stream to update the plot.  This will append the latest data
-        to the plot.
-        :return:
-        """
-
-        # Lock the thread so not updating the data while
-        # trying to update the display
-        t = time.process_time()
+        #t = time.process_time()
         with self.thread_lock:
 
             # Verify that a least one complete dataset has been received
@@ -503,19 +304,8 @@ class PlotAverageData:
                             'dir_2': dir_2,
                             'dir_3': dir_3}
 
-                self.cds.stream(new_data)
-        print("Update Plot: " + str(time.process_time() - t))
-
-    def update_dashboard(self, avg_df):
-        """
-        Buffer up the df.  They will be processed when the
-        display update callback function is called.
-        :param avg_df:
-        :return:
-        """
-        with self.thread_lock:
-            # Buffer up the data
-            self.buffer_dash_df.append(avg_df)
+                self.cds.stream(new_data, rollover=self.max_points)
+        #print("Update Plot: " + str(time.process_time() - t))
 
     def process_ens_group(self, fourbeam_ens, vert_ens):
         """
@@ -523,6 +313,9 @@ class PlotAverageData:
         This will take a 4 beam ensemble and a vertical beam ensemble
         and extract the data.  It will then add the data to buffers so
         they can be plotted.
+
+        If vert_ens is None, it means no vertical beam data is available, so use only the 4 beam data.
+
         :param fourbeam_ens: 4 or 3 Beam ensemble.
         :param vert_ens:  Vertical ensemble.
         :return:
@@ -546,6 +339,16 @@ class PlotAverageData:
 
             # 4 Beam data
             if fourbeam_ens:
+
+                # Check if no vertical beam exists
+                if not vert_ens:
+                    if vert_ens.IsAncillaryData:
+                        self.buffer_wave_height.append(fourbeam_ens.AncillaryData.TransducerDepth)  # Xdcr Depth
+                    if vert_ens.IsEnsembleData:
+                        self.buffer_datetime.append(fourbeam_ens.EnsembleData.datetime())           # Datetime
+                    if vert_ens.IsRangeTracking:
+                        self.buffer_range_track.append(fourbeam_ens.RangeTracking.avg_range())      # Range Tracking
+
                 if fourbeam_ens.IsEarthVelocity:
                     # East Bin 1
                     if not Ensemble.Ensemble.is_bad_velocity(fourbeam_ens.EarthVelocity.Velocities[bin_1][0]):
@@ -621,141 +424,166 @@ class PlotAverageData:
 
         #print("Process ENS: " + str(time.process_time() - t))
 
-    def process_dashboard_buffer(self, avg_df):
+    def process_awc_group(self, fourbeam_awc, vert_awc):
         """
-        Update the dashboard plots.
-        This will remove the data from the buffer and add it to the column data source for the plot.
+        Add the AverageWaterColumn data to the plot buffers.
+        This will take the AverageWaterColumn object and extract the data.
+        It will then add the data to buffers so they can be plotted.
 
-        Dataframe columns: ["datetime", "data_type", "ss_code", "ss_config", "bin_num", "beam_num", "blank", "bin_size", "value"]
-        :param avg_df: Dataframe to update the plots.
+        AWC
+        [ss_code, ss_config, num_beams, num_bins, Beam, Instrument, Earth, Mag, Dir, Pressure, xdcr_depth, first_time, last_time, range_track]
+
+        If vert_awc is None, it means no vertical beam data is available, so use only the 4 beam data.
+
+        :param fourbeam_awc: Average Water Column data for 4 beam data.
+        :param vert_awc: Average Water Column data for vert beam data.
         :return:
         """
+        #t = time.process_time()
+        with self.thread_lock:
 
-        # Lock the thread while trying to update the data
-        # while trying to update the display
-        t = time.process_time()
+            # Selected bins
+            bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
+            bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
+            bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
 
-        # Wave Height and Datetime
-        self.get_wave_height_list(avg_df, self.buffer_wave_height, self.buffer_datetime)
+            if vert_awc:
+                # Datetime
+                if vert_awc[AverageWaterColumn.INDEX_LAST_TIME]:
+                    self.buffer_datetime.append(vert_awc[AverageWaterColumn.INDEX_LAST_TIME])                # Should only be 1 value
 
-        # Range Tracking
-        self.get_range_track_list(avg_df, self.buffer_range_track)
+                # Xdcr Depth
+                if vert_awc[AverageWaterColumn.INDEX_XDCR_DEPTH] and len(vert_awc[AverageWaterColumn.INDEX_XDCR_DEPTH]) > 0:
+                    self.buffer_wave_height.append(vert_awc[AverageWaterColumn.INDEX_XDCR_DEPTH][-1])        # Should only be 1 value
 
-        # Selected bins
-        bin_1 = int(self.rti_config.config['Waves']['selected_bin_1'])
-        bin_2 = int(self.rti_config.config['Waves']['selected_bin_2'])
-        bin_3 = int(self.rti_config.config['Waves']['selected_bin_3'])
+                # Range Tracking
+                if vert_awc[AverageWaterColumn.INDEX_RANGE_TRACK] and len(vert_awc[AverageWaterColumn.INDEX_RANGE_TRACK]) > 0:
+                    self.buffer_range_track.append(vert_awc[AverageWaterColumn.INDEX_RANGE_TRACK][-1])       # Should only be 1 beam
 
-        #  Update buffers
-        self.get_earth_vel_list(avg_df, bin_1, 0, self.buffer_earth_east_1)
-        self.get_earth_vel_list(avg_df, bin_2, 0, self.buffer_earth_east_2)
-        self.get_earth_vel_list(avg_df, bin_3, 0, self.buffer_earth_east_3)
-        self.get_earth_vel_list(avg_df, bin_1, 1, self.buffer_earth_north_1)
-        self.get_earth_vel_list(avg_df, bin_2, 1, self.buffer_earth_north_2)
-        self.get_earth_vel_list(avg_df, bin_3, 1, self.buffer_earth_north_3)
-        self.get_mag_list(avg_df, bin_1, self.buffer_mag_1)
-        self.get_mag_list(avg_df, bin_2, self.buffer_mag_2)
-        self.get_mag_list(avg_df, bin_3, self.buffer_mag_3)
-        self.get_dir_list(avg_df, bin_1, self.buffer_dir_1)
-        self.get_dir_list(avg_df, bin_2, self.buffer_dir_2)
-        self.get_dir_list(avg_df, bin_3, self.buffer_dir_3)
+            # 4 Beam data
+            if fourbeam_awc:
 
-        print("Update Dashboard: " + str(time.process_time() - t) + " " + str(avg_df.shape))
+                # Check if no vertical beam exist
+                if not vert_awc:
+                    # Datetime
+                    if fourbeam_awc[AverageWaterColumn.INDEX_LAST_TIME]:
+                        self.buffer_datetime.append(fourbeam_awc[AverageWaterColumn.INDEX_LAST_TIME])  # Should only be 1 value
 
-    def get_wave_height_list(self, avg_df, buffer_wave, buffer_dt):
-        """
-        Add The wave height and datetime data to the buffer.
-        :param avg_df: Dataframe with the latest data.
-        :param buffer_wave: Wave Height Buffer.
-        :param buffer_dt: Datetime Buffer.
-        :return:
-        """
-        # Wave Height and Datetime
-        # & avg_df.ss_code.isin(vert_filter_list)]
-        wave_height_df = avg_df[(avg_df.data_type.str.contains("XdcrDepth")) &
-                       ((avg_df.ss_code.str.contains("A")) |
-                        (avg_df.ss_code.str.contains("B")) |
-                        (avg_df.ss_code.str.contains("C")))]
+                    # Xdcr Depth
+                    if fourbeam_awc[AverageWaterColumn.INDEX_XDCR_DEPTH] and len(fourbeam_awc[AverageWaterColumn.INDEX_XDCR_DEPTH]) > 0:
+                        self.buffer_wave_height.append(fourbeam_awc[AverageWaterColumn.INDEX_XDCR_DEPTH][-1])  # Should only be 1 value
 
-        last_row = wave_height_df.tail(1)
-        if not last_row.empty:
-            buffer_wave.append(last_row['value'].values[0])
-            buffer_dt.append(last_row['datetime'].values[0])
+                    # Range Tracking
+                    if fourbeam_awc[AverageWaterColumn.INDEX_RANGE_TRACK] and len(fourbeam_awc[AverageWaterColumn.INDEX_RANGE_TRACK]) > 0:
+                        self.buffer_range_track.append(fourbeam_awc[AverageWaterColumn.INDEX_RANGE_TRACK][-1])  # Should only be 1 beam
 
-    def get_range_track_list(self, avg_df, buffer_range_track,):
-        """
-        Add The vertical beam range tracking data to the buffer.
-        :param avg_df: Dataframe with the latest data.
-        :param buffer_range_track: Wave Height Buffer.
-        :return:
-        """
-        # Wave Height and Datetime
-        # & avg_df.ss_code.isin(vert_filter_list)]
-        range_track_df = avg_df[(avg_df.data_type.str.contains("RT_Range")) &
-                       ((avg_df.ss_code.str.contains("A")) |
-                        (avg_df.ss_code.str.contains("B")) |
-                        (avg_df.ss_code.str.contains("C"))) &
-                        (avg_df.beam_num == 0)]
+                # East Bin 1
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH]) > bin_1 and len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_1]) > 0:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_1][0]):        # Check for bad velocity
+                        self.buffer_earth_east_1.append(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_1][0])
+                    else:
+                        self.buffer_earth_east_1.append(0.0)
+                else:
+                    self.buffer_earth_east_1.append(0.0)
 
-        last_row = range_track_df.tail(1)
-        if not last_row.empty:
-            buffer_range_track.append(last_row['value'].values[0])
+                # East Bin 2
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH]) > bin_2 and len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_2]) > 0:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_2][0]):        # Check for bad velocity
+                        self.buffer_earth_east_2.append(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_2][0])
+                    else:
+                        self.buffer_earth_east_2.append(0.0)
+                else:
+                    self.buffer_earth_east_2.append(0.0)
 
-    def get_earth_vel_list(self, avg_df, bin_num, beam, buffer):
-        """
-        Get the Earth Velocity data based off the bin and beam given.
-        :param avg_df: Dataframe with earth velocity data.
-        :param bin_num: Bin number to select.
-        :param beam: Beam Number to select
-        :param buffer: Buffer to add data to.
-        :return: List of all the data found in the dataframe
-        """
+                # East Bin 3
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH]) > bin_3 and len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_3]) > 0:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_3][0]):        # Check for bad velocity
+                        self.buffer_earth_east_3.append(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_3][0])
+                    else:
+                        self.buffer_earth_east_3.append(0.0)
+                else:
+                    self.buffer_earth_east_3.append(0.0)
 
-        earth_vel_df = avg_df.loc[(avg_df.data_type.str.contains("EarthVel")) &
-                                  (avg_df['bin_num'] == bin_num) &
-                                  (avg_df['beam_num'] == beam) &
-                                  (avg_df['ss_code'] != 'A') &      # Not a vertical beam
-                                  (avg_df['ss_code'] != 'B') &
-                                  (avg_df['ss_code'] != 'C')]
+                # North Bin 1
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH]) > bin_1 and len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_1]) > 1:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_1][1]):        # Check for bad velocity
+                        self.buffer_earth_north_1.append(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_1][1])
+                    else:
+                        self.buffer_earth_north_1.append(0.0)
+                else:
+                    self.buffer_earth_north_1.append(0.0)
 
-        last_row = earth_vel_df.tail(1)
-        if not last_row.empty:
-            buffer.append(last_row['value'].values[0])
+                # North Bin 2
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH]) > bin_2 and len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_2]) > 1:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_2][1]):        # Check for bad velocity
+                        self.buffer_earth_north_2.append(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_2][1])
+                    else:
+                        self.buffer_earth_north_2.append(0.0)
+                else:
+                    self.buffer_earth_north_2.append(0.0)
 
-    def get_mag_list(self, avg_df, bin_num, buffer):
-        """
-        Get the Water Velocity data based off the bin and beam given.
-        :param avg_df: Dataframe with Water Velocity data.
-        :param bin_num: Bin number to select.
-        :param buffer: Buffer to add data to.
-        :return: List of all the data found in the dataframe
-        """
+                # North Bin 3
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH]) > bin_3 and len(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_3]) > 1:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_3][1]):        # Check for bad velocity
+                        self.buffer_earth_north_3.append(fourbeam_awc[AverageWaterColumn.INDEX_EARTH][bin_3][1])
+                    else:
+                        self.buffer_earth_north_3.append(0.0)
+                else:
+                    self.buffer_earth_north_3.append(0.0)
 
-        mag_df = avg_df.loc[(avg_df.data_type.str.contains("Magnitude")) &
-                                  (avg_df['bin_num'] == bin_num) &
-                                  (avg_df['ss_code'] != 'A') &      # Not a vertical beam
-                                  (avg_df['ss_code'] != 'B') &
-                                  (avg_df['ss_code'] != 'C')]
+                # Mag 1
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_MAG]) > bin_1:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_MAG][bin_1]):            # Check for bad velocity
+                        self.buffer_mag_1.append(fourbeam_awc[AverageWaterColumn.INDEX_MAG][bin_1])
+                    else:
+                        self.buffer_mag_1.append(0.0)
+                else:
+                    self.buffer_mag_1.append(0.0)
 
-        last_row = mag_df.tail(1)
-        if not last_row.empty:
-            buffer.append(last_row['value'].values[0])
+                # Mag 2
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_MAG]) > bin_2:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_MAG][bin_2]):
+                        self.buffer_mag_2.append(fourbeam_awc[AverageWaterColumn.INDEX_MAG][bin_2])
+                    else:
+                        self.buffer_mag_2.append(0.0)
+                else:
+                    self.buffer_mag_2.append(0.0)
 
-    def get_dir_list(self, avg_df, bin_num, buffer):
-        """
-        Get the Water Direction data based off the bin and beam given.
-        :param avg_df: Dataframe with Water Direction data.
-        :param bin_num: Bin number to select.
-        :param buffer: Buffer to add data to.
-        :return: List of all the data found in the dataframe
-        """
+                # Mag 3
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_MAG]) > bin_3:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_MAG][bin_3]):
+                        self.buffer_mag_3.append(fourbeam_awc[AverageWaterColumn.INDEX_MAG][bin_3])
+                    else:
+                        self.buffer_mag_3.append(0.0)
+                else:
+                    self.buffer_mag_3.append(0.0)
 
-        dir_df = avg_df[(avg_df.data_type.str.contains("Direction")) &
-                                  (avg_df['bin_num'] == bin_num) &
-                                  (avg_df['ss_code'] != 'A') &      # Not a vertical beam
-                                  (avg_df['ss_code'] != 'B') &
-                                  (avg_df['ss_code'] != 'C')]
+                # Dir 1
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_DIR]) > bin_1:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_DIR][bin_1]):
+                        self.buffer_dir_1.append(fourbeam_awc[AverageWaterColumn.INDEX_DIR][bin_1])
+                    else:
+                        self.buffer_dir_1.append(0.0)
+                else:
+                    self.buffer_dir_1.append(0.0)
 
-        last_row = dir_df.tail(1)
-        if not last_row.empty:
-            buffer.append(last_row['value'].values[0])
+                # Dir 2
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_DIR]) > bin_2:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_DIR][bin_2]):
+                        self.buffer_dir_2.append(fourbeam_awc[AverageWaterColumn.INDEX_DIR][bin_2])
+                    else:
+                        self.buffer_dir_2.append(0.0)
+                else:
+                    self.buffer_dir_2.append(0.0)
+
+                # Dir 3
+                if len(fourbeam_awc[AverageWaterColumn.INDEX_DIR]) > bin_3:
+                    if not Ensemble.Ensemble.is_bad_velocity(fourbeam_awc[AverageWaterColumn.INDEX_DIR][bin_3]):
+                        self.buffer_dir_3.append(fourbeam_awc[AverageWaterColumn.INDEX_DIR][bin_3])
+                    else:
+                        self.buffer_dir_3.append(0.0)
+                else:
+                    self.buffer_dir_3.append(0.0)
+
+        #print("Process AWC: " + str(time.process_time() - t))
+

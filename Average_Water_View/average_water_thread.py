@@ -5,7 +5,7 @@ from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColum
 import logging
 import csv
 import datetime
-from threading import Event, Thread
+from threading import Event, Thread, Lock
 import multiprocessing
 import os
 import pandas as pd
@@ -32,6 +32,7 @@ class AverageWaterThread(QThread):
         self.thread_alive = True
         self.event = Event()
         self.mutex = QMutex()
+        self.thread_lock = Lock()
 
         self.ens_queue = collections.deque()
 
@@ -183,7 +184,7 @@ class AverageWaterThread(QThread):
         """
         if ens:
             # Generate the CSV date for the file
-            csv_data, df_data = self.generate_csv_data_no_avg(ens)
+            csv_data = self.generate_csv_data_no_avg(ens)
 
             # Update CSV file
             self.write_csv_file(csv_data)
@@ -194,38 +195,32 @@ class AverageWaterThread(QThread):
     def average_and_display(self):
         """
         Average the data and display the data.
+        Each subsystem will take the average.  Then
+        pass the AverageWaterColumn to the be plotted.
+        Also call to update the progress bar.
         :return:
         """
         accum_df = pd.DataFrame([], columns=self.df_columns)
 
+        # Go through each subsystem config and average the data
         for awc_key in self.awc_dict.keys():
             # Average the data
             awc_average = self.awc_dict[awc_key].average()
 
             # Generate the CSV date for the file
-            csv_data, df_data = self.generate_csv_data(awc_average, awc_key)
+            csv_data = self.generate_csv_data(awc_average, awc_key)
 
             # Update CSV file
             self.write_csv_file(csv_data)
 
-            # Update the dataframe
-            df = pd.DataFrame(df_data, columns=self.df_columns)
-            if accum_df.empty:
-                accum_df = df
-                accum_df['datetime'] = pd.to_datetime(accum_df['datetime'])
-            else:
-                accum_df = accum_df.append(df)
+            # Signal that the average was taken
+            self.parent.avg_taken()
+
+            # Passed the average data to be plotted
+            self.parent.plot_awc(awc_average)
 
         # Reset the counter
         self.avg_counter = 0
-
-        # Sort the data by date and time
-        accum_df.sort_values(by=['datetime'], inplace=True)
-
-        # Emit signal that average taken
-        # so file list can be updated
-        if not accum_df.empty:
-            self.parent.avg_taken(accum_df)
 
     def get_file_name(self, path):
         """
@@ -246,60 +241,56 @@ class AverageWaterThread(QThread):
         :return:
         """
         csv_rows = []
-        df_datas = []
+
         # Earth Velocity data
         if awc_avg[AverageWaterColumn.INDEX_EARTH]:
-            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_EARTH],              # Earth Velocity data average
+            csv_row = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_EARTH],              # Earth Velocity data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_EARTH_VEL,                               # Data Type CSV Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
             csv_rows += csv_row
-            df_datas += df_data
+
         # Mag Data
         if awc_avg[AverageWaterColumn.INDEX_MAG]:
-            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_MAG],                # Mag data average
+            csv_row = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_MAG],                # Mag data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_MAG,                                     # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last time in average
             csv_rows += csv_row
-            df_datas += df_data
+
         # Dir Data
         if awc_avg[AverageWaterColumn.INDEX_DIR]:
-            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_DIR],                # Dir Data average
+            csv_row = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_DIR],                # Dir Data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_DIR,                                     # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
             csv_rows += csv_row
-            df_datas += df_data
 
         # Pressure Data
         if awc_avg[AverageWaterColumn.INDEX_PRESSURE]:
-            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_PRESSURE],           # Pressure Data average
+            csv_row = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_PRESSURE],           # Pressure Data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_PRESSURE,                                # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
             csv_rows += csv_row
-            df_datas += df_data
 
         # Transducer Depth Data
         if awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH]:
-            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],  # Transducer Depth Data average
+            csv_row = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_XDCR_DEPTH],  # Transducer Depth Data average
                                           awc_key,                                              # Key for subsystem code and config
                                           Ensemble.CSV_XDCR_DEPTH,                              # Data Type Title
                                           awc_avg[AverageWaterColumn.INDEX_LAST_TIME])          # Last  time in average
             csv_rows += csv_row
-            df_datas += df_data
 
         # Transducer Depth Data
         if awc_avg[AverageWaterColumn.INDEX_RANGE_TRACK]:
-            csv_row, df_data = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_RANGE_TRACK], # Transducer Depth Data average
+            csv_row = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_RANGE_TRACK], # Transducer Depth Data average
                                                  awc_key,                                       # Key for subsystem code and config
                                                  Ensemble.CSV_RT_RANGE,                         # Data Type Title
                                                  awc_avg[AverageWaterColumn.INDEX_LAST_TIME])   # Last  time in average
             csv_rows += csv_row
-            df_datas += df_data
 
-        return csv_rows, df_datas
+        return csv_rows
 
     def generate_csv_data_no_avg(self, ens):
         """
@@ -309,7 +300,6 @@ class AverageWaterThread(QThread):
         :return:
         """
         csv_rows = []
-        df_datas = []
 
         dt = datetime.datetime.now()
         ss_code = 0
@@ -330,17 +320,14 @@ class AverageWaterThread(QThread):
 
             # Pressure
             csv_rows.append([Ensemble.gen_csv_line(dt, Ensemble.CSV_PRESSURE, ss_code, ss_config, 0, 0, blank, bin_size, pressure)])
-            df_datas.append([dt, Ensemble.CSV_PRESSURE, ss_code, ss_config, 0, 0, blank, bin_size, pressure])
 
             # Transducer Depth
             csv_rows.append([Ensemble.gen_csv_line(dt, Ensemble.CSV_XDCR_DEPTH, ss_code, ss_config, 0, 0, blank, bin_size, xdcr_depth)])
-            df_datas.append([dt, Ensemble.CSV_XDCR_DEPTH, ss_code, ss_config, 0, 0, blank, bin_size, xdcr_depth])
 
         if ens.IsEarthVelocity:
             csv_rows += (ens.EarthVelocity.encode_csv(dt, ss_code, ss_config, blank, bin_size))
-            df_datas += (ens.EarthVelocity.encode_df(dt, ss_code, ss_config, blank, bin_size))
 
-        return csv_rows, df_datas
+        return csv_rows
 
     def write_csv_file(self, csv_rows):
         """
@@ -397,7 +384,6 @@ class AverageWaterThread(QThread):
         bin_num = 1
         beam_num = 0
         row_data = []
-        df_data = []
 
         # Go through each bin and add a line to the csv file
         for bin_data in data:
@@ -406,16 +392,14 @@ class AverageWaterThread(QThread):
                 for beam_data in bin_data:
                     val = beam_data
                     row_data.append([(Ensemble.gen_csv_line(dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, val))])
-                    df_data.append([dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, val])
                     beam_num += 1
             else:
                 row_data.append([(Ensemble.gen_csv_line(dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, bin_data))])
-                df_data.append([dt_time, data_type, ss_code, ss_config, bin_num, beam_num, blank, bin_size, bin_data])
 
             # Increment the bin number
             bin_num += 1
 
-        return row_data, df_data
+        return row_data
 
     def check_or_create_file(self):
         """

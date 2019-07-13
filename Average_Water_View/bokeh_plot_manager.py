@@ -5,6 +5,7 @@ import collections
 import pandas as pd
 import logging
 import time
+from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
 
 
 class BokehPlotManager(QThread):
@@ -28,6 +29,7 @@ class BokehPlotManager(QThread):
         self.buff_count = 0
 
         self.last_4beam_ens = None
+        self.last_4beam_awc = None
 
         self.bokeh_app_list = []
 
@@ -63,42 +65,24 @@ class BokehPlotManager(QThread):
         # Initialize the bokeh server with the plots
         pad.setup_bokeh_server(doc)
 
-    def update_dashboard_from_file(self, file_path):
-        """
-        Update the dashboard from the CSV file given.
-        :param file_path: Path to the CSV file
-        :return:
-        """
-        try:
-            # Read in the CSV data
-            df = pd.read_csv(file_path)
-
-            # Update all the dashboards alive
-            #for app in self.bokeh_app_list:
-            #    app.update_dashboard(df)
-
-        except Exception as ex:
-            logging.error("Error reading CSV: " + str(ex))
-
-    def update_dashboard(self, avg_df):
+    def update_dashboard_awc(self, awc):
         """
         Buffer up the data to display on the dashboard.
-        :param avg_df: Dataframe containing the latest data.
+        :param awc: Latest AverageWaterColumn data to plot.
         :return:
         """
         # Add data to the queue
-        self.data_queue.append(avg_df)
+        self.data_queue.append(awc)
 
         self.buff_count += 1
 
-        #if self.buff_count >= int(self.rti_config.config['PLOT']['BUFF_SIZE']):
         # Wakeup the thread
         self.event.set()
 
-    def plot_ens(self, ens):
+    def update_dashboard_ens(self, ens):
         """
         Buffer up the ensemble data and wakeup the thread.
-        :param ens:
+        :param ens: Latest ensemble to plot.
         :return:
         """
         # Add data to the queue
@@ -121,10 +105,10 @@ class BokehPlotManager(QThread):
             # Wait to be woken up
             self.event.wait()
 
-            # Process any data in the df buffer
+            # Process any data in the AverageWaterColumn buffer
             # This buffer is only used if averaging is done
             if len(self.data_queue) > 0:
-                self.process_df_buffer()
+                self.process_awc_buffer()
 
             # Process any data in the ensemble buffer
             # This buffer is only used if no averaging is done
@@ -136,9 +120,12 @@ class BokehPlotManager(QThread):
 
     def process_ens_buff(self):
         """
-        Process the ensemble buffer.  If no averaging is done,
-        then ensembles will be passed here.  Process all the ensembles
-        in the buffer.
+        Check the buffer for the latest data.  Look for a 4 beam and vertical beam
+        ensemble.  When both are found, then pass the data to be plotted.
+
+        It is assumed that the data will go in the order 4 beam then vertical beam.
+        So store the 4 beam data.  When vertical beam data is found, then use the
+        stored 4 beam data with the vertical beam data as a combination to plot the data.
         :return:
         """
 
@@ -152,7 +139,13 @@ class BokehPlotManager(QThread):
                 if ens.IsEnsembleData:
                     # Check if a 3 or 4 Beam ensemble
                     if ens.EnsembleData.NumBeams >= 3:
-                        self.last_4beam_ens = ens
+                        if not self.rti_config.config.getboolean('Waves', '4b_vert_pair'):
+                            # Pass only the 4 beam data to be plotted
+                            for app in self.bokeh_app_list:
+                                app.process_ens_group(fourbeam_ens=self.ens, vert_ens=None)
+                        else:
+                            # Buffer the last 4 Beam ENS
+                            self.last_4beam_ens = ens
                     # Check if it is a vertical beam ensemble
                     # If vertical beam, then process the data
                     elif ens.EnsembleData.NumBeams == 1:
@@ -162,21 +155,40 @@ class BokehPlotManager(QThread):
                             for app in self.bokeh_app_list:
                                 app.process_ens_group(fourbeam_ens=self.last_4beam_ens, vert_ens=ens)
 
-    def process_df_buffer(self):
+    def process_awc_buffer(self):
         """
-        This will check if the df queue has any data.
-        Then pop the data out of the and add the data to the display.
-        Update all the created dashboards in the list.
+        Check the buffer for the latest data.  Look for a 4 beam and vertical beam
+        AverageWaterColumn.  When both are found, then pass the data to be plotted.
+
+        It is assumed that the data will go in the order 4 beam then vertical beam.
+        So store the 4 beam data.  When vertical beam data is found, then use the
+        stored 4 beam data with the vertical beam data as a combination to plot the data.
         :return:
         """
         #start_loop = time.process_time()
         while len(self.data_queue) > 0:
 
-            # Remove the dataframe from the queue
-            avg_df = self.data_queue.popleft()
+            # Remove the AverageWaterColumn from the queue
+            awc = self.data_queue.popleft()
 
-            for app in self.bokeh_app_list:
-                app.update_dashboard(avg_df)
+            if awc:
+                # Check if a 3 or 4 Beam ensemble
+                if awc[AverageWaterColumn.INDEX_NUM_BEAM] >= 3:
+                    if not self.rti_config.config.getboolean('Waves', '4b_vert_pair'):
+                        # Pass the data to the plot to be processed
+                        for app in self.bokeh_app_list:
+                            app.process_awc_group(fourbeam_awc=awc, vert_awc=None)
+                    else:
+                        # Buffer the last 4 Beam AWC
+                        self.last_4beam_awc = awc
+                # Check if it is a vertical beam ensemble
+                # If vertical beam, then process the data
+                elif awc[AverageWaterColumn.INDEX_NUM_BEAM] == 1:
+                    # If a 4 Beam has been found, then group them into a list
+                    if self.last_4beam_awc:
+                        # Pass the data to the plot to be processed
+                        for app in self.bokeh_app_list:
+                            app.process_awc_group(fourbeam_awc=self.last_4beam_awc, vert_awc=awc)
 
         #print("Process DF buffer: " + str(time.process_time() - start_loop))
 

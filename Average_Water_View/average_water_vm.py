@@ -10,7 +10,6 @@ from bokeh.models import HoverTool
 from .average_water_thread import AverageWaterThread
 from .plot_average_data import PlotAverageData
 from .bokeh_plot_manager import BokehPlotManager
-from .plot_hv_average_data import PlotHvAverageData
 import math
 from . import average_water_view
 from rti_python.Post_Process.Average.AverageWaterColumn import AverageWaterColumn
@@ -83,24 +82,32 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
         self.latest_csv_file = file_path
 
     def increment_ens(self, ens_count):
-        self.increment_ens_sig.emit(ens_count)
-
-    def avg_taken(self, avg_df):
         """
-        Handle the Average being taken.
-        This will update the progress bar and update the plot
-        with the latest data.
-        :param avg_df:
+        Increment the average count.
+        :param ens_count:
         :return:
         """
+        self.increment_ens_sig.emit(ens_count)
 
+    def avg_taken(self):
+        """
+        Update the progress bar for the average taken.
+        :return:
+        """
         # Update the progress bar
         if int(self.rti_config.config['AWC']['num_ensembles']) > 1:
             self.avg_taken_sig.emit()
 
+    def plot_awc(self, awc):
+        """
+        Plot the Average Water Column data..
+        :param awc: Average water Column data.
+        :return:
+        """
+
         # Update the plot
         if self.rti_config.config.getboolean('PLOT', 'LIVE'):
-            self.plot_data.update_dashboard(avg_df)
+            self.plot_data.update_dashboard_awc(awc)
 
     def plot_ens(self, ens):
         """
@@ -111,7 +118,7 @@ class AverageWaterVM(average_water_view.Ui_AvgWater, QWidget):
 
         # Update the plot
         if self.rti_config.config.getboolean('PLOT', 'LIVE'):
-            self.plot_data.plot_ens(ens)
+            self.plot_data.update_dashboard_ens(ens)
 
     def add_ens(self, ens):
         """
