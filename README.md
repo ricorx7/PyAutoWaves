@@ -35,6 +35,19 @@ pyuic5 -x file.ui > -o file.py
 
 # Create PyAutoWaves application
 
+Load the virtualenv
+
+Linux
+```python
+source venv\bin\activate
+```
+
+Windows
+```python
+venv\Scripts\Activate
+
+```
+
 Add the following line to venv\Lib\site-packages\PyInstaller\hooks\hook-jsonschema.py
 ```bash
 import ..., copy_metadata
