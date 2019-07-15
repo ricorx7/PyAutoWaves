@@ -1,5 +1,8 @@
 PyAutoWaves ChangeLog
 
+PyAutoWaves 1.7.1
+ - Fixed possible memory leak in bokeh_plot_manager.
+
 PyAutoWaves 1.7
  - Do not average data if settings set to average 1 ensemble.
  - Optimize the no average displaying plots.
