@@ -34,7 +34,7 @@ class AverageWaterThread(QThread):
         self.mutex = QMutex()
         self.thread_lock = Lock()
 
-        self.ens_queue = collections.deque()
+        self.ens_queue = collections.deque(maxlen=int(self.rti_config.config['Waves']['ENS_IN_BURST'])*2)
 
         self.csv_file_path = ""
         self.csv_file_index = 1

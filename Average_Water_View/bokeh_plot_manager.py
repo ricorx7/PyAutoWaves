@@ -24,8 +24,8 @@ class BokehPlotManager(QThread):
         # Threading
         self.thread_alive = True
         self.event = Event()
-        self.data_queue = collections.deque()
-        self.ens_queue = collections.deque()
+        self.data_queue = collections.deque(maxlen=int(self.rti_config.config['PLOT']['MAX_POINTS']*2))
+        self.ens_queue = collections.deque(maxlen=int(self.rti_config.config['PLOT']['MAX_POINTS'])*2)
         self.buff_count = 0
 
         self.last_4beam_ens = None
