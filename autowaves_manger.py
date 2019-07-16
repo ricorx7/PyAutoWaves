@@ -8,6 +8,7 @@ from rti_python.Codecs.WaveForceCodec import WaveForceCodec
 from rti_python.Utilities.config import RtiConfig
 from rti_python.Codecs.BinaryCodec import BinaryCodec
 import time
+from rti_python.Utilities.qa_qc import EnsembleQC
 
 
 class AutoWavesManager:
@@ -41,7 +42,7 @@ class AutoWavesManager:
 
         # Ensemble processing thread
         self.ens_thread_alive = True
-        self.ens_queue = deque()
+        self.ens_queue = deque(maxlen=int(self.rti_config.config['Waves']['ens_in_burst'])*5)
         self.ens_thread_event = Event()
         self.ens_thread = Thread(name="autowaves_mgr", target=self.ens_thread_run)
         self.ens_thread.start()
@@ -194,6 +195,9 @@ class AutoWavesManager:
             while len(self.ens_queue) > 0:
                 # Get the data from the queue
                 ens = self.ens_queue.popleft()
+
+                # QA QC the data
+                EnsembleQC.scan_ensemble(ens)
 
                 # Add the data to the WaveForce Codec
                 self.wave_force_codec.add(ens)

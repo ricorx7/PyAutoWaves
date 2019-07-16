@@ -1,5 +1,8 @@
 PyAutoWaves ChangeLog
 
+PyAutoWaves 1.8
+ - Screen the velocity data before processing
+
 PyAutoWaves 1.7.1
  - Fixed possible memory leak in bokeh_plot_manager.
 
