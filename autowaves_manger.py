@@ -84,7 +84,8 @@ class AutoWavesManager:
                                                ps_depth=float(self.rti_config.config['Waves']['pressure_sensor_height']),
                                                height_source=height_source,
                                                corr_thresh=float(self.rti_config.config['Waves']['corr_thresh']),
-                                               pressure_offset=float(self.rti_config.config['Waves']['pressure_sensor_offset']))
+                                               pressure_offset=float(self.rti_config.config['Waves']['pressure_sensor_offset']),
+                                               replace_pressure_with_vert=self.rti_config.config['Waves'].getboolean('replace_pressure_with_vertical'))
 
         # Subscribe to receive ensembles and waves data
         self.adcp_codec.ensemble_event += self.ensemble_rcv

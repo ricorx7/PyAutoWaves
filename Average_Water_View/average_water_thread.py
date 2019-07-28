@@ -284,7 +284,7 @@ class AverageWaterThread(QThread):
 
         # Transducer Depth Data
         if awc_avg[AverageWaterColumn.INDEX_RANGE_TRACK]:
-            csv_row = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_RANGE_TRACK], # Transducer Depth Data average
+            csv_row = self.get_csv_data(awc_avg[AverageWaterColumn.INDEX_RANGE_TRACK], # Range Tracking Data average
                                                  awc_key,                                       # Key for subsystem code and config
                                                  Ensemble.CSV_RT_RANGE,                         # Data Type Title
                                                  awc_avg[AverageWaterColumn.INDEX_LAST_TIME])   # Last  time in average
@@ -323,6 +323,11 @@ class AverageWaterThread(QThread):
 
             # Transducer Depth
             csv_rows.append([Ensemble.gen_csv_line(dt, Ensemble.CSV_XDCR_DEPTH, ss_code, ss_config, 0, 0, blank, bin_size, xdcr_depth)])
+
+        if ens.IsRangeTracking:
+            for beam_num in range(len(ens.RangeTracking.Range)):
+                # Range Tracking
+                csv_rows.append([Ensemble.gen_csv_line(dt, Ensemble.CSV_RT_RANGE, ss_code, ss_config, 0, beam_num, blank, bin_size, ens.RangeTracking.Range[beam_num])])
 
         if ens.IsEarthVelocity:
             csv_rows += (ens.EarthVelocity.encode_csv(dt, ss_code, ss_config, blank, bin_size))
