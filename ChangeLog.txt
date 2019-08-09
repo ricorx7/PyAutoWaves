@@ -1,5 +1,9 @@
 PyAutoWaves ChangeLog
 
+PyAutoWaves 1.9
+ - Improved decoding binary data
+ - In WavesCodec, handle a single bin.
+
 PyAutoWaves 1.8
  - Screen the velocity data before processing
  - Added option to replace the Pressure Height in AutoWaves with Vertical Beam Height
