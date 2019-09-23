@@ -1,5 +1,11 @@
 PyAutoWaves ChangeLog
 
+PyAutoWaves 1.9.2
+ * Fixed bug in WaveEnsemble:add_4_beam, when handling a single bin.
+
+PyAutoWaves 1.9.1
+ - Fixed bug with screening for bad velocity and screening the directions greater than 88 deg.
+
 PyAutoWaves 1.9
  - Improved decoding binary data
  - In WavesCodec, handle a single bin.
