@@ -9,6 +9,7 @@ from rti_python.Utilities.config import RtiConfig
 from rti_python.Codecs.BinaryCodec import BinaryCodec
 import time
 from rti_python.Utilities.qa_qc import EnsembleQC
+from rti_python.Utilities.watchdog import Watchdog
 
 
 class AutoWavesManager:
@@ -27,6 +28,7 @@ class AutoWavesManager:
         :param avg_water_vm: Average Water Column VM.
         """
         self.parent = parent
+
         self.terminal_vm = terminal_vm
         self.setup_vm = setup_vm
         self.monitor_vm = monitor_vm
@@ -35,6 +37,9 @@ class AutoWavesManager:
         self.logger = logging.getLogger('root')
 
         self.rti_config = rti_config
+
+        # Setup Watchdog
+        self.watchdog = Watchdog(int(self.rti_config.config['Waves']['data_timeout']), self.watchdog_handler)
 
         self.adcp_codec = AdcpCodec()
 
@@ -113,6 +118,8 @@ class AutoWavesManager:
         """
         self.adcp_codec.shutdown()
 
+        self.watchdog.stop()
+
         # Shutdown the Ensemble thread
         self.ens_thread_alive = False
         self.ens_thread_event.set()
@@ -175,6 +182,9 @@ class AutoWavesManager:
         :param ens: Ensemble object
         :return:
         """
+        # Pet the watchdog
+        self.watchdog.pet()
+
         # Add the data to the queue
         self.ens_queue.append(ens)
 
@@ -376,3 +386,15 @@ class AutoWavesManager:
 
                 # Playback is too fast, so slow it down
                 #time.sleep(0.01)
+
+    def watchdog_handler(self):
+        # Reset the watchdog
+        self.watchdog.pet()
+
+        # Log the error
+        self.logger.error("No Data Received from the ADCP.")
+
+        # Email the user of the issue
+
+        # Try to fix the problem with the ADCP
+        self.terminal_vm.fix_adcp_comm()

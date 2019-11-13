@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'Setup_View\setup_view.ui'
+# Form implementation generated from reading ui file 'setup_view.ui'
 #
 # Created by: PyQt5 UI code generator 5.7.1
 #
@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Setup(object):
     def setupUi(self, Setup):
         Setup.setObjectName("Setup")
-        Setup.resize(404, 407)
+        Setup.resize(404, 549)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -120,6 +120,15 @@ class Ui_Setup(object):
         self.isVerticalDataCheckBox = QtWidgets.QCheckBox(self.groupBox)
         self.isVerticalDataCheckBox.setObjectName("isVerticalDataCheckBox")
         self.formLayout_2.setWidget(9, QtWidgets.QFormLayout.FieldRole, self.isVerticalDataCheckBox)
+        self.label_13 = QtWidgets.QLabel(self.groupBox)
+        self.label_13.setObjectName("label_13")
+        self.formLayout_2.setWidget(10, QtWidgets.QFormLayout.LabelRole, self.label_13)
+        self.dataTimeoutSpinBox = QtWidgets.QSpinBox(self.groupBox)
+        self.dataTimeoutSpinBox.setMinimum(0)
+        self.dataTimeoutSpinBox.setMaximum(9999)
+        self.dataTimeoutSpinBox.setProperty("value", 30)
+        self.dataTimeoutSpinBox.setObjectName("dataTimeoutSpinBox")
+        self.formLayout_2.setWidget(10, QtWidgets.QFormLayout.FieldRole, self.dataTimeoutSpinBox)
         self.verticalLayout_2.addLayout(self.formLayout_2)
         self.verticalLayout.addWidget(self.groupBox)
 
@@ -146,6 +155,7 @@ class Ui_Setup(object):
         self.label_9.setText(_translate("Setup", "Longitude"))
         self.label_11.setText(_translate("Setup", "Vertical Beam Data?"))
         self.isVerticalDataCheckBox.setText(_translate("Setup", " Vertical Data Included"))
+        self.label_13.setText(_translate("Setup", "Data Timeout (s)"))
 
 
 if __name__ == "__main__":

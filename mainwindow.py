@@ -39,6 +39,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rti_config.init_waves_config()
         self.rti_config.init_plot_server_config()
 
+        # Setup logging
+        log_file_path = self.rti_config.config['Waves']['output_dir'] + "/rti_waves.log"
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                            datefmt='%m-%d %H:%M',
+                            filename=log_file_path,
+                            filemode='a+')
+
         self.bokeh_app = None
 
         # Initialize Monitor
@@ -133,7 +141,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def main_window_init(self):
         # Set the title of the window
-        self.setWindowTitle("Rowe Technologies Inc. - AutoWaves Monitor v1.9.2")
+        self.setWindowTitle("Rowe Technologies Inc. - AutoWaves Monitor v1.9.3")
 
         self.setWindowIcon(QtGui.QIcon(":rti.ico"))
 

@@ -342,12 +342,18 @@ class PlotAverageData:
 
                 # Check if no vertical beam exists
                 if not vert_ens:
-                    if vert_ens.IsAncillaryData:
+                    if fourbeam_ens.IsAncillaryData:
                         self.buffer_wave_height.append(fourbeam_ens.AncillaryData.TransducerDepth)  # Xdcr Depth
-                    if vert_ens.IsEnsembleData:
+                    if fourbeam_ens.IsEnsembleData:
                         self.buffer_datetime.append(fourbeam_ens.EnsembleData.datetime())           # Datetime
-                    if vert_ens.IsRangeTracking:
+                    if fourbeam_ens.IsRangeTracking:
                         self.buffer_range_track.append(fourbeam_ens.RangeTracking.avg_range())      # Range Tracking
+                    # No Ancillary Pressure data but there is range tracking data, use Range Tracking
+                    if not fourbeam_ens.IsAncillaryData and fourbeam_ens.IsRangeTracking:
+                        self.buffer_range_track.append(fourbeam_ens.RangeTracking.avg_range())  # Range Tracking
+                    # If no Range Tracking, but Ancillary Data Pressure exist, use Pressure data
+                    if not fourbeam_ens.IsRangeTracking and fourbeam_ens.IsAncillaryData:
+                        self.buffer_wave_height.append(fourbeam_ens.AncillaryData.TransducerDepth)  # Xdcr Depth
 
                 if fourbeam_ens.IsEarthVelocity:
                     # East Bin 1

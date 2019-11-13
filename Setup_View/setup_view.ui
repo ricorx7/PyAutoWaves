@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>404</width>
-    <height>407</height>
+    <height>549</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -192,6 +192,26 @@
          <widget class="QCheckBox" name="isVerticalDataCheckBox">
           <property name="text">
            <string> Vertical Data Included</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="0">
+         <widget class="QLabel" name="label_13">
+          <property name="text">
+           <string>Data Timeout (s)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="1">
+         <widget class="QSpinBox" name="dataTimeoutSpinBox">
+          <property name="minimum">
+           <number>0</number>
+          </property>
+          <property name="maximum">
+           <number>9999</number>
+          </property>
+          <property name="value">
+           <number>30</number>
           </property>
          </widget>
         </item>

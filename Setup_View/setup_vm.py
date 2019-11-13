@@ -40,6 +40,10 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.numBurstEnsSpinBox.valueChanged.connect(self.update_settings)
         self.numBurstEnsSpinBox.setToolTip("Set the number of ensembles included in the burst.  A burst is a collections of ensembles used to calculate the waves features.  Default is 1024 ensembles")
 
+        self.dataTimeoutSpinBox.setValue(self.rti_config.config['Waves'].getint('data_timeout'))
+        self.dataTimeoutSpinBox.setToolTip("If a data is not received in this time in seconds, the software will try to email the user that there is a problem with the ADCP.")
+        self.dataTimeoutSpinBox.valueChanged.connect(self.update_settings)
+
         bin_list = []
         bin_list.append('Disable')
         for bin_num in range(200):
@@ -176,6 +180,7 @@ class SetupVM(setup_view.Ui_Setup, QWidget):
         self.rti_config.config['Waves']['pressure_sensor_offset'] = str(self.pressureSensorOffsetDoubleSpinBox.value())
         self.rti_config.config['Waves']['latitude'] = str(self.latitudeDoubleSpinBox.value())
         self.rti_config.config['Waves']['longitude'] = str(self.longitudeDoubleSpinBox.value())
+        self.rti_config.config['Waves']['data_timeout'] = str(self.dataTimeoutSpinBox.value())
         self.rti_config.config['AWC']['csv_max_hours'] = str(self.avgFileTimeDoubleSpinBox.value())
 
         if self.isVerticalDataCheckBox.isChecked():

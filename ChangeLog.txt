@@ -1,5 +1,8 @@
 PyAutoWaves ChangeLog
 
+PyAutoWaves 1.9.3
+ - Moved the position of the Pressure tab in the waves data.
+
 PyAutoWaves 1.9.2
  * Fixed bug in WaveEnsemble:add_4_beam, when handling a single bin.
 

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>823</width>
+    <width>953</width>
     <height>876</height>
    </rect>
   </property>
@@ -111,6 +111,23 @@
          </item>
          <item>
           <widget class="QTableWidget" name="wr0TableWidget"/>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="wpsTab">
+        <attribute name="title">
+         <string>Pressure</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_13">
+         <item>
+          <widget class="QLabel" name="label_12">
+           <property name="text">
+            <string>wps, wzp</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTableWidget" name="wpsTableWidget"/>
          </item>
         </layout>
        </widget>
@@ -304,23 +321,6 @@
          </item>
          <item>
           <widget class="QTableWidget" name="wzsTableWidget"/>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="wpsTab">
-        <attribute name="title">
-         <string>Pressure</string>
-        </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_13">
-         <item>
-          <widget class="QLabel" name="label_12">
-           <property name="text">
-            <string>wps, wzp</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTableWidget" name="wpsTableWidget"/>
          </item>
         </layout>
        </widget>

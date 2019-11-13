@@ -129,7 +129,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         """
         port = self.serialPortComboBox.currentText()
         baud = int(self.baudComboBox.currentText())
-        logging.debug("Serial Connect: " + port + " : " + self.baudComboBox.currentText())
+        logging.info("Serial Connect: " + port + " : " + self.baudComboBox.currentText())
         self.serialTextBrowser.append("Serial Connect: " + port + " : " + self.baudComboBox.currentText())
 
         # Store the configuration
@@ -168,7 +168,6 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         Disconnect the serial port and stop the read thread.
         :return:
         """
-        logging.debug("Serial Disconnect")
         self.adcp_thread_alive = False
 
         if self.adcp:
@@ -180,7 +179,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         self.serialPortComboBox.setDisabled(False)
         self.scanSerialPushButton.setDisabled(False)
         self.serialTextBrowser.append("Serial Disconnect.")
-        logging.debug("Serial Disconnect")
+        logging.info("Serial Disconnect")
 
     def serial_break(self):
         """
@@ -193,7 +192,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         # Send a BREAK
         if self.adcp:
             self.adcp.send_break(1.25)
-            logging.debug("BREAK SENT")
+            logging.info("BREAK SENT")
 
     def send_cmd(self):
         """
@@ -203,7 +202,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         if self.adcp:
             if len(self.cmdLineEdit.text()) > 0:
                 self.adcp.send_cmd(self.cmdLineEdit.text())
-                logging.debug("Write to serial port: " + self.cmdLineEdit.text())
+                logging.info("Write to serial port: " + self.cmdLineEdit.text())
 
                 # Clear the text
                 self.cmdLineEdit.setText("")
@@ -215,7 +214,7 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         """
         if self.adcp:
             self.adcp.start_pinging()
-            logging.debug("Start Pinging")
+            logging.info("Start Pinging")
 
     def stop_pinging(self):
         """
@@ -225,7 +224,24 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
         if self.adcp:
             self.serialTextBrowser.setHtml("")
             self.adcp.stop_pinging()
-            logging.debug("Stop Pinging")
+            logging.info("Stop Pinging")
+
+    def fix_adcp_comm(self):
+        """
+        If the ADCP stops communicating, try to fix the ADCP and regain communication.
+        :return:
+        """
+        if self.adcp:
+            # Send a BREAK
+            self.adcp.send_break(1.25)
+
+            # Wait
+            time.sleep(1.0)
+
+            # Send command to start pinging
+            self.adcp.start_pinging()
+        else:
+            logging.error("ADCP is not connected.")
 
     def shutdown(self):
         """

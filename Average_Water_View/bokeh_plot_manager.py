@@ -142,7 +142,7 @@ class BokehPlotManager(QThread):
                         if not self.rti_config.config.getboolean('Waves', '4b_vert_pair'):
                             # Pass only the 4 beam data to be plotted
                             for app in self.bokeh_app_list:
-                                app.process_ens_group(fourbeam_ens=self.ens, vert_ens=None)
+                                app.process_ens_group(fourbeam_ens=ens, vert_ens=None)
                         else:
                             # Buffer the last 4 Beam ENS
                             self.last_4beam_ens = ens
