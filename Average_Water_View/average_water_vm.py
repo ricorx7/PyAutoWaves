@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QFileDialog, QMessageBox, QTableWidget, QTableWidgetItem, QVBoxLayout
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QUrl, QEventLoop
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+#from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5 import QtGui, QtWidgets, QtCore
 from bokeh.plotting import figure, output_file, show, save

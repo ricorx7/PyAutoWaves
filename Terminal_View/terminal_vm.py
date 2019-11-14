@@ -238,6 +238,11 @@ class TerminalVM(terminal_view.Ui_Terminal, QWidget):
             # Wait
             time.sleep(1.0)
 
+            # Send a STOP
+            self.adcp.stop_pinging()
+
+            time.sleep(1.0)
+
             # Send command to start pinging
             self.adcp.start_pinging()
         else:
