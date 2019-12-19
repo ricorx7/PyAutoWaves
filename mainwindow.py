@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QAction, QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from Setup_View.setup_vm import SetupVM
-from Terminal_View.terminal_vm import TerminalVM
+from AdcpTerminal_pyqt5.terminal_vm import TerminalVM
 from Monitor_View.monitor_vm import MonitorVM
 from Average_Water_View.average_water_vm import AverageWaterVM
 import logging

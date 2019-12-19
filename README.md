@@ -1,10 +1,37 @@
+
+# Install Instructions
+* Install PyCharm
+```code bash
+git clone https://github.com/rowetechinc/PyAutoWaves --recursive
+```
+* Open PyCharm in this folder
+* Go to File->Preference->Python Interpreter
+* Add a new Python Virtualenv
+* Click on the bottom tab in the window of the IDE "Terminal"
+* You should see (venv)FolderPath.  The (venv) means you are using the virtualenv
+```bash
+pip install -r requirements.txt
+pip install -r rti_python/requirements.txt
+```
+* Right Click on the file mainwindow.py and select Debug 'mainwindow'
+
+Python prefers not to use camalCase and instead prefers to use under_score_variables  (_).
+
+
+Bokeh requires a server to run, the application starts the servers.  A web browser appears when the application starts with empty plots.  Select File->Playback and playback any ensemble file.  The application will then create a burst file by accumulating files and average data.  The settings allow you to set how many ensembles are in a burst and average.
+
+
+If you copy this code to another computer, the config.ini file contains your computers IP address.  Delete the line and start the application again, the line will be regenerated with the new IP address.  This is really the only problem you should run into.
+
+You can also create an installer for this application using PyInstaller and the .spec file.
+
 # Run Application
 ```bash
 python mainwindow.py
 ```
 
 
-#Compile QT5 .UI files
+# Compile QT5 .UI files
 OSX
 ```javascript
 pyuic5 -x file.ui -o file.py
