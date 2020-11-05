@@ -59,10 +59,11 @@ class WaveDataVM(wavedata_view.Ui_WaveDataDialog, QWidget):
         self.lonLabel.setText("Longitude: " + str(mat_data['lon'][0][0]))
 
         tfe_dt = WaveForceCodec.matlab_to_python_datetime(float(mat_data['wft'][0][0]))
-        tfe = tfe_dt.strftime('%Y-%m-%d %H:%M:%S')
-        self.timeFirstEnsembleLabel.setText("Time of First Ensemble: " + tfe)
-        self.timeBetweenEnsembleLabel.setText("Time Between Ensembles (sec): " + str(round(mat_data['wdt'][0][0], 2)))
-        self.pressureSensorHeightLabel.setText("Pressure Sensor Height (m): " + str(mat_data['whp'][0][0]))
+        if tfe_dt > 0:
+            tfe = tfe_dt.strftime('%Y-%m-%d %H:%M:%S')
+            self.timeFirstEnsembleLabel.setText("Time of First Ensemble: " + tfe)
+            self.timeBetweenEnsembleLabel.setText("Time Between Ensembles (sec): " + str(round(mat_data['wdt'][0][0], 2)))
+            self.pressureSensorHeightLabel.setText("Pressure Sensor Height (m): " + str(mat_data['whp'][0][0]))
 
         # Display the MATLAB as a string
         self.textBrowser.setText(str(mat_data) + str(sio.whosmat(self.file_path)))

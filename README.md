@@ -1,6 +1,11 @@
 # Code Name - PyAutoWaves
 This python project uses QT and Bokeh.  The plots are displayed in the web browser live.  The QT UI is used to configure the software and ADCP.  It has a terminal and can view our waves MATLAB files from the file tree.  You can playback a file or view live data.
 
+![PyAutowaves](http://rowetechinc.co/github_img/pyautowaves.png)
+
+![PyAutowaves Settings](http://rowetechinc.co/github_img/pyautowaves-settings.png)
+
+![PyAutowaves Plots](http://rowetechinc.co/github_img/pyautowaves-plots.png)
 
 # Install Instructions
 * Install PyCharm
